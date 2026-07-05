@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>회계 짝맞추기 : 거래와 분개 카드 게임</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@700;900&family=Noto+Sans+KR:wght@400;500;700&family=Roboto+Mono:wght@500;700&display=swap');
+:root{
+  --cover:#1F3D2E; --paper:#F3EEDD; --paper-line:#DDD5B8; --ink:#223447;
+  --gold:#B8892B; --ok:#2F6B5E; --bad:#7A2E2E; --card-back:#254A38;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);color:var(--ink);min-height:100vh;padding:24px 12px 60px;}
+.wrap{max-width:900px;margin:0 auto;}
+.header{background:var(--cover);border:2px solid var(--gold);border-radius:10px;padding:20px 24px;color:var(--paper);margin-bottom:18px;}
+.eyebrow{font-size:12px;letter-spacing:3px;color:var(--gold);font-weight:700;margin-bottom:6px;}
+h1{font-family:'Noto Serif KR';font-weight:900;font-size:22px;margin:0 0 4px;}
+.header p{margin:0;font-size:13px;opacity:.85;line-height:1.6;}
+
+.status-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.chip{flex:1;min-width:110px;background:var(--paper);border:1.5px solid var(--paper-line);border-left:5px solid var(--gold);border-radius:6px;padding:9px 12px;}
+.chip .lbl{font-size:10.5px;color:#7a7256;font-weight:700;letter-spacing:1px;}
+.chip .val{font-family:'Roboto Mono';font-size:17px;font-weight:700;}
+
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+@media (max-width:560px){.board{grid-template-columns:repeat(2,1fr);}}
+.tile{position:relative;aspect-ratio:4/3;perspective:800px;cursor:pointer;}
+.tile-inner{position:relative;width:100%;height:100%;transition:transform .45s;transform-style:preserve-3d;}
+.tile.flipped .tile-inner, .tile.matched .tile-inner{transform:rotateY(180deg);}
+.tile-face{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;font-size:12.5px;line-height:1.4;}
+.tile-back{background:var(--card-back);border:2px solid var(--gold);color:var(--gold);font-family:'Noto Serif KR';font-size:26px;font-weight:900;}
+.tile-front{background:#fff;border:2px solid var(--paper-line);transform:rotateY(180deg);color:var(--ink);font-weight:500;}
+.tile.matched .tile-front{background:rgba(47,107,94,0.12);border-color:var(--ok);color:var(--ok);font-weight:700;}
+.tile.situation .tile-front{font-style:normal;}
+.tile.wrongflash .tile-front{background:rgba(122,46,46,0.1);border-color:var(--bad);}
+
+.controls{display:flex;justify-content:center;gap:10px;margin-top:18px;}
+button{font-family:'Noto Sans KR';font-weight:700;font-size:14px;border-radius:6px;padding:11px 22px;cursor:pointer;border:none;}
+.btn-primary{background:var(--gold);color:#fff;}
+.btn-ghost{background:transparent;color:var(--paper);border:1.5px solid var(--paper);}
+
+.win-overlay{display:none;text-align:center;background:var(--paper);border:1.5px solid var(--paper-line);border-radius:10px;padding:28px;margin-top:18px;}
+.win-overlay.show{display:block;}
+.win-overlay .big{font-family:'Noto Serif KR';font-weight:900;font-size:30px;color:var(--cover);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="eyebrow">회계원리 · 짝맞추기 게임</div>
+    <h1>거래 카드 & 분개 카드 짝맞추기</h1>
+    <p>같은 거래에 해당하는 '거래 상황' 카드와 '정답 분개' 카드를 찾아 짝을 맞춰보세요. 모둠 활동이나 수업 시작 전 워밍업으로 활용하기 좋아요.</p>
+  </div>
+
+  <div class="status-bar">
+    <div class="chip"><div class="lbl">시도 횟수</div><div class="val" id="statMoves">0</div></div>
+    <div class="chip"><div class="lbl">맞춘 짝</div><div class="val" id="statMatched">0 / 8</div></div>
+    <div class="chip"><div class="lbl">경과 시간</div><div class="val" id="statTime">00:00</div></div>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="controls">
+    <button class="btn-ghost" id="restartBtn">다시 섞기</button>
+  </div>
+
+  <div class="win-overlay" id="winOverlay">
+    <div class="big">🎉 모든 짝을 맞췄어요!</div>
+    <div style="margin-top:8px;font-family:'Roboto Mono';">시도 <span id="winMoves"></span>회 · 시간 <span id="winTime"></span></div>
+    <div class="controls"><button class="btn-primary" id="playAgainBtn">한 번 더 하기</button></div>
+  </div>
+</div>
+
+<script>
+const PAIRS = [
+  {sit:"현금 1,000,000원을 출자하여 개업하다", entry:"(차) 현금 1,000,000 / (대) 자본금 1,000,000"},
+  {sit:"상품 300,000원을 현금으로 매입하다", entry:"(차) 상품 300,000 / (대) 현금 300,000"},
+  {sit:"외상매출금 100,000원을 현금으로 회수하다", entry:"(차) 현금 100,000 / (대) 외상매출금 100,000"},
+  {sit:"은행에서 현금 2,000,000원을 빌리다", entry:"(차) 현금 2,000,000 / (대) 단기차입금 2,000,000"},
+  {sit:"이번 달 임차료 250,000원을 현금으로 지급하다", entry:"(차) 임차료 250,000 / (대) 현금 250,000"},
+  {sit:"건물 임대료 100,000원을 현금으로 받다", entry:"(차) 현금 100,000 / (대) 임대료 100,000"},
+  {sit:"외상매입금 150,000원을 현금으로 갚다", entry:"(차) 외상매입금 150,000 / (대) 현금 150,000"},
+  {sit:"업무용 비품 500,000원을 현금으로 구입하다", entry:"(차) 비품 500,000 / (대) 현금 500,000"}
+];
+
+let cards=[], flipped=[], matchedCount=0, moves=0, timerInt=null, seconds=0, lock=false;
+
+function fmtTime(s){ const m=String(Math.floor(s/60)).padStart(2,'0'); const ss=String(s%60).padStart(2,'0'); return m+":"+ss; }
+
+function buildBoard(){
+  cards = [];
+  PAIRS.forEach((p,i)=>{
+    cards.push({pairId:i, kind:'sit', text:p.sit});
+    cards.push({pairId:i, kind:'entry', text:p.entry});
+  });
+  // shuffle
+  for(let i=cards.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [cards[i],cards[j]]=[cards[j],cards[i]];
+  }
+  matchedCount=0; moves=0; seconds=0; flipped=[]; lock=false;
+  document.getElementById('statMoves').textContent='0';
+  document.getElementById('statMatched').textContent='0 / '+PAIRS.length;
+  document.getElementById('statTime').textContent='00:00';
+  document.getElementById('winOverlay').classList.remove('show');
+  if(timerInt) clearInterval(timerInt);
+  timerInt = setInterval(()=>{ seconds++; document.getElementById('statTime').textContent=fmtTime(seconds); }, 1000);
+
+  const board = document.getElementById('board');
+  board.innerHTML = cards.map((c,idx)=>`
+    <div class="tile" data-idx="${idx}">
+      <div class="tile-inner">
+        <div class="tile-face tile-back">?</div>
+        <div class="tile-face tile-front">${c.text}</div>
+      </div>
+    </div>`).join("");
+  board.querySelectorAll('.tile').forEach(t=>t.addEventListener('click', onTileClick));
+}
+
+function onTileClick(e){
+  if(lock) return;
+  const tile = e.currentTarget;
+  const idx = parseInt(tile.dataset.idx);
+  if(tile.classList.contains('flipped') || tile.classList.contains('matched')) return;
+  tile.classList.add('flipped');
+  flipped.push(tile);
+  if(flipped.length===2){
+    lock=true;
+    moves++;
+    document.getElementById('statMoves').textContent=moves;
+    const [t1,t2] = flipped;
+    const c1 = cards[parseInt(t1.dataset.idx)];
+    const c2 = cards[parseInt(t2.dataset.idx)];
+    if(c1.pairId===c2.pairId && c1.kind!==c2.kind){
+      setTimeout(()=>{
+        t1.classList.add('matched'); t2.classList.add('matched');
+        matchedCount++;
+        document.getElementById('statMatched').textContent = matchedCount+' / '+PAIRS.length;
+        flipped=[]; lock=false;
+        if(matchedCount===PAIRS.length){ showWin(); }
+      }, 350);
+    } else {
+      t1.classList.add('wrongflash'); t2.classList.add('wrongflash');
+      setTimeout(()=>{
+        t1.classList.remove('flipped'); t2.classList.remove('flipped');
+        t1.classList.remove('wrongflash'); t2.classList.remove('wrongflash');
+        flipped=[]; lock=false;
+      }, 850);
+    }
+  }
+}
+
+function showWin(){
+  clearInterval(timerInt);
+  document.getElementById('winMoves').textContent = moves;
+  document.getElementById('winTime').textContent = fmtTime(seconds);
+  document.getElementById('winOverlay').classList.add('show');
+}
+
+document.getElementById('restartBtn').addEventListener('click', buildBoard);
+document.getElementById('playAgainBtn').addEventListener('click', buildBoard);
+
+buildBoard();
+</script>
+</body>
+</html>
