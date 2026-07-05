@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>데일리 분개 트레이닝 : 회계원리 문제은행</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700;900&family=Noto+Sans+KR:wght@400;500;700&family=Roboto+Mono:wght@500;700&display=swap');
+:root{
+  --cover:#1F3D2E; --cover-dark:#152A20; --paper:#F3EEDD; --paper-line:#DDD5B8;
+  --ink:#223447; --gold:#B8892B; --debit:#A13D3D; --credit:#2B5F8A;
+  --ok:#2F6B5E; --bad:#7A2E2E;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);color:var(--ink);min-height:100vh;padding:24px 12px 60px;}
+.wrap{max-width:960px;margin:0 auto;}
+.cover-header{background:var(--cover);border:2px solid var(--gold);border-radius:10px;padding:22px 26px;color:var(--paper);margin-bottom:18px;position:relative;}
+.cover-header::before{content:"帳";position:absolute;right:20px;top:14px;font-family:'Noto Serif KR';font-size:52px;color:rgba(184,137,43,0.25);}
+.eyebrow{font-size:12px;letter-spacing:3px;color:var(--gold);font-weight:700;margin-bottom:6px;}
+.cover-header h1{font-family:'Noto Serif KR',serif;font-weight:900;font-size:24px;margin:0 0 4px;}
+.cover-header p{margin:0;font-size:13px;opacity:.85;line-height:1.6;}
+.card{background:var(--paper);border:1.5px solid var(--paper-line);border-radius:10px;padding:22px 24px;margin-bottom:18px;box-shadow:0 3px 0 var(--paper-line);}
+.tip{font-size:12.5px;color:#6b6247;background:rgba(184,137,43,0.12);border:1px dashed var(--gold);border-radius:8px;padding:8px 12px;margin-bottom:16px;}
+
+/* Day 그리드 */
+.day-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;}
+.day-card{background:#fff;border:1.5px solid var(--paper-line);border-radius:10px;padding:16px;cursor:pointer;transition:transform .1s, box-shadow .1s;}
+.day-card:hover{transform:translateY(-3px);box-shadow:0 6px 0 var(--paper-line);}
+.day-card .dnum{font-family:'Roboto Mono';font-weight:700;color:var(--gold);font-size:12px;letter-spacing:1px;}
+.day-card h3{font-family:'Noto Serif KR';font-size:16px;margin:6px 0 4px;color:var(--cover);}
+.day-card .dmeta{font-size:12px;color:#8a8264;}
+.day-card .dbest{margin-top:8px;font-size:11.5px;color:var(--ok);font-weight:700;}
+
+/* 상태바 */
+.status-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.status-chip{flex:1;min-width:110px;background:var(--paper);border:1.5px solid var(--paper-line);border-left:5px solid var(--gold);border-radius:6px;padding:9px 12px;}
+.status-chip .lbl{font-size:10.5px;color:#7a7256;font-weight:700;letter-spacing:1px;}
+.status-chip .val{font-family:'Roboto Mono',monospace;font-size:16px;font-weight:700;}
+
+.progress-track{height:8px;background:rgba(255,255,255,0.2);border-radius:4px;overflow:hidden;margin-bottom:6px;}
+.progress-fill{height:100%;background:var(--gold);width:0%;transition:width .3s;}
+.progress-txt{font-size:12px;color:var(--paper);opacity:.8;text-align:right;margin-bottom:14px;}
+
+.episode-tag{display:inline-block;font-family:'Roboto Mono',monospace;font-size:12px;font-weight:700;color:var(--cover);background:rgba(31,61,46,0.08);border:1px solid var(--cover);border-radius:20px;padding:3px 12px;margin-bottom:10px;}
+.narrative{font-size:16px;line-height:1.7;margin:0 0 18px;}
+.narrative b{color:var(--cover);}
+
+.line-block{margin-bottom:10px;}
+.line-title{font-size:12px;font-weight:700;margin-bottom:6px;}
+.line-title.debit{color:var(--debit);}
+.line-title.credit{color:var(--credit);}
+.slot-row{display:flex;gap:8px;align-items:center;margin-bottom:6px;}
+select{flex:1;padding:9px 10px;font-size:14px;border:1.5px solid var(--paper-line);border-radius:6px;background:#fff;color:var(--ink);font-family:inherit;}
+.slot-amt{font-family:'Roboto Mono',monospace;font-weight:700;font-size:13.5px;background:#fff;border:1.5px dashed var(--paper-line);border-radius:6px;padding:8px 10px;min-width:110px;text-align:right;}
+.t-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;border:2px solid var(--ink);border-radius:6px;padding:14px;margin-bottom:14px;}
+.t-wrap.debit-bg{}
+@media (max-width:620px){.t-wrap{grid-template-columns:1fr;}}
+
+.mcq-choices{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.mcq-btn{text-align:left;padding:12px 14px;border:1.5px solid var(--paper-line);border-radius:8px;background:#fff;font-size:14.5px;cursor:pointer;font-family:inherit;}
+.mcq-btn:hover{border-color:var(--gold);}
+.mcq-btn.selected{border-color:var(--cover);background:rgba(31,61,46,0.06);}
+
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;}
+button{font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:14px;border-radius:6px;padding:11px 20px;cursor:pointer;border:none;transition:transform .08s;}
+button:active{transform:scale(.97);}
+.btn-primary{background:var(--gold);color:#fff;}
+.btn-ghost{background:transparent;color:var(--cover);border:1.5px solid var(--cover);}
+
+.hint-box{display:none;margin-top:14px;padding:14px 16px;background:#fff;border:1px solid var(--paper-line);border-radius:8px;font-size:12.5px;line-height:1.7;}
+.hint-box.show{display:block;}
+.hint-box table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px;}
+.hint-box th,.hint-box td{border:1px solid var(--paper-line);padding:6px 8px;text-align:center;}
+.hint-box th{background:rgba(184,137,43,0.15);}
+
+.feedback{border-radius:8px;padding:16px 18px;margin-top:14px;font-size:14px;line-height:1.6;display:none;}
+.feedback.correct{display:block;background:rgba(47,107,94,0.1);border:1.5px solid var(--ok);color:var(--ok);}
+.feedback.wrong{display:block;background:rgba(122,46,46,0.08);border:1.5px solid var(--bad);color:var(--bad);}
+.feedback .exp{color:var(--ink);margin-top:6px;font-weight:400;}
+.stamp{display:inline-block;font-family:'Noto Serif KR';font-weight:900;border:3px solid var(--ok);color:var(--ok);border-radius:8px;padding:2px 10px;transform:rotate(-6deg);font-size:13px;margin-right:8px;}
+
+.summary-badge{text-align:center;padding:16px 0;}
+.summary-badge .pct{font-family:'Noto Serif KR';font-weight:900;font-size:46px;color:var(--cover);}
+.summary-badge .desc{font-size:14px;color:var(--gold);font-weight:700;margin-top:2px;}
+.hidden{display:none !important;}
+.back-link{color:var(--paper);opacity:.8;font-size:12.5px;cursor:pointer;text-decoration:underline;margin-bottom:10px;display:inline-block;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="cover-header">
+    <div class="eyebrow">회계원리 · 데일리 문제은행</div>
+    <h1>데일리 분개 트레이닝</h1>
+    <p>Day 1부터 Day 7까지, 하루에 한 세트씩 풀어보는 분개·개념 연습장입니다. 자산·부채·자본부터 수익·비용, 응용 거래, 개념 확인 퀴즈까지 총 60문항이 준비되어 있어요.</p>
+  </div>
+
+  <!-- 홈 화면 -->
+  <div id="homeScreen">
+    <div class="tip">💡 <b>추천 사용법</b>: 하루에 Day 1세트(8~10문항)씩 과제로 내주면 꾸준한 복습 습관을 기르기 좋아요. 순서대로 풀지 않아도 됩니다.</div>
+    <div class="card">
+      <div class="day-grid" id="dayGrid"></div>
+    </div>
+  </div>
+
+  <!-- 플레이 화면 -->
+  <div id="playScreen" class="hidden">
+    <span class="back-link" id="backLink">← Day 목록으로</span>
+    <div class="status-bar">
+      <div class="status-chip"><div class="lbl">진행</div><div class="val" id="statProgress">0 / 0</div></div>
+      <div class="status-chip"><div class="lbl">이번 Day 점수</div><div class="val" id="statScore">0점</div></div>
+      <div class="status-chip"><div class="lbl">정답 수</div><div class="val" id="statCorrect">0</div></div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-txt" id="progressTxt"></div>
+
+    <div class="card" id="problemCard">
+      <span class="episode-tag" id="episodeTag"></span>
+      <p class="narrative" id="narrativeText"></p>
+
+      <div id="entryArea"></div>
+      <div id="mcqArea" class="mcq-choices hidden"></div>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="submitBtn">제출하기</button>
+        <button class="btn-ghost" id="hintBtn">힌트 보기</button>
+      </div>
+
+      <div class="hint-box" id="hintBox">
+        <b>거래 8요소 - 어느 쪽에 적을까?</b>
+        <table>
+          <tr><th>계정 종류</th><th>늘어날 때</th><th>줄어들 때</th></tr>
+          <tr><td>자산</td><td style="color:var(--debit)">차변</td><td style="color:var(--credit)">대변</td></tr>
+          <tr><td>부채</td><td style="color:var(--credit)">대변</td><td style="color:var(--debit)">차변</td></tr>
+          <tr><td>자본</td><td style="color:var(--credit)">대변</td><td style="color:var(--debit)">차변</td></tr>
+          <tr><td>비용</td><td style="color:var(--debit)">차변에 발생</td><td>-</td></tr>
+          <tr><td>수익</td><td style="color:var(--credit)">대변에 발생</td><td>-</td></tr>
+        </table>
+      </div>
+
+      <div class="feedback" id="feedbackBox">
+        <span class="stamp" id="stampIcon"></span><span id="feedbackMain"></span>
+        <div class="exp" id="feedbackExp"></div>
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn-primary hidden" id="nextBtn">다음 문제 →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 완료 화면 -->
+  <div id="summaryScreen" class="hidden">
+    <div class="card">
+      <div class="summary-badge">
+        <div class="pct" id="summaryPct">-</div>
+        <div class="desc" id="summaryDesc">-</div>
+        <div style="font-family:'Roboto Mono',monospace;margin-top:6px;font-size:13px;" id="summaryDetail"></div>
+      </div>
+      <div class="btn-row" style="justify-content:center;">
+        <button class="btn-primary" id="retryBtn">이 Day 다시 풀기</button>
+        <button class="btn-ghost" id="homeBtn">Day 목록으로</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const ACCOUNTS = [
+  {g:"자산", list:["현금","당좌예금","보통예금","상품","비품","건물","차량운반구","외상매출금","받을어음","미수금","단기대여금"]},
+  {g:"부채", list:["외상매입금","지급어음","미지급금","단기차입금"]},
+  {g:"자본", list:["자본금"]},
+  {g:"수익", list:["상품매출이익","이자수익","임대료"]},
+  {g:"비용", list:["급여","임차료","통신비","수도광열비","보험료","광고선전비","여비교통비","복리후생비","기부금","이자비용","수선비"]}
+];
+
+function fmt(n){ return n.toLocaleString('ko-KR')+"원"; }
+
+// ===== 문제 은행 =====
+const DAYS = [
+{ id:1, title:"자산·부채·자본 기초", type:"entry", problems:[
+  {tag:"1-1", text:"카페 '온기'를 창업하며 현금 <b>1,000,000원</b>을 자본금으로 출자했다.", debit:[{a:"현금",m:1000000}], credit:[{a:"자본금",m:1000000}], exp:"사업주가 출자한 현금은 자산 증가(차변), 자본금은 자본 증가(대변)입니다."},
+  {tag:"1-2", text:"원두 등 상품 <b>300,000원</b>을 현금으로 매입했다.", debit:[{a:"상품",m:300000}], credit:[{a:"현금",m:300000}], exp:"상품(자산) 증가는 차변, 현금(자산) 감소는 대변입니다."},
+  {tag:"1-3", text:"업무용 컴퓨터(비품) <b>500,000원</b>을 현금으로 구입했다.", debit:[{a:"비품",m:500000}], credit:[{a:"현금",m:500000}], exp:"비품(자산) 증가·현금(자산) 감소, 자산 항목끼리의 교환 거래입니다."},
+  {tag:"1-4", text:"매장으로 사용할 건물 <b>5,000,000원</b>을 현금으로 구입했다.", debit:[{a:"건물",m:5000000}], credit:[{a:"현금",m:5000000}], exp:"건물(자산) 증가는 차변, 현금(자산) 감소는 대변입니다."},
+  {tag:"1-5", text:"배달용 트럭(차량운반구) <b>3,000,000원</b>을 현금으로 구입했다.", debit:[{a:"차량운반구",m:3000000}], credit:[{a:"현금",m:3000000}], exp:"차량운반구(자산) 증가, 현금(자산) 감소입니다."},
+  {tag:"1-6", text:"상품 <b>200,000원</b>을 외상으로 매입했다.", debit:[{a:"상품",m:200000}], credit:[{a:"외상매입금",m:200000}], exp:"상품(자산) 증가와 동시에 갚아야 할 외상매입금(부채)이 증가합니다."},
+  {tag:"1-7", text:"은행에서 현금 <b>2,000,000원</b>을 빌렸다(6개월 이내 상환).", debit:[{a:"현금",m:2000000}], credit:[{a:"단기차입금",m:2000000}], exp:"현금(자산) 증가, 갚아야 할 단기차입금(부채) 증가입니다."},
+  {tag:"1-8", text:"상품 <b>150,000원</b>을 매입하고, 대금은 어음을 발행하여 지급했다.", debit:[{a:"상품",m:150000}], credit:[{a:"지급어음",m:150000}], exp:"상품(자산) 증가, 어음으로 갚아야 할 지급어음(부채) 증가입니다."}
+]},
+{ id:2, title:"채권·채무의 발생과 회수", type:"entry", problems:[
+  {tag:"2-1", text:"외상매출금 <b>100,000원</b>을 현금으로 회수했다.", debit:[{a:"현금",m:100000}], credit:[{a:"외상매출금",m:100000}], exp:"현금(자산) 증가, 외상매출금(자산) 감소입니다."},
+  {tag:"2-2", text:"외상매입금 <b>150,000원</b>을 현금으로 갚았다.", debit:[{a:"외상매입금",m:150000}], credit:[{a:"현금",m:150000}], exp:"외상매입금(부채) 감소, 현금(자산) 감소입니다."},
+  {tag:"2-3", text:"사용하던 비품을 처분하고, 대금 <b>80,000원</b>은 월말에 받기로 했다.", debit:[{a:"미수금",m:80000}], credit:[{a:"비품",m:80000}], exp:"상품이 아닌 자산(비품)을 외상으로 처분하면 미수금(자산)이 발생합니다."},
+  {tag:"2-4", text:"비품 구입 대금 중 미지급금 <b>120,000원</b>을 현금으로 지급했다.", debit:[{a:"미지급금",m:120000}], credit:[{a:"현금",m:120000}], exp:"미지급금(부채) 감소, 현금(자산) 감소입니다."},
+  {tag:"2-5", text:"상품 <b>250,000원</b>을 매입하고, 대금은 어음을 발행하여 지급했다.", debit:[{a:"상품",m:250000}], credit:[{a:"지급어음",m:250000}], exp:"상품(자산) 증가, 지급어음(부채) 증가입니다."},
+  {tag:"2-6", text:"만기가 된 받을어음 <b>300,000원</b>을 현금으로 회수했다.", debit:[{a:"현금",m:300000}], credit:[{a:"받을어음",m:300000}], exp:"현금(자산) 증가, 받을어음(자산) 감소입니다."},
+  {tag:"2-7", text:"만기가 된 지급어음 <b>250,000원</b>을 현금으로 지급했다.", debit:[{a:"지급어음",m:250000}], credit:[{a:"현금",m:250000}], exp:"지급어음(부채) 감소, 현금(자산) 감소입니다."},
+  {tag:"2-8", text:"오래된 차량운반구를 처분하고, 대금 <b>1,000,000원</b>은 월말에 받기로 했다.", debit:[{a:"미수금",m:1000000}], credit:[{a:"차량운반구",m:1000000}], exp:"차량운반구(자산) 감소, 상품 이외 자산의 외상 처분이므로 미수금(자산) 증가입니다."}
+]},
+{ id:3, title:"대여금·차입금과 이자", type:"entry", problems:[
+  {tag:"3-1", text:"거래처에 현금 <b>500,000원</b>을 6개월간 빌려주었다.", debit:[{a:"단기대여금",m:500000}], credit:[{a:"현금",m:500000}], exp:"단기대여금(자산) 증가, 현금(자산) 감소입니다."},
+  {tag:"3-2", text:"단기대여금 <b>500,000원</b>과 그 이자 <b>30,000원</b>을 현금으로 회수했다.", debit:[{a:"현금",m:530000}], credit:[{a:"단기대여금",m:500000},{a:"이자수익",m:30000}], exp:"현금(자산) 증가, 원금은 단기대여금(자산) 감소, 이자는 이자수익(수익) 발생입니다."},
+  {tag:"3-3", text:"은행에서 현금 <b>1,000,000원</b>을 빌렸다.", debit:[{a:"현금",m:1000000}], credit:[{a:"단기차입금",m:1000000}], exp:"현금(자산) 증가, 단기차입금(부채) 증가입니다."},
+  {tag:"3-4", text:"단기차입금 <b>1,000,000원</b>과 그 이자 <b>50,000원</b>을 현금으로 상환했다.", debit:[{a:"단기차입금",m:1000000},{a:"이자비용",m:50000}], credit:[{a:"현금",m:1050000}], exp:"원금 상환은 단기차입금(부채) 감소, 이자 지급은 이자비용(비용) 발생, 현금(자산) 감소입니다."},
+  {tag:"3-5", text:"정기예금에 대한 이자 <b>20,000원</b>을 현금으로 받았다.", debit:[{a:"현금",m:20000}], credit:[{a:"이자수익",m:20000}], exp:"현금(자산) 증가, 이자수익(수익) 발생입니다."},
+  {tag:"3-6", text:"차입금에 대한 이자만 <b>15,000원</b>을 현금으로 지급했다.", debit:[{a:"이자비용",m:15000}], credit:[{a:"현금",m:15000}], exp:"이자비용(비용) 발생, 현금(자산) 감소입니다."},
+  {tag:"3-7", text:"거래처에 현금 <b>800,000원</b>을 1년 이내 회수 조건으로 빌려주었다.", debit:[{a:"단기대여금",m:800000}], credit:[{a:"현금",m:800000}], exp:"단기대여금(자산) 증가, 현금(자산) 감소입니다."},
+  {tag:"3-8", text:"단기차입금 <b>800,000원</b>과 이자 <b>40,000원</b>을 현금으로 함께 상환했다.", debit:[{a:"단기차입금",m:800000},{a:"이자비용",m:40000}], credit:[{a:"현금",m:840000}], exp:"단기차입금(부채) 감소, 이자비용(비용) 발생, 현금(자산) 감소입니다."}
+]},
+{ id:4, title:"수익의 발생 (매출·임대료·이자)", type:"entry", problems:[
+  {tag:"4-1", text:"원가 <b>200,000원</b>인 상품을 <b>260,000원</b>에 현금으로 매출했다.", debit:[{a:"현금",m:260000}], credit:[{a:"상품",m:200000},{a:"상품매출이익",m:60000}], exp:"판매가만큼 현금(자산)이 늘고, 원가만큼 상품(자산)이 줄며, 차익은 상품매출이익(수익)으로 계상합니다."},
+  {tag:"4-2", text:"원가 <b>150,000원</b>인 상품을 <b>190,000원</b>에 외상으로 매출했다.", debit:[{a:"외상매출금",m:190000}], credit:[{a:"상품",m:150000},{a:"상품매출이익",m:40000}], exp:"외상매출금(자산) 증가, 상품(자산) 감소, 차익은 상품매출이익(수익)입니다."},
+  {tag:"4-3", text:"건물 일부를 임대하고 임대료 <b>100,000원</b>을 현금으로 받았다.", debit:[{a:"현금",m:100000}], credit:[{a:"임대료",m:100000}], exp:"현금(자산) 증가, 임대료(수익) 발생입니다."},
+  {tag:"4-4", text:"원가 <b>300,000원</b>인 상품을 <b>350,000원</b>에 매출하고, 대금 중 <b>200,000원</b>은 현금으로 받고 잔액은 외상으로 했다.", debit:[{a:"현금",m:200000},{a:"외상매출금",m:150000}], credit:[{a:"상품",m:300000},{a:"상품매출이익",m:50000}], exp:"대금은 현금과 외상매출금으로 나누어 받고, 상품 원가 감소와 이익 발생을 함께 기록합니다."},
+  {tag:"4-5", text:"거래처에 임대료 <b>150,000원</b>을 청구했으나 아직 받지 못했다.", debit:[{a:"미수금",m:150000}], credit:[{a:"임대료",m:150000}], exp:"아직 받지 못한 임대료는 미수금(자산), 발생한 임대료는 수익으로 기록합니다."},
+  {tag:"4-6", text:"원가 <b>100,000원</b>인 상품을 <b>120,000원</b>에 현금으로 매출했다.", debit:[{a:"현금",m:120000}], credit:[{a:"상품",m:100000},{a:"상품매출이익",m:20000}], exp:"현금(자산) 증가, 상품(자산) 감소, 차익 20,000원은 상품매출이익(수익)입니다."},
+  {tag:"4-7", text:"단기대여금에 대한 이자 <b>25,000원</b>이 보통예금 통장에 입금되었다.", debit:[{a:"보통예금",m:25000}], credit:[{a:"이자수익",m:25000}], exp:"보통예금(자산) 증가, 이자수익(수익) 발생입니다."},
+  {tag:"4-8", text:"원가 <b>400,000원</b>인 상품을 <b>500,000원</b>에 전액 외상으로 매출했다.", debit:[{a:"외상매출금",m:500000}], credit:[{a:"상품",m:400000},{a:"상품매출이익",m:100000}], exp:"외상매출금(자산) 증가, 상품(자산) 감소, 상품매출이익(수익) 100,000원 발생입니다."}
+]},
+{ id:5, title:"비용의 발생 (운영비 총정리)", type:"entry", problems:[
+  {tag:"5-1", text:"이번 달 아르바이트 급여 <b>400,000원</b>을 현금으로 지급했다.", debit:[{a:"급여",m:400000}], credit:[{a:"현금",m:400000}], exp:"급여(비용) 발생, 현금(자산) 감소입니다."},
+  {tag:"5-2", text:"이번 달 가게 임차료 <b>250,000원</b>을 현금으로 지급했다.", debit:[{a:"임차료",m:250000}], credit:[{a:"현금",m:250000}], exp:"임차료(비용) 발생, 현금(자산) 감소입니다."},
+  {tag:"5-3", text:"전화·인터넷 요금(통신비) <b>60,000원</b>을 현금으로 지급했다.", debit:[{a:"통신비",m:60000}], credit:[{a:"현금",m:60000}], exp:"통신비(비용) 발생, 현금(자산) 감소입니다."},
+  {tag:"5-4", text:"전기·수도·가스 요금(수도광열비) <b>90,000원</b>을 현금으로 지급했다.", debit:[{a:"수도광열비",m:90000}], credit:[{a:"현금",m:90000}], exp:"수도광열비(비용) 발생, 현금(자산) 감소입니다."},
+  {tag:"5-5", text:"화재보험료 <b>120,000원</b>을 현금으로 납부했다.", debit:[{a:"보험료",m:120000}], credit:[{a:"현금",m:120000}], exp:"보험료(비용) 발생, 현금(자산) 감소입니다."},
+  {tag:"5-6", text:"신문 광고비(광고선전비) <b>200,000원</b>을 현금으로 지급했다.", debit:[{a:"광고선전비",m:200000}], credit:[{a:"현금",m:200000}], exp:"광고선전비(비용) 발생, 현금(자산) 감소입니다."},
+  {tag:"5-7", text:"출장 교통비(여비교통비) <b>70,000원</b>을 현금으로 지급했다.", debit:[{a:"여비교통비",m:70000}], credit:[{a:"현금",m:70000}], exp:"여비교통비(비용) 발생, 현금(자산) 감소입니다."},
+  {tag:"5-8", text:"직원 회식비(복리후생비) <b>150,000원</b>을 현금으로 지급했다.", debit:[{a:"복리후생비",m:150000}], credit:[{a:"현금",m:150000}], exp:"복리후생비(비용) 발생, 현금(자산) 감소입니다."},
+  {tag:"5-9", text:"불우이웃돕기 성금(기부금) <b>50,000원</b>을 현금으로 기부했다.", debit:[{a:"기부금",m:50000}], credit:[{a:"현금",m:50000}], exp:"영업과 무관하게 무상으로 지급한 금액은 기부금(비용)입니다."}
+]},
+{ id:6, title:"응용·혼합 거래 도전", type:"entry", problems:[
+  {tag:"6-1", text:"건물에 엘리베이터를 설치하고 설치비 <b>2,500,000원</b>을 현금으로 지급했다. (건물 가치를 높이는 자본적 지출)", debit:[{a:"건물",m:2500000}], credit:[{a:"현금",m:2500000}], exp:"자본적 지출은 자산(건물)의 가치를 높이는 지출이므로 건물 계정에 가산합니다."},
+  {tag:"6-2", text:"기계 장치의 소모품 교체비 <b>80,000원</b>을 현금으로 지급했다. (원상회복을 위한 수익적 지출)", debit:[{a:"수선비",m:80000}], credit:[{a:"현금",m:80000}], exp:"수익적 지출은 자산의 원상 유지를 위한 지출로, 당기 비용(수선비)으로 처리합니다."},
+  {tag:"6-3", text:"원가 <b>500,000원</b>인 상품을 <b>600,000원</b>에 매출하고, 대금 중 <b>300,000원</b>은 현금으로, 나머지는 어음으로 받았다.", debit:[{a:"현금",m:300000},{a:"받을어음",m:300000}], credit:[{a:"상품",m:500000},{a:"상품매출이익",m:100000}], exp:"대금을 현금과 받을어음으로 나누어 받고, 원가 감소와 매출이익 발생을 함께 기록합니다."},
+  {tag:"6-4", text:"상품 <b>400,000원</b>을 매입하고, 대금 중 <b>200,000원</b>은 현금으로 지급하고 잔액은 외상으로 했다.", debit:[{a:"상품",m:400000}], credit:[{a:"현금",m:200000},{a:"외상매입금",m:200000}], exp:"상품(자산) 증가, 대금 지급은 현금 감소와 외상매입금 증가로 나누어 기록합니다."},
+  {tag:"6-5", text:"단기차입금 <b>600,000원</b>과 이자 <b>30,000원</b>을 현금으로 함께 상환했다.", debit:[{a:"단기차입금",m:600000},{a:"이자비용",m:30000}], credit:[{a:"현금",m:630000}], exp:"원금은 단기차입금(부채) 감소, 이자는 이자비용(비용) 발생으로 나누어 기록합니다."},
+  {tag:"6-6", text:"비품 <b>1,000,000원</b>을 구입하고, 대금 중 <b>400,000원</b>은 현금으로 지급하고 잔액은 월말에 지급하기로 했다.", debit:[{a:"비품",m:1000000}], credit:[{a:"현금",m:400000},{a:"미지급금",m:600000}], exp:"비품(자산) 증가, 대금 일부는 현금 지급, 나머지는 미지급금(부채) 증가입니다."},
+  {tag:"6-7", text:"원가 <b>250,000원</b>인 상품을 <b>300,000원</b>에 매출하고, 대금을 받을어음 <b>150,000원</b>과 외상매출금 <b>150,000원</b>으로 나누어 받았다.", debit:[{a:"받을어음",m:150000},{a:"외상매출금",m:150000}], credit:[{a:"상품",m:250000},{a:"상품매출이익",m:50000}], exp:"대금 수령 방법이 두 가지로 나뉘어도, 원가 감소와 매출이익 발생 원리는 동일합니다."},
+  {tag:"6-8", text:"건물 외벽 도색 비용 <b>300,000원</b>을 현금으로 지급했다. (원상회복을 위한 수익적 지출)", debit:[{a:"수선비",m:300000}], credit:[{a:"현금",m:300000}], exp:"건물 외벽 도색과 같은 현상 유지 비용은 수익적 지출로 당기 비용(수선비) 처리합니다."}
+]},
+{ id:7, title:"개념 확인 퀴즈 (객관식)", type:"mcq", problems:[
+  {q:"다음 중 자산에 해당하지 않는 것은?", choices:["현금","외상매출금","외상매입금","상품"], answer:2, exp:"외상매입금은 갚아야 할 빚, 즉 부채입니다."},
+  {q:"재무 상태표에서 '외상매출금 + 받을 어음'을 통합하여 표시하는 계정과목은?", choices:["매입채무","매출채권","선수금","미수금"], answer:1, exp:"외상매출금과 받을어음을 합쳐 매출채권으로 통합 표시합니다."},
+  {q:"재무 상태표에서 '외상매입금 + 지급 어음'을 통합하여 표시하는 계정과목은?", choices:["매출채권","선급금","매입채무","미지급금"], answer:2, exp:"외상매입금과 지급어음을 합쳐 매입채무로 통합 표시합니다."},
+  {q:"다음 중 내부 회계 정보 이용자에 해당하는 것은?", choices:["투자자","채권자","경영자","거래처"], answer:2, exp:"경영자와 종업원은 기업 내부의 회계 정보 이용자입니다."},
+  {q:"기업의 일정 '시점'의 재무 상태를 나타내는 재무제표는?", choices:["손익계산서","재무상태표","현금흐름표","자본변동표"], answer:1, exp:"재무상태표는 특정 시점 현재의 자산·부채·자본을 보여줍니다."},
+  {q:"기업의 일정 '기간' 동안의 경영 성과를 나타내는 재무제표는?", choices:["재무상태표","손익계산서","주석","현금흐름표"], answer:1, exp:"손익계산서는 일정 기간의 수익과 비용, 순손익을 보여줍니다."},
+  {q:"다음 중 옳은 등식은?", choices:["자산 = 부채 - 자본","자산 = 부채 + 자본","부채 = 자산 + 자본","자본 = 자산 + 부채"], answer:1, exp:"재무상태표 등식: 자산 = 부채 + 자본입니다."},
+  {q:"재산법에 의한 당기순이익 계산식으로 옳은 것은?", choices:["총수익 - 총비용","기말자본 - 기초자본","기초자본 - 기말자본","총비용 - 총수익"], answer:1, exp:"재산법은 기말자본에서 기초자본을 뺀 값으로 당기순손익을 계산합니다."},
+  {q:"다음 중 회계상 거래이지만 '일반적인 거래'는 아닌 것은?", choices:["상품을 외상으로 매입하다","화재로 상품이 소실되다","상품을 현금으로 매출하다","급여를 현금으로 지급하다"], answer:1, exp:"화재·도난 등에 의한 손실은 회계상 거래이지만 일상적인 거래는 아닙니다."},
+  {q:"다음 중 회계상 거래에 해당하지 않는 것은?", choices:["현금 50,000원을 분실하다","상품을 외상으로 매입하다","상품 100,000원을 매입하기로 계약(주문)하다","비품을 현금으로 구입하다"], answer:2, exp:"단순한 계약·주문은 자산·부채·자본의 증감이 없으므로 회계상 거래가 아닙니다."}
+]}
+];
+
+// ===== 상태 =====
+let curDay=null, curIdx=0, score=0, correctCount=0, answered=false, hintUsed=false;
+
+function buildOptGroups(){
+  return ACCOUNTS.map(g=>`<optgroup label="${g.g}">${g.list.map(a=>`<option value="${a}">${a}</option>`).join("")}</optgroup>`).join("");
+}
+
+function renderHome(){
+  document.getElementById('homeScreen').classList.remove('hidden');
+  document.getElementById('playScreen').classList.add('hidden');
+  document.getElementById('summaryScreen').classList.add('hidden');
+  const grid = document.getElementById('dayGrid');
+  grid.innerHTML = DAYS.map(d=>`
+    <div class="day-card" onclick="startDay(${d.id})">
+      <div class="dnum">DAY ${d.id}</div>
+      <h3>${d.title}</h3>
+      <div class="dmeta">${d.problems.length}문항 · ${d.type==='mcq'?'객관식':'분개'}</div>
+    </div>`).join("");
+}
+
+function startDay(id){
+  curDay = DAYS.find(d=>d.id===id);
+  curIdx = 0; score = 0; correctCount = 0;
+  document.getElementById('homeScreen').classList.add('hidden');
+  document.getElementById('summaryScreen').classList.add('hidden');
+  document.getElementById('playScreen').classList.remove('hidden');
+  renderProblem();
+}
+
+document.getElementById('backLink').addEventListener('click', renderHome);
+document.getElementById('homeBtn').addEventListener('click', renderHome);
+document.getElementById('retryBtn').addEventListener('click', ()=> startDay(curDay.id));
+
+function renderProblem(){
+  answered=false; hintUsed=false;
+  document.getElementById('hintBox').classList.remove('show');
+  const fb = document.getElementById('feedbackBox');
+  fb.className='feedback'; fb.style.display='none';
+  document.getElementById('nextBtn').classList.add('hidden');
+  document.getElementById('submitBtn').disabled=false;
+  document.getElementById('submitBtn').classList.remove('hidden');
+
+  const p = curDay.problems[curIdx];
+  document.getElementById('episodeTag').textContent = `Day ${curDay.id} · 문제 ${curIdx+1}`;
+
+  const entryArea = document.getElementById('entryArea');
+  const mcqArea = document.getElementById('mcqArea');
+
+  if(curDay.type==='entry'){
+    entryArea.classList.remove('hidden');
+    mcqArea.classList.add('hidden');
+    document.getElementById('narrativeText').innerHTML = p.text;
+    const debitHtml = p.debit.map((d,i)=>`
+      <div class="slot-row">
+        <select id="debitSel${i}"><option value="">계정 선택</option>${buildOptGroups()}</select>
+        <div class="slot-amt">${fmt(d.m)}</div>
+      </div>`).join("");
+    const creditHtml = p.credit.map((c,i)=>`
+      <div class="slot-row">
+        <select id="creditSel${i}"><option value="">계정 선택</option>${buildOptGroups()}</select>
+        <div class="slot-amt">${fmt(c.m)}</div>
+      </div>`).join("");
+    entryArea.innerHTML = `
+      <div class="t-wrap">
+        <div>
+          <div class="line-title debit">◀ 차변 (Debit)</div>
+          ${debitHtml}
+        </div>
+        <div>
+          <div class="line-title credit">대변 (Credit) ▶</div>
+          ${creditHtml}
+        </div>
+      </div>`;
+  } else {
+    entryArea.classList.add('hidden');
+    mcqArea.classList.remove('hidden');
+    document.getElementById('narrativeText').innerHTML = p.q;
+    mcqArea.innerHTML = p.choices.map((c,i)=>`<button class="mcq-btn" data-idx="${i}">${c}</button>`).join("");
+    mcqArea.querySelectorAll('.mcq-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        if(answered) return;
+        mcqArea.querySelectorAll('.mcq-btn').forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+    });
+  }
+
+  document.getElementById('statProgress').textContent = `${curIdx} / ${curDay.problems.length}`;
+  document.getElementById('statScore').textContent = score+"점";
+  document.getElementById('statCorrect').textContent = correctCount;
+  document.getElementById('progressFill').style.width = (curIdx/curDay.problems.length*100)+"%";
+  document.getElementById('progressTxt').textContent = `${curDay.problems.length-curIdx}문항 남음`;
+}
+
+document.getElementById('hintBtn').addEventListener('click', ()=>{
+  hintUsed = true;
+  document.getElementById('hintBox').classList.add('show');
+});
+
+document.getElementById('submitBtn').addEventListener('click', ()=>{
+  if(answered) return;
+  const p = curDay.problems[curIdx];
+  const fb = document.getElementById('feedbackBox');
+  const stamp = document.getElementById('stampIcon');
+  const main = document.getElementById('feedbackMain');
+  const exp = document.getElementById('feedbackExp');
+  let isCorrect = false;
+
+  if(curDay.type==='entry'){
+    let ok = true;
+    p.debit.forEach((d,i)=>{ const v=document.getElementById('debitSel'+i).value; if(!v){ok=false;} else if(v!==d.a) ok=false; });
+    p.credit.forEach((c,i)=>{ const v=document.getElementById('creditSel'+i).value; if(!v){ok=false;} else if(v!==c.a) ok=false; });
+    const anyEmpty = [...p.debit.keys()].some(i=>!document.getElementById('debitSel'+i).value) || [...p.credit.keys()].some(i=>!document.getElementById('creditSel'+i).value);
+    if(anyEmpty){ alert("모든 계정을 선택해주세요."); return; }
+    isCorrect = ok;
+  } else {
+    const sel = document.querySelector('.mcq-btn.selected');
+    if(!sel){ alert("답을 선택해주세요."); return; }
+    isCorrect = parseInt(sel.dataset.idx) === p.answer;
+  }
+
+  if(isCorrect){
+    answered = true;
+    correctCount++;
+    const gained = hintUsed ? 5 : 10;
+    score += gained;
+    fb.className='feedback correct';
+    stamp.textContent="정답";
+    main.textContent = `정답입니다! (+${gained}점)`;
+    exp.textContent = p.exp;
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('nextBtn').classList.remove('hidden');
+    document.getElementById('statScore').textContent = score+"점";
+    document.getElementById('statCorrect').textContent = correctCount;
+  } else {
+    fb.className='feedback wrong';
+    stamp.textContent="다시";
+    main.textContent = "다시 한 번 생각해볼까요?";
+    exp.textContent = p.exp + " 힌트를 참고해서 다시 선택해보세요.";
+  }
+  fb.style.display='block';
+});
+
+document.getElementById('nextBtn').addEventListener('click', ()=>{
+  curIdx++;
+  if(curIdx >= curDay.problems.length){ finishDay(); }
+  else { renderProblem(); }
+});
+
+function finishDay(){
+  document.getElementById('playScreen').classList.add('hidden');
+  document.getElementById('summaryScreen').classList.remove('hidden');
+  const total = curDay.problems.length;
+  const pct = Math.round((correctCount/total)*100);
+  let desc;
+  if(pct===100) desc="완벽해요! 오늘의 학습 끝!";
+  else if(pct>=80) desc="아주 잘했어요!";
+  else if(pct>=60) desc="조금만 더 복습해볼까요?";
+  else desc="다시 한 번 풀어보는 걸 추천해요.";
+  document.getElementById('summaryPct').textContent = pct+"%";
+  document.getElementById('summaryDesc').textContent = desc;
+  document.getElementById('summaryDetail').textContent = `Day ${curDay.id} · ${correctCount} / ${total}문항 정답 · 획득 점수 ${score}점`;
+}
+
+renderHome();
+</script>
+</body>
+</html>
