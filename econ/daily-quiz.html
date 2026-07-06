@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily HANIL Biz & Finance Master - KNOWEE</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Noto Sans KR & Jua & Montserrat for Pretty Titles) -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Montserrat:wght@800;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- SheetJS (Excel Upload) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Canvas Confetti (Reward Effect) -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: linear-gradient(-45deg, #eef2ff, #fff0f5, #f0f8ff, #ffffff);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        /* 예쁜 타이틀 폰트 클래스 */
+        .font-display {
+            font-family: 'Montserrat', 'Jua', sans-serif;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+        }
+        .glow-orb { animation: pulse-slow 4s ease-in-out infinite; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(167, 139, 250, 0.5); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.8); }
+
+        input[type="radio"] { display: none; }
+        input[type="radio"]:checked + label {
+            background-color: #ede9fe;
+            border-color: #8b5cf6;
+            color: #4c1d95;
+            font-weight: 700;
+        }
+        
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .slide-up { animation: slideUp 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 동기부여 배너 페이드 효과용 */
+        .quote-fade {
+            transition: opacity 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex p-4 sm:p-8 overflow-x-hidden text-slate-800 relative">
+
+    <!-- DB 상태 표시기 -->
+    <div id="dbStatus" class="fixed bottom-6 right-6 bg-white/90 backdrop-blur-sm px-4 py-3 rounded-2xl text-sm font-bold flex items-center gap-3 shadow-lg border border-slate-200 z-50 transition-all">
+        <span class="relative flex h-3.5 w-3.5">
+          <span id="dbStatusPing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
+          <span id="dbStatusDot" class="relative inline-flex rounded-full h-3.5 w-3.5 bg-slate-500"></span>
+        </span>
+        <span id="dbStatusText" class="text-slate-700">서버 연결 준비 중...</span>
+        <button onclick="window.openApiKeyModal()" title="Gemini AI 키 설정" class="ml-1 text-slate-400 hover:text-indigo-600 transition-colors">
+            <i data-lucide="settings" class="w-4 h-4 pointer-events-none"></i>
+        </button>
+    </div>
+
+    <!-- Gemini API 키 설정 모달 -->
+    <div id="apiKeyModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 fade-in">
+        <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
+            <button onclick="window.closeApiKeyModal()" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <div class="flex items-center gap-3 mb-2"><div class="bg-indigo-100 text-indigo-600 p-2 rounded-xl"><i data-lucide="sparkles" class="w-6 h-6"></i></div><h2 class="text-2xl font-bold font-display">AI 문제 출제 키 설정</h2></div>
+            <p class="text-slate-500 text-sm mb-6 ml-11">Google AI Studio에서 발급받은 Gemini API 키를 입력하면, 매일 새로운 AI 생성 퀴즈가 출제됩니다. 키는 이 브라우저에만 저장되며 파일이나 서버에는 저장되지 않습니다.</p>
+            <input type="password" id="apiKeyInput" placeholder="Gemini API 키 붙여넣기" class="w-full border-2 border-slate-200 rounded-xl p-4 mb-3 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 font-medium">
+            <p id="apiKeyStatusMsg" class="text-sm font-bold h-6 mb-2"></p>
+            <div class="flex gap-3">
+                <button onclick="window.clearApiKey()" class="flex-1 py-3.5 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">키 삭제</button>
+                <button onclick="window.saveApiKey()" class="flex-1 py-3.5 rounded-xl font-bold bg-indigo-600 text-white shadow-md hover:bg-indigo-700 transition-colors">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 배경 장식 -->
+    <div class="fixed top-20 left-20 w-64 h-64 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 glow-orb"></div>
+    <div class="fixed bottom-20 right-20 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 glow-orb" style="animation-delay: 2s;"></div>
+
+    <!-- 메인 컨테이너 -->
+    <div class="relative w-full max-w-4xl z-10 m-auto">
+        
+        <!-- 상단 네비게이션 -->
+        <div class="flex justify-between items-center mb-6 px-2">
+            <div class="flex items-center gap-2">
+                <button onclick="handleBack()" id="backBtn" class="hidden relative z-20 flex items-center gap-2 text-slate-600 hover:text-indigo-600 transition-colors font-semibold bg-white/70 px-4 py-2 rounded-full backdrop-blur-md shadow-sm hover:shadow-md">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    <span>뒤로가기</span>
+                </button>
+            </div>
+            
+            <button id="logoutBtn" onclick="logout()" class="hidden relative z-20 flex items-center gap-2 text-rose-500 hover:text-rose-700 transition-colors font-semibold bg-white/70 px-4 py-2 rounded-full backdrop-blur-md shadow-sm hover:shadow-md">
+                <span>로그아웃</span>
+                <i data-lucide="log-out" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- 메인 카드 -->
+        <div class="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] p-8 md:p-12 border border-white/60 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] relative overflow-hidden min-h-[60vh]">
+            
+            <!-- 로그인 뷰 -->
+            <div id="loginView" class="block text-center py-10 fade-in">
+                <!-- KNOWEE 홈페이지 이동용 이모티콘 버튼 -->
+                <a href="http://knowee.co.kr" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-indigo-100 text-indigo-600 mb-6 shadow-inner hover:scale-110 transition-transform focus:outline-none cursor-pointer" title="KNOWEE 홈페이지 방문">
+                    <i data-lucide="trending-up" class="w-10 h-10"></i>
+                </a>
+                <h1 class="text-4xl md:text-5xl font-display mb-4 text-slate-800 tracking-tight cursor-pointer hover:opacity-80 transition-opacity" onclick="window.location.reload()" title="메인 화면 새로고침">Daily <span class="text-indigo-500">HANIL Biz & Finance</span> Master</h1>
+                <p class="text-slate-500 font-medium mb-10">매일 만나는 핵심 경영, 경제, 금융 트렌드 퀴즈!</p>
+
+                <div id="studentLoginForm" class="max-w-sm mx-auto transition-all">
+                    <input type="text" id="studentNameInput" placeholder="이름 입력 (예: 김철수)" class="w-full border-2 border-slate-200 rounded-xl p-4 mb-2 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 text-center font-bold text-lg text-slate-700">
+                    <input type="password" id="studentPwdInput" placeholder="비밀번호 (기본: 1234)" class="w-full border-2 border-slate-200 rounded-xl p-4 mb-2 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 text-center font-bold text-lg text-slate-700" onkeypress="if(event.key === 'Enter') loginAsStudent()">
+                    <p id="loginErrorMsg" class="text-red-500 text-sm font-bold h-6 mb-2"></p>
+                    <button onclick="loginAsStudent()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg py-4 rounded-xl transition-colors shadow-md flex justify-center items-center gap-2 mb-8">
+                        학생 시작하기 <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                    </button>
+                    <div class="pt-6 border-t border-slate-200">
+                        <button onclick="showTeacherLogin()" class="text-sm text-slate-500 hover:text-indigo-600 font-bold flex justify-center items-center gap-1 mx-auto transition-colors">
+                            <i data-lucide="shield-check" class="w-4 h-4"></i> 교사 관리자 모드
+                        </button>
+                    </div>
+                </div>
+
+                <div id="teacherLoginForm" class="hidden max-w-sm mx-auto transition-all slide-up">
+                    <p class="text-indigo-600 font-bold mb-4 flex items-center justify-center gap-2">
+                        <i data-lucide="shield" class="w-5 h-5"></i> 관리자 로그인
+                    </p>
+                    <input type="password" id="teacherPwdInput" placeholder="관리자 비밀번호 입력" class="w-full border-2 border-slate-200 rounded-xl p-4 mb-2 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 text-center font-bold text-lg text-slate-700" onkeypress="if(event.key === 'Enter') loginAsTeacher()">
+                    <p id="teacherLoginError" class="text-red-500 text-sm font-bold h-6 mb-2"></p>
+                    <div class="flex gap-2">
+                        <button onclick="cancelTeacherLogin()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-4 rounded-xl transition-colors">취소</button>
+                        <button onclick="loginAsTeacher()" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl transition-colors shadow-md">접속</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 학생 뷰 -->
+            <div id="studentView" class="hidden fade-in">
+                <div class="text-center mb-6">
+                    <!-- 메인 화면으로 돌아가는 이모티콘 버튼 -->
+                    <button onclick="confirmGoHome()" class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 text-indigo-500 mb-4 shadow-inner hover:scale-110 transition-transform focus:outline-none cursor-pointer" title="메인 화면으로">
+                        <i data-lucide="bar-chart-2" class="w-8 h-8 pointer-events-none"></i>
+                    </button>
+                    <!-- 타이틀 클릭 시 메인으로 돌아가기 -->
+                    <h1 onclick="confirmGoHome()" class="text-3xl md:text-4xl font-display mb-2 text-slate-800 cursor-pointer hover:opacity-80 transition-opacity" title="메인 화면으로">Daily <span class="text-indigo-500">HANIL Biz & Fin</span></h1>
+                    <p class="text-slate-500 font-medium"><span id="welcomeStudentName" class="font-bold text-indigo-600">홍길동</span> 학생, 환영합니다! (하루 최대 5문제)</p>
+                    <button onclick="openStudentPwdModal()" class="mt-3 text-sm text-indigo-500 hover:text-indigo-700 font-bold inline-flex items-center gap-1 transition-colors bg-indigo-50 px-3 py-1.5 rounded-lg">
+                        <i data-lucide="key" class="w-4 h-4"></i> 내 비밀번호 변경
+                    </button>
+                </div>
+
+                <!-- [추가] 동기부여 배너 영역 -->
+                <div class="flex justify-center mb-6 fade-in">
+                    <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-3 bg-[length:200%_auto] animate-[gradientBG_3s_linear_infinite]">
+                        <i data-lucide="zap" class="w-5 h-5 text-yellow-300 fill-yellow-300 flex-shrink-0 animate-bounce"></i>
+                        <span id="motivationalBanner" class="font-bold text-sm md:text-base quote-fade text-center break-keep">오늘의 노력이 내일의 자산이 됩니다! 🚀</span>
+                    </div>
+                </div>
+
+                <div class="flex justify-center mb-8">
+                    <div class="bg-indigo-50 border border-indigo-100 px-6 py-3 rounded-2xl flex items-center gap-4 shadow-sm">
+                        <span class="font-bold text-slate-600">내 누적 점수</span>
+                        <div class="flex items-center gap-1">
+                            <i data-lucide="coins" class="w-5 h-5 text-yellow-500 fill-yellow-500"></i>
+                            <span class="text-2xl font-black text-indigo-700" id="myScore">0</span>
+                            <span class="text-sm text-slate-500">점</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 퀴즈 영역 -->
+                <div id="quizBox" class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 relative block">
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="bg-indigo-100 text-indigo-700 font-bold px-3 py-1 rounded-lg text-sm" id="quizCounter">오늘의 퀴즈 1 / 5</span>
+                        <span class="text-indigo-600 font-bold text-sm bg-indigo-50 px-3 py-1 rounded-lg">정답 시 +10점</span>
+                    </div>
+
+                    <div id="loadingIndicator" class="hidden flex-col items-center justify-center py-16 text-indigo-600">
+                        <i data-lucide="sparkles" class="w-10 h-10 mb-4 animate-pulse"></i>
+                        <span id="loadingIndicatorText" class="font-bold text-lg animate-pulse text-center">AI가 최신 경영/경제 트렌드를 분석하여<br>문제를 출제 중입니다...</span>
+                    </div>
+
+                    <div id="quizContent" class="fade-in">
+                        <h2 class="text-xl md:text-2xl font-bold leading-relaxed mb-8 break-keep text-slate-800" id="quizQuestion">
+                            <!-- JS 주입 -->
+                        </h2>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8" id="quizOptions">
+                            <!-- JS 주입 -->
+                        </div>
+
+                        <button onclick="submitQuiz()" id="submitBtn" class="w-full bg-slate-800 hover:bg-indigo-600 text-white font-bold text-lg py-4 rounded-xl transition-colors shadow-md flex justify-center items-center gap-2">
+                            <i data-lucide="check-circle" class="w-5 h-5"></i>
+                            정답 제출하기
+                        </button>
+                    </div>
+
+                    <div id="feedbackArea" class="hidden mt-6 p-6 rounded-2xl border slide-up">
+                        <div id="feedbackResult" class="flex items-center gap-3 mb-3"></div>
+                        <p id="feedbackExplanation" class="text-slate-700 leading-relaxed mb-6"></p>
+                        
+                        <button onclick="loadNextQuestion()" id="nextQuizBtn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-lg py-3 rounded-xl transition-colors shadow-sm flex justify-center items-center gap-2">
+                            다음 문제 풀기 <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 일일 제한 완료 & 보상 뷰 -->
+                <div id="dailyDoneBox" class="hidden bg-white/90 rounded-3xl p-10 shadow-sm border border-slate-100 text-center slide-up">
+                    <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 text-green-500 mb-6 shadow-inner">
+                        <i data-lucide="award" class="w-10 h-10"></i>
+                    </div>
+                    <h2 class="text-2xl md:text-4xl font-display text-slate-800 mb-2">오늘의 학습 완료!</h2>
+                    
+                    <!-- 칭찬 멘트 출력 영역 -->
+                    <p id="rewardPraise" class="text-xl text-indigo-600 font-display mb-6 animate-pulse"></p>
+
+                    <p class="text-lg text-slate-600 font-medium mb-8">오늘 준비된 경영, 경제, 금융 5문제를 모두 풀었습니다.<br>내일 다시 방문하여 새로운 지식을 만나보세요!</p>
+                </div>
+            </div>
+
+            <!-- 관리자 뷰 -->
+            <div id="adminView" class="hidden fade-in">
+                <div class="text-center mb-10">
+                    <!-- 메인 화면으로 돌아가는 이모티콘 버튼 -->
+                    <button onclick="confirmGoHome()" class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 text-slate-700 mb-4 shadow-inner hover:scale-110 transition-transform focus:outline-none cursor-pointer" title="메인 화면으로">
+                        <i data-lucide="bar-chart-3" class="w-8 h-8 pointer-events-none"></i>
+                    </button>
+                    <!-- 타이틀 클릭 시 메인으로 돌아가기 -->
+                    <h1 onclick="confirmGoHome()" class="text-3xl md:text-4xl font-display mb-2 text-slate-800 cursor-pointer hover:opacity-80 transition-opacity" title="메인 화면으로">HANIL Biz & Finance <span class="text-indigo-600">Dashboard</span></h1>
+                    <p class="text-slate-500 font-medium">우리 반 학생들의 퀴즈 참여도와 날짜별 기록을 실시간 관리합니다.</p>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm text-center border border-slate-100">
+                        <p class="text-slate-500 text-sm font-bold mb-1">총 학생 수</p>
+                        <p class="text-2xl font-black text-slate-800" id="statTotalStudents">0명</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm text-center border border-slate-100">
+                        <p class="text-slate-500 text-sm font-bold mb-1" id="statParticipantLabel">오늘 참여자</p>
+                        <p class="text-2xl font-black text-indigo-600" id="statTodayParticipants">0명</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm text-center border border-slate-100">
+                        <p class="text-slate-500 text-sm font-bold mb-1">전체 평균 점수</p>
+                        <p class="text-2xl font-black text-amber-500" id="statAvgScore">0점</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm text-center border border-slate-100">
+                        <p class="text-slate-500 text-sm font-bold mb-1">상태</p>
+                        <p class="text-lg font-black text-green-600 mt-1 flex justify-center items-center gap-1">
+                            <i data-lucide="check-circle" class="w-4 h-4"></i> 연동 중
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                    <!-- 개선된 Admin Table Header -->
+                    <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                        <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                            <h3 class="font-bold text-slate-700 whitespace-nowrap text-lg">학생별 점수 현황</h3>
+                            <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+                                <label class="text-xs font-bold text-slate-500 flex items-center gap-1 whitespace-nowrap">
+                                    <i data-lucide="calendar" class="w-3 h-3"></i> 조회일:
+                                </label>
+                                <input type="date" id="adminDateFilter" class="text-sm font-bold text-slate-700 focus:outline-none cursor-pointer bg-transparent" onchange="renderAdminTable()">
+                            </div>
+                        </div>
+                        <div class="flex gap-2 w-full lg:w-auto flex-wrap justify-start lg:justify-end">
+                            <button onclick="sendBulkSms()" class="flex-1 sm:flex-none text-sm bg-amber-100 text-amber-700 px-3 py-2 rounded-lg font-bold hover:bg-amber-200 transition-colors flex justify-center items-center gap-1 whitespace-nowrap">
+                                <i data-lucide="smartphone" class="w-4 h-4"></i> 미완료 일괄독려
+                            </button>
+                            <button onclick="openManageQModal()" class="flex-1 sm:flex-none text-sm bg-sky-100 text-sky-700 px-3 py-2 rounded-lg font-bold hover:bg-sky-200 transition-colors flex justify-center items-center gap-1 whitespace-nowrap">
+                                <i data-lucide="list-checks" class="w-4 h-4"></i> 문제 관리
+                            </button>
+                            <button onclick="openCustomQModal()" class="flex-1 sm:flex-none text-sm bg-emerald-100 text-emerald-700 px-3 py-2 rounded-lg font-bold hover:bg-emerald-200 transition-colors flex justify-center items-center gap-1 whitespace-nowrap">
+                                <i data-lucide="file-edit" class="w-4 h-4"></i> 문제 출제
+                            </button>
+                            <button onclick="openPwdChangeModal(false)" class="flex-1 sm:flex-none text-sm bg-rose-100 text-rose-600 px-3 py-2 rounded-lg font-bold hover:bg-rose-200 transition-colors flex justify-center items-center gap-1 whitespace-nowrap">
+                                <i data-lucide="key" class="w-4 h-4"></i> 비번 변경
+                            </button>
+                            <button onclick="openBatchRegisterModal()" class="flex-1 sm:flex-none text-sm bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg font-bold hover:bg-indigo-200 transition-colors flex justify-center items-center gap-1 whitespace-nowrap">
+                                <i data-lucide="users" class="w-4 h-4"></i> 일괄 등록
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-white border-b border-slate-100">
+                                    <th class="py-4 px-6 text-slate-500 font-semibold text-sm whitespace-nowrap">순위</th>
+                                    <th class="py-4 px-6 text-slate-500 font-semibold text-sm whitespace-nowrap">이름</th>
+                                    <th class="py-4 px-6 text-slate-500 font-semibold text-sm whitespace-nowrap">총 누적 점수</th>
+                                    <th class="py-4 px-6 text-slate-500 font-semibold text-sm whitespace-nowrap">총 풀이 횟수</th>
+                                    <th class="py-4 px-6 text-slate-500 font-semibold text-sm whitespace-nowrap bg-indigo-50/50">조회일 기록 (참여 / 획득점수)</th>
+                                    <th class="py-4 px-6 text-slate-500 font-semibold text-sm whitespace-nowrap text-center">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentTableBody">
+                                <!-- JS Render -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 모달들 (일괄 등록, 비번 변경, 문제 출제, 문제 관리) -->
+    <div id="batchRegisterModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 fade-in">
+        <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
+            <button onclick="closeBatchRegisterModal()" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <div class="flex items-center gap-3 mb-2"><div class="bg-indigo-100 text-indigo-600 p-2 rounded-xl"><i data-lucide="users" class="w-6 h-6"></i></div><h2 class="text-2xl font-bold font-display">학생 일괄 등록</h2></div>
+            <p class="text-slate-500 text-sm mb-6 ml-11">학생 이름을 줄바꿈(엔터) 또는 쉼표(,)로 구분하여 입력하세요. (초기 비밀번호: 1234)</p>
+            <textarea id="studentNamesInput" rows="6" class="w-full border-2 border-slate-200 rounded-xl p-4 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 mb-2 font-medium text-slate-700" placeholder="김철수&#10;이영희, 홍길동"></textarea>
+            <p id="batchRegisterError" class="text-red-500 text-sm font-bold h-5 mb-4 pl-1"></p>
+            <div class="flex gap-3">
+                <button onclick="closeBatchRegisterModal()" class="flex-1 py-3.5 rounded-xl font-bold bg-slate-100 text-slate-600">취소</button>
+                <button onclick="processBatchRegister()" class="flex-1 py-3.5 rounded-xl font-bold bg-indigo-600 text-white shadow-md">등록하기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="customQModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 fade-in">
+        <div class="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeCustomQModal()" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <div class="flex items-center gap-3 mb-4"><div class="bg-emerald-100 text-emerald-600 p-2 rounded-xl"><i data-lucide="file-edit" class="w-6 h-6"></i></div><h2 id="customQModalTitle" class="text-2xl font-bold font-display">문제 출제</h2></div>
+            
+            <!-- 탭 메뉴 -->
+            <div id="customQTabNav" class="flex gap-2 mb-6">
+                <button onclick="switchCustomQTab('manual')" id="tabManual" class="flex-1 py-2 font-bold text-emerald-700 bg-emerald-100 rounded-lg transition-colors">직접 입력</button>
+                <button onclick="switchCustomQTab('excel')" id="tabExcel" class="flex-1 py-2 font-bold text-slate-500 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">엑셀 일괄 업로드</button>
+            </div>
+
+            <!-- 직접 입력 섹션 -->
+            <div id="cqManualSection" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1">문제 내용</label>
+                    <textarea id="cqQuestion" rows="2" class="w-full border-2 border-slate-200 rounded-xl p-3 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 font-medium" placeholder="Q. 다음 중..."></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">보기 1</label><input type="text" id="cqOpt0" class="w-full border-2 border-slate-200 rounded-xl p-2 font-medium"></div>
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">보기 2</label><input type="text" id="cqOpt1" class="w-full border-2 border-slate-200 rounded-xl p-2 font-medium"></div>
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">보기 3</label><input type="text" id="cqOpt2" class="w-full border-2 border-slate-200 rounded-xl p-2 font-medium"></div>
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">보기 4</label><input type="text" id="cqOpt3" class="w-full border-2 border-slate-200 rounded-xl p-2 font-medium"></div>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1">정답 선택</label>
+                    <select id="cqAnswer" class="w-full border-2 border-slate-200 rounded-xl p-3 font-medium text-slate-700 focus:border-emerald-400 focus:outline-none">
+                        <option value="0">보기 1</option>
+                        <option value="1">보기 2</option>
+                        <option value="2">보기 3</option>
+                        <option value="3">보기 4</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1">해설 (선택)</label>
+                    <textarea id="cqExplanation" rows="2" class="w-full border-2 border-slate-200 rounded-xl p-3 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 font-medium" placeholder="<strong>[해설]</strong> ..."></textarea>
+                </div>
+                <p id="cqError" class="text-red-500 text-sm font-bold h-5"></p>
+
+                <div class="flex gap-3 mt-6">
+                    <button onclick="closeCustomQModal()" class="flex-1 py-3.5 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">취소</button>
+                    <button id="btnSaveCustomQ" onclick="saveCustomQ()" class="flex-1 py-3.5 rounded-xl font-bold bg-emerald-600 text-white shadow-md hover:bg-emerald-700 transition-colors">문제 등록하기</button>
+                </div>
+            </div>
+
+            <!-- 엑셀 일괄 업로드 섹션 -->
+            <div id="cqExcelSection" class="space-y-4 hidden">
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4">
+                    <h3 class="font-bold text-blue-800 mb-2 text-sm">엑셀 양식 안내</h3>
+                    <ul class="text-xs text-blue-700 list-disc list-inside space-y-1">
+                        <li>A열: 문제 내용</li>
+                        <li>B~E열: 보기 1 ~ 보기 4</li>
+                        <li>F열: 정답 (1, 2, 3, 4 중 하나 입력)</li>
+                        <li>G열: 해설</li>
+                    </ul>
+                    <button onclick="downloadExcelTemplate()" class="mt-3 text-xs bg-white text-blue-600 font-bold px-3 py-1.5 rounded border border-blue-200 hover:bg-blue-100 transition-colors inline-flex items-center gap-1">
+                        <i data-lucide="download" class="w-4 h-4"></i> 양식 다운로드
+                    </button>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-2">엑셀 파일 선택 (.xlsx, .csv)</label>
+                    <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer">
+                </div>
+                <p id="cqExcelError" class="text-red-500 text-sm font-bold h-5"></p>
+                <p id="cqExcelSuccess" class="text-emerald-600 text-sm font-bold h-5"></p>
+
+                <div class="flex gap-3 mt-6">
+                    <button onclick="closeCustomQModal()" class="flex-1 py-3.5 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">취소</button>
+                    <button onclick="processExcelUpload()" class="flex-1 py-3.5 rounded-xl font-bold bg-emerald-600 text-white shadow-md hover:bg-emerald-700 transition-colors">엑셀 일괄 업로드</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 문제 관리 모달 -->
+    <div id="manageQModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 fade-in">
+        <div class="bg-white rounded-3xl p-8 max-w-3xl w-full shadow-2xl relative max-h-[90vh] flex flex-col">
+            <button onclick="closeManageQModal()" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <div class="flex items-center gap-3 mb-4">
+                <div class="bg-sky-100 text-sky-600 p-2 rounded-xl"><i data-lucide="list-checks" class="w-6 h-6"></i></div>
+                <h2 class="text-2xl font-bold font-display">출제 문제 관리</h2>
+            </div>
+            <p class="text-slate-500 text-sm mb-4">직접 출제하거나 엑셀로 업로드한 문제를 확인하고 수정/삭제할 수 있습니다.</p>
+            
+            <div class="overflow-y-auto flex-1 border border-slate-200 rounded-xl">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead class="bg-slate-50 sticky top-0 shadow-sm">
+                        <tr>
+                            <th class="py-3 px-4 font-semibold text-slate-600 w-12 text-center">No.</th>
+                            <th class="py-3 px-4 font-semibold text-slate-600">문제 내용</th>
+                            <th class="py-3 px-4 font-semibold text-slate-600 w-24">정답</th>
+                            <th class="py-3 px-4 font-semibold text-slate-600 w-28 text-center">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="manageQTableBody">
+                        <!-- JS Render -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="pwdChangeModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 fade-in">
+        <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
+            <button id="closePwdModalBtn" onclick="closePwdChangeModal()" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <div class="flex items-center gap-3 mb-2"><div class="bg-rose-100 text-rose-600 p-2 rounded-xl"><i data-lucide="lock" class="w-6 h-6"></i></div><h2 class="text-2xl font-bold font-display" id="pwdModalTitle">비밀번호 변경</h2></div>
+            <p id="pwdChangeGuide" class="text-slate-500 text-sm mb-6 ml-11">새로운 비밀번호를 설정해주세요.</p>
+            <input type="password" id="newPwdInput" placeholder="새 비밀번호" class="w-full border-2 border-slate-200 rounded-xl p-4 mb-3 focus:border-rose-400 focus:ring-4 focus:ring-rose-100 font-bold">
+            <input type="password" id="confirmPwdInput" placeholder="비밀번호 확인" class="w-full border-2 border-slate-200 rounded-xl p-4 mb-2 focus:border-rose-400 focus:ring-4 focus:ring-rose-100 font-bold">
+            <p id="pwdChangeError" class="text-red-500 text-sm font-bold h-5 mb-4 pl-1"></p>
+            <div class="flex gap-3">
+                <button id="cancelPwdBtn" onclick="closePwdChangeModal()" class="flex-1 py-3.5 rounded-xl font-bold bg-slate-100 text-slate-600">취소</button>
+                <button id="submitPwdBtn" onclick="processPwdChange()" class="flex-1 py-3.5 rounded-xl font-bold bg-rose-600 text-white shadow-md">변경 완료</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Script & Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const DAILY_LIMIT = 5;
+        
+        // 💡 [중요] AI 무한 문제 출제를 위한 API 키
+        // 키는 절대 이 파일(GitHub 저장소)에 하드코딩하지 않습니다.
+        // 설정(⚙️) 모달을 통해 입력하면 이 브라우저의 localStorage에만 저장됩니다.
+        let apiKey = localStorage.getItem('knowee_gemini_api_key') || "";
+        
+        let customFirebaseConfig = {
+            apiKey: "AIzaSyBcDgPMf3WxPJrygpUAbRf9fsdYwWZiA3E",
+            authDomain: "economy-72a9a.firebaseapp.com",
+            projectId: "economy-72a9a",
+            storageBucket: "economy-72a9a.firebasestorage.app",
+            messagingSenderId: "1084844343911",
+            appId: "1:1084844343911:web:9bde341ac02caafc49cac2",
+            measurementId: "G-LW9M6X8BWN"
+        };
+
+        const fallbackQuestionsDB = [
+            { id: "f1", question: "Q. 어떤 선택을 함으로써 포기해야 하는 대안 중에서 가장 가치 있는 것을 무엇이라고 할까요?", options: ["매몰 비용", "기회 비용", "고정 비용", "가변 비용"], answerIndex: 1, explanation: "<strong>[해설]</strong> '기회 비용'은 여러 대안 중 하나를 선택했을 때, 선택하지 않은 대안들 중 가장 좋은 것의 가치를 의미합니다." },
+            { id: "f2", question: "Q. 물가가 지속적으로 상승하여 화폐 가치가 떨어지는 경제 현상을 무엇이라고 할까요?", options: ["디플레이션", "스태그플레이션", "인플레이션", "애그플레이션"], answerIndex: 2, explanation: "<strong>[해설]</strong> '인플레이션'은 시중에 돈이 많아지거나 생산 비용이 오르는 등 다양한 원인으로 물가가 전반적으로 꾸준히 오르는 현상입니다." },
+            { id: "f3", question: "Q. 주식시장에서 주가가 상승하는 강세장을 상징하는 동물은 무엇일까요?", options: ["곰(Bear)", "황소(Bull)", "비둘기(Dove)", "매(Hawk)"], answerIndex: 1, explanation: "<strong>[해설]</strong> 황소(Bull)는 뿔을 위로 치켜받는 공격 모습 때문에 주가 상승을 의미합니다." },
+            { id: "f4", question: "Q. 이미 지출되어 회수할 수 없는 비용으로, 합리적 의사결정을 위해 고려하지 말아야 할 비용은 무엇일까요?", options: ["가변 비용", "매몰 비용", "기회 비용", "한계 비용"], answerIndex: 1, explanation: "<strong>[해설]</strong> '매몰 비용(Sunk Cost)'은 이미 엎질러진 물처럼 되돌릴 수 없는 비용을 뜻합니다." },
+            { id: "f5", question: "Q. 기업이 환경보호, 사회적 책임, 투명한 지배구조를 강조하며 지속 가능성을 추구하는 경영 방식을 뜻하는 용어는?", options: ["CSR", "CSV", "ESG", "M&A"], answerIndex: 2, explanation: "<strong>[해설]</strong> ESG는 Environment(환경), Social(사회), Governance(지배구조)의 약자로 기업의 비재무적 성과를 측정하는 주요 지표입니다." },
+            { id: "f6", question: "Q. 경기가 침체함에도 불구하고 물가가 지속적으로 상승하는 현상을 일컫는 경제 용어는?", options: ["디플레이션", "스태그플레이션", "리세션", "인플레이션"], answerIndex: 1, explanation: "<strong>[해설]</strong> 스태그플레이션(Stagflation)은 침체(Stagnation)와 물가상승(Inflation)의 합성어로, 매우 해결하기 어려운 경제 상황을 뜻합니다." },
+            { id: "f7", question: "Q. 중앙은행이 기준금리를 인상하면 일반적으로 시중의 통화량과 물가는 어떻게 변화할 가능성이 높은가요?", options: ["통화량 증가, 물가 상승", "통화량 감소, 물가 하락", "통화량 증가, 물가 하락", "통화량 감소, 물가 상승"], answerIndex: 1, explanation: "<strong>[해설]</strong> 기준금리를 인상하면 대출이 줄고 저축이 늘어 시중 통화량이 감소하며, 이로 인해 과열된 물가가 하락(안정)하는 효과를 기대할 수 있습니다." },
+            { id: "f8", question: "Q. 서로 다른 통화 간의 교환 비율을 뜻하며, 수출입 기업의 이익에 큰 영향을 미치는 것은?", options: ["금리", "주가지수", "환율", "물가지수"], answerIndex: 2, explanation: "<strong>[해설]</strong> 환율(Exchange Rate)은 자국 화폐와 외국 화폐의 교환 비율로, 환율 변동은 수출입 의존도가 높은 국가 경제에 핵심적인 요소입니다." },
+            { id: "f9", question: "Q. 4차 산업혁명의 핵심 기술 중 하나로, 데이터를 분산 저장하여 위변조를 방지하는 디지털 장부 기술은?", options: ["메타버스", "클라우드", "블록체인", "빅데이터"], answerIndex: 2, explanation: "<strong>[해설]</strong> 블록체인(Blockchain)은 데이터를 중앙 서버가 아닌 네트워크 참여자들에게 분산 저장하여 보안성을 극대화한 기술입니다." },
+            { id: "f10", question: "Q. 한 나라 안에서 일정 기간 동안 새롭게 생산된 재화와 서비스의 시장가치 합계를 의미하는 국내총생산의 약자는?", options: ["GNI", "GDP", "CPI", "FDI"], answerIndex: 1, explanation: "<strong>[해설]</strong> GDP(Gross Domestic Product, 국내총생산)는 한 국가의 경제 규모와 성장률을 파악하는 가장 대표적인 거시경제 지표입니다." },
+            { id: "f11", question: "Q. 은행에 돈을 맡긴 사람들이 은행의 파산을 우려하여 한꺼번에 예금을 찾으려 몰려드는 현상은?", options: ["뱅크런", "모라토리엄", "디폴트", "양적완화"], answerIndex: 0, explanation: "<strong>[해설]</strong> 뱅크런(Bank Run)은 은행의 예금 지급 불능 상태를 우려한 고객들이 대규모로 예금을 인출하는 사태를 말합니다." },
+            { id: "f12", question: "Q. 기업이 주식시장에 처음 상장하기 위해 외부 투자자들에게 자사의 주식과 경영 내역을 공개하는 절차는?", options: ["M&A", "IPO", "증자", "감자"], answerIndex: 1, explanation: "<strong>[해설]</strong> IPO(Initial Public Offering, 기업공개)는 기업이 최초로 외부 투자자에게 주식을 공개 매도하여 자금을 조달하는 과정입니다." },
+            { id: "f13", question: "Q. 금융(Finance)과 기술(Technology)의 합성어로, IT 기술을 기반으로 한 새로운 형태의 금융 서비스를 뜻하는 말은?", options: ["테크핀", "핀테크", "빅테크", "에듀테크"], answerIndex: 1, explanation: "<strong>[해설]</strong> 핀테크(FinTech)는 모바일 결제, 송금, 자산관리 등 IT가 결합된 혁신적인 금융 서비스를 의미합니다." },
+            { id: "f14", question: "Q. 각국의 물가 수준을 비교하기 위해 맥도날드의 대표 햄버거 가격을 기준으로 산출하는 지수는?", options: ["스타벅스 지수", "빅맥 지수", "엥겔 지수", "지니 계수"], answerIndex: 1, explanation: "<strong>[해설]</strong> 빅맥 지수(Big Mac Index)는 영국 경제지 이코노미스트가 고안한 것으로, 전 세계에서 동일하게 팔리는 빅맥 가격으로 환율과 물가를 비교합니다." },
+            { id: "f15", question: "Q. 기업이 발표한 실적이 시장의 예상치(전망치)에 크게 미치지 못하여 주가에 충격을 주는 현상은?", options: ["어닝 서프라이즈", "어닝 쇼크", "블랙 스완", "데드캣 바운스"], answerIndex: 1, explanation: "<strong>[해설]</strong> 어닝 쇼크(Earning Shock)는 기업 실적이 예상보다 저조해 투자자들에게 실망감을 안겨 주가가 하락하는 현상입니다." },
+            { id: "f16", question: "Q. 특정 재화를 소비할 때, 소비량이 늘어날수록 추가로 얻는 만족감이 점차 줄어드는 경제 법칙은?", options: ["수요와 공급의 법칙", "한계효용 체감의 법칙", "파레토 법칙", "수확 체감의 법칙"], answerIndex: 1, explanation: "<strong>[해설]</strong> 배가 고플 때 먹는 빵 첫 조각이 가장 맛있고, 계속 먹을수록 맛(만족감)이 떨어지는 것을 한계효용 체감의 법칙이라고 합니다." },
+            { id: "f17", question: "Q. 사람들에게 어떤 선택을 강요하지 않고 부드럽게 개입하여 더 좋은 선택을 하도록 유도하는 방법을 뜻하는 용어는?", options: ["넛지(Nudge)", "플라시보", "노시보", "피그말리온"], answerIndex: 0, explanation: "<strong>[해설]</strong> 넛지(Nudge)는 '팔꿈치로 쿡쿡 찌르다'라는 뜻으로, 타인의 선택을 유도하는 부드러운 개입을 뜻하는 행동경제학 용어입니다." },
+            { id: "f18", question: "Q. 지속적인 위험 징후가 있음에도 사람들이 이를 무시하거나 간과하다가 결국 큰 위기를 맞게 되는 현상은?", options: ["블랙 스완", "회색 코뿔소", "하얀 코끼리", "블루 오션"], answerIndex: 1, explanation: "<strong>[해설]</strong> 회색 코뿔소(Gray Rhino)는 코뿔소가 다가오면 땅이 흔들려 누구나 알 수 있지만 피하지 못해 위험에 빠지는 것을 비유한 경제 용어입니다." },
+            { id: "f19", question: "Q. 도저히 일어날 것 같지 않은 일이 발생하여 시장에 엄청난 충격을 주는 사건을 가리키는 용어는?", options: ["회색 코뿔소", "블랙 스완", "나비 효과", "데스 밸리"], answerIndex: 1, explanation: "<strong>[해설]</strong> 블랙 스완(Black Swan)은 과거의 경험으로는 예측하기 매우 어렵지만, 한 번 발생하면 경제에 엄청난 파급을 가져오는 사건입니다." },
+            { id: "f20", question: "Q. 기업 가치가 10억 달러(약 1조 원) 이상인 비상장 스타트업을 전설 속 동물에 비유하여 부르는 말은?", options: ["데카콘", "유니콘", "헥토콘", "드래곤"], answerIndex: 1, explanation: "<strong>[해설]</strong> 유니콘 기업(Unicorn)은 상장되지 않은 벤처기업임에도 그 가치가 1조 원이 넘을 만큼 크게 성장한 희귀한 기업을 뜻합니다." },
+            { id: "f21", question: "Q. 금리 인하로도 경기 부양이 어려울 때, 중앙은행이 직접 시장에 돈을 풀어 통화량을 늘리는 비전통적 경제 정책은?", options: ["긴축 정책", "양적 완화", "테이퍼링", "스마일 커브"], answerIndex: 1, explanation: "<strong>[해설]</strong> 양적 완화(Quantitative Easing)는 중앙은행이 국채 등 자산을 매입하여 시중에 유동성(돈)을 직접 공급하는 정책입니다." },
+            { id: "f22", question: "Q. 은행처럼 신용 창출을 하면서도 은행과 같은 엄격한 규제를 받지 않는 비은행 금융기관이나 금융상품을 일컫는 말은?", options: ["인터넷 전문은행", "그림자 금융(Shadow Banking)", "제1금융권", "사금융"], answerIndex: 1, explanation: "<strong>[해설]</strong> 그림자 금융은 은행과 비슷한 기능을 하지만 규제의 사각지대에 있어 금융 위기의 원인이 되기도 합니다." },
+            { id: "f23", question: "Q. 금융기관끼리 남거나 모자라는 자금을 하루나 이틀 등 초단기로 빌려주고 받을 때 적용되는 금리는?", options: ["기준금리", "콜금리", "코픽스", "리보금리"], answerIndex: 1, explanation: "<strong>[해설]</strong> 콜금리(Call Rate)는 금융기관 상호 간에 급전을 빌릴 때 쓰는 금리로, 단기 자금 시장의 상황을 잘 보여줍니다." },
+            { id: "f24", question: "Q. 명목 GDP를 실질 GDP로 나눈 값으로, 한 국가 내에서 생산된 모든 재화와 서비스의 종합적인 물가 수준을 나타내는 지표는?", options: ["소비자물가지수(CPI)", "생산자물가지수(PPI)", "GDP 디플레이터", "엥겔 지수"], answerIndex: 2, explanation: "<strong>[해설]</strong> GDP 디플레이터는 특정 품목이 아닌 국가 경제 전체의 종합적인 물가 변동을 파악하는 데 사용됩니다." },
+            { id: "f25", question: "Q. 가격이 오르는 데도 불구하고 과시욕이나 허영심 때문에 수요가 줄지 않고 오히려 증가하는 현상을 뜻하는 용어는?", options: ["스놉 효과", "밴드왜건 효과", "베블런 효과", "기펜재"], answerIndex: 2, explanation: "<strong>[해설]</strong> 베블런 효과(Veblen Effect)는 명품 가방처럼 비쌀수록 과시하기 좋아 오히려 잘 팔리는 경제 현상을 말합니다." },
+            { id: "f26", question: "Q. 전체 결과의 80%가 전체 원인의 20%에서 일어나는 현상으로, '20대 80의 법칙'이라고도 불리는 것은?", options: ["롱테일 법칙", "파레토 법칙", "메칼프의 법칙", "무어의 법칙"], answerIndex: 1, explanation: "<strong>[해설]</strong> 파레토 법칙(Pareto Principle)은 백화점 매출의 80%를 20%의 우수 고객이 창출한다는 등 마케팅에서 자주 쓰입니다." },
+            { id: "f27", question: "Q. 특정 기업이 시장점유율을 높이기 위해 단기적인 손실을 감수하고서라도 경쟁사보다 가격을 파격적으로 낮추는 전략은?", options: ["프리미엄 가격", "출혈 경쟁(치킨 게임)", "스키밍 전략", "침투 가격"], answerIndex: 1, explanation: "<strong>[해설]</strong> 치킨 게임(Chicken Game)은 어느 한쪽이 양보하지 않으면 양쪽 모두 파국으로 치닫는 극단적인 경쟁을 뜻합니다." },
+            { id: "f28", question: "Q. 고객이 여러 금융기관에 흩어져 있는 자신의 금융 정보를 한눈에 조회하고 관리할 수 있게 하는 금융 서비스는?", options: ["오픈 뱅킹", "마이데이터", "클라우드 펀딩", "블록체인"], answerIndex: 1, explanation: "<strong>[해설]</strong> 마이데이터(MyData) 사업은 소비자가 정보 제공에 동의하면 흩어진 신용, 자산 정보를 모아 맞춤형 관리를 제공하는 서비스입니다." },
+            { id: "f29", question: "Q. 주식시장에서 여러 종목을 특정 기준에 따라 묶어서 하나의 주식처럼 거래할 수 있게 만든 인덱스 펀드는?", options: ["리츠(REITs)", "펀드", "ETF(상장지수펀드)", "ELS(주가연계증권)"], answerIndex: 2, explanation: "<strong>[해설]</strong> ETF(Exchange Traded Fund)는 일반 주식처럼 HTS/MTS에서 실시간으로 쉽게 사고팔 수 있는 펀드 상품입니다." },
+            { id: "f30", question: "Q. 경제가 성장하고 발전함에 따라 농업 중심에서 제조업, 그리고 서비스업 중심으로 산업 구조가 변하는 현상을 주장한 학자의 이름은?", options: ["애덤 스미스", "케인스", "콜린 클라크", "카를 마르크스"], answerIndex: 2, explanation: "<strong>[해설]</strong> 콜린 클라크는 산업을 제1차, 2차, 3차로 분류하고 경제 발전에 따라 산업 비중이 고도화된다고 설명했습니다." }
+        ];
+
+        window.mockStudents = [];
+        window.currentUser = null;
+        window.currentAdminPassword = "1234";
+        window.isForcedResetMode = false;
+        window.currentPwdMode = 'admin';
+        window.currentQData = null;
+        window.isAnswerSubmitted = false;
+        
+        window.editingQuestionId = null; 
+
+        window.questionQueue = [];
+        window.isFetchingQ = false;
+        window.sessionAskedIds = []; 
+        window.customQuestionsDB = []; 
+
+        let db, auth, appId, user;
+
+        // --- 동기부여 명언 로직 ---
+        const motivationalQuotes = [
+            "오늘의 노력이 내일의 자산이 됩니다! 🚀",
+            "경제 흐름을 읽는 자가 미래를 주도합니다! 💡",
+            "매일 5문제, 금융 마스터로 가는 지름길! 📈",
+            "작은 지식이 쌓여 큰 통찰력을 만듭니다! 🌟",
+            "포기하지 않는 꾸준함이 가장 강력한 무기입니다! 🛡️",
+            "오늘 배운 경제 용어가 내일의 기회가 됩니다! 🔑",
+            "지식은 당신의 가장 큰 무기입니다! ⚔️"
+        ];
+        
+        let quoteInterval;
+
+        function startMotivationalBanner() {
+            const banner = document.getElementById('motivationalBanner');
+            if (!banner) return;
+            
+            clearInterval(quoteInterval);
+            quoteInterval = setInterval(() => {
+                banner.style.opacity = 0;
+                setTimeout(() => {
+                    const randomIndex = Math.floor(Math.random() * motivationalQuotes.length);
+                    banner.innerText = motivationalQuotes[randomIndex];
+                    banner.style.opacity = 1;
+                }, 500); // 0.5초 뒤 텍스트 변경 후 다시 나타남
+            }, 6000); // 6초마다 변경
+        }
+
+        function stopMotivationalBanner() {
+            clearInterval(quoteInterval);
+        }
+        // -------------------------
+
+        window.getTodayString = function() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        };
+
+        function updateIcons() {
+            setTimeout(() => lucide.createIcons(), 10);
+        }
+
+        function refreshApiKeyStatusUI() {
+            const statusText = document.getElementById('dbStatusText');
+            if (!statusText) return;
+            // Firebase 연결 성공 후에만 상태 문구를 AI 키 여부로 덮어씁니다.
+            if (statusText.dataset.dbReady !== "1") return;
+            statusText.innerText = apiKey ? "서버 연동 · AI 출제 ON" : "서버 연동 · 기본 문제은행 사용 중";
+        }
+
+        window.openApiKeyModal = function() {
+            document.getElementById('apiKeyModal').classList.remove('hidden');
+            document.getElementById('apiKeyInput').value = apiKey || '';
+            const msg = document.getElementById('apiKeyStatusMsg');
+            msg.className = "text-sm font-bold h-6 mb-2 text-slate-400";
+            msg.innerText = apiKey ? "현재 AI 키가 설정되어 있습니다." : "AI 키가 설정되어 있지 않아 기본 문제은행만 사용됩니다.";
+        }
+
+        window.closeApiKeyModal = function() {
+            document.getElementById('apiKeyModal').classList.add('hidden');
+        }
+
+        window.saveApiKey = function() {
+            const val = document.getElementById('apiKeyInput').value.trim();
+            const msg = document.getElementById('apiKeyStatusMsg');
+            if (!val) {
+                msg.className = "text-sm font-bold h-6 mb-2 text-red-500";
+                msg.innerText = "키를 입력해주세요.";
+                return;
+            }
+            apiKey = val;
+            localStorage.setItem('knowee_gemini_api_key', val);
+            msg.className = "text-sm font-bold h-6 mb-2 text-emerald-600";
+            msg.innerText = "저장되었습니다! 이제 AI가 새로운 문제를 출제합니다.";
+            refreshApiKeyStatusUI();
+            setTimeout(() => window.closeApiKeyModal(), 900);
+        }
+
+        window.clearApiKey = function() {
+            apiKey = "";
+            localStorage.removeItem('knowee_gemini_api_key');
+            document.getElementById('apiKeyInput').value = '';
+            const msg = document.getElementById('apiKeyStatusMsg');
+            msg.className = "text-sm font-bold h-6 mb-2 text-slate-500";
+            msg.innerText = "키가 삭제되었습니다. 기본 문제은행으로 전환됩니다.";
+            refreshApiKeyStatusUI();
+        }
+
+        async function initFirebase() {
+            const statusText = document.getElementById('dbStatusText');
+            const statusDot = document.getElementById('dbStatusDot');
+            const statusPing = document.getElementById('dbStatusPing');
+
+            let firebaseConfig = customFirebaseConfig;
+            if (typeof __firebase_config !== 'undefined') firebaseConfig = JSON.parse(__firebase_config);
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'knowee-external-app';
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (u) => {
+                    user = u;
+                    if (user) {
+                        setupListeners();
+                        statusText.dataset.dbReady = "1";
+                        refreshApiKeyStatusUI();
+                        statusDot.className = "relative inline-flex rounded-full h-3.5 w-3.5 bg-green-500";
+                        statusPing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75";
+                        statusPing.classList.remove('hidden');
+                    }
+                });
+            } catch (e) {
+                console.error("Firebase Init Error:", e);
+                statusText.innerText = "DB 오류";
+                statusDot.className = "relative inline-flex rounded-full h-3.5 w-3.5 bg-red-500";
+                statusPing.classList.add('hidden');
+            }
+        }
+
+        function setupListeners() {
+            if (!user || !db) return;
+            const studentsCol = collection(db, 'artifacts', appId, 'public', 'data', 'students');
+            onSnapshot(studentsCol, (snapshot) => {
+                window.mockStudents = snapshot.docs.map(d => d.data());
+                if (window.currentUser) {
+                    const updatedMe = window.mockStudents.find(s => s.name === window.currentUser.name);
+                    if (updatedMe) {
+                        window.currentUser = updatedMe;
+                        if(!window.currentUser.solvedQuestionIds) window.currentUser.solvedQuestionIds = [];
+                        const scoreEl = document.getElementById('myScore');
+                        if(scoreEl) scoreEl.innerText = window.currentUser.score;
+                    }
+                }
+                if (!document.getElementById('adminView').classList.contains('hidden')) {
+                    window.renderAdminTable();
+                }
+            }, (err) => console.error(err));
+
+            const configDoc = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'adminSettings');
+            onSnapshot(configDoc, (snapshot) => {
+                if (snapshot.exists()) window.currentAdminPassword = snapshot.data().password || "1234";
+            }, (err) => console.error(err));
+
+            const customQCol = collection(db, 'artifacts', appId, 'public', 'data', 'customQuestions');
+            onSnapshot(customQCol, (snapshot) => {
+                window.customQuestionsDB = snapshot.docs.map(d => d.data());
+                if (!document.getElementById('manageQModal').classList.contains('hidden')) {
+                    window.renderManageQList();
+                }
+            }, (err) => console.error(err));
+        }
+
+        window.dbSaveStudent = async function(studentData) {
+            if (!user || !db) return;
+            try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', studentData.name), studentData, { merge: true }); } 
+            catch(e) { console.error(e); }
+        }
+
+        window.dbSaveConfig = async function(configData) {
+            if (!user || !db) return;
+            try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'adminSettings'), configData, { merge: true }); } 
+            catch(e) { console.error(e); }
+        }
+
+        function getUnsolvedFallback() {
+            if (!window.currentUser) return fallbackQuestionsDB[0]; 
+            if (!window.currentUser.solvedQuestionIds) window.currentUser.solvedQuestionIds = [];
+
+            let combinedDB = [...(window.customQuestionsDB || []), ...fallbackQuestionsDB];
+
+            let availableQuestions = combinedDB.filter(q => 
+                !window.currentUser.solvedQuestionIds.includes(q.id) &&
+                !window.sessionAskedIds.includes(q.id)
+            );
+
+            if (availableQuestions.length === 0) {
+                availableQuestions = combinedDB.filter(q => !window.sessionAskedIds.includes(q.id));
+                
+                if (availableQuestions.length === 0) {
+                    availableQuestions = combinedDB;
+                }
+                window.currentUser.solvedQuestionIds = []; 
+                console.log("모든 기본/출제 문제를 다 풀었습니다. 문제 풀이 기록이 순환됩니다.");
+            }
+
+            let randomIndex = Math.floor(Math.random() * availableQuestions.length);
+            let selectedQ = availableQuestions[randomIndex];
+            
+            window.sessionAskedIds.push(selectedQ.id);
+            return selectedQ;
+        }
+
+        async function fetchSingleQuestionFromAI() {
+            if (!apiKey) {
+                return getUnsolvedFallback();
+            }
+
+            const topics = [
+                "한국경제신문 생글생글 최신 시사", "TESAT 기출 및 경제/경영 용어", 
+                "행동경제학과 비합리적 선택", "글로벌 거시경제와 환율", 
+                "주식, 채권, 금융투자 원리", "4차 산업혁명과 블록체인", "ESG 경영과 최신 기업 트렌드"
+            ];
+            const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+            const randomSeed = Math.floor(Math.random() * 999999);
+
+            const promptText = `고등학생 수준의 흥미로운 경영/경제/금융 퀴즈 1개를 생성해줘.
+            1. 출제 주제: [${randomTopic}] 관련된 내용. (Seed: ${randomSeed})
+            2. '한국경제신문 생글생글' 논술이나 기사에 나올 법한 시사성 있고 깊이 있는 내용.
+            3. 매우 뻔한 문제(기회비용 단순 정의 등)는 피하고 최신 경제 트렌드를 반영한 새로운 관점을 제공할 것.
+            4. 반드시 JSON 형식으로만 반환할 것.
+            JSON 구조: { "question": "Q. ...", "options": ["1", "2", "3", "4"], "answerIndex": 정답(0~3), "explanation": "<strong>[해설]</strong> ..." }`;
+
+            const payload = {
+                contents: [{ parts: [{ text: promptText }] }],
+                systemInstruction: { parts: [{ text: "You are an expert economics and finance quiz generator for high school students. Respond ONLY with valid JSON." }] },
+                generationConfig: { temperature: 0.9, responseMimeType: "application/json" }
+            };
+
+            let retries = 3; 
+            let delay = 500;
+            
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) throw new Error();
+                    const data = await res.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) {
+                        const parsedObj = JSON.parse(text);
+                        parsedObj.id = "ai_" + Math.random().toString(36).substr(2, 9);
+                        return parsedObj;
+                    }
+                } catch (e) {
+                    await new Promise(r => setTimeout(r, delay));
+                    delay *= 2;
+                }
+            }
+            return getUnsolvedFallback();
+        }
+
+        async function fillQuestionQueue() {
+            if (window.isFetchingQ || window.questionQueue.length >= 2) return;
+            window.isFetchingQ = true;
+            try {
+                const q = await fetchSingleQuestionFromAI();
+                if (q) window.questionQueue.push(q);
+            } catch (e) { console.error(e); } 
+            finally {
+                window.isFetchingQ = false;
+                if (window.questionQueue.length < 2) setTimeout(fillQuestionQueue, 500);
+            }
+        }
+
+        window.loadNextQuestion = function() {
+            if (window.currentUser && window.currentUser.todaySolved >= DAILY_LIMIT) {
+                document.getElementById('quizBox').classList.add('hidden');
+                document.getElementById('dailyDoneBox').classList.remove('hidden');
+
+                const praises = [
+                    "대단해요! 오늘의 경제 지식이 +100 상승했습니다! 🎉",
+                    "꾸준함의 힘! 내일도 기대할게요! ⭐",
+                    "훌륭합니다! 미래의 금융 마스터가 되어가고 있어요! 📈",
+                    "완벽해요! 오늘의 미션 클리어! 🏆",
+                    "최고예요! 경제 흐름을 읽는 눈이 밝아졌습니다! 👀"
+                ];
+                document.getElementById('rewardPraise').innerText = praises[Math.floor(Math.random() * praises.length)];
+                
+                if(typeof confetti === 'function') {
+                    confetti({
+                        particleCount: 150,
+                        spread: 70,
+                        origin: { y: 0.6 },
+                        zIndex: 1000
+                    });
+                }
+                return;
+            }
+
+            document.getElementById('quizContent').classList.add('hidden');
+            document.getElementById('feedbackArea').classList.add('hidden');
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+            document.getElementById('loadingIndicator').classList.add('flex');
+            document.getElementById('loadingIndicatorText').innerHTML = apiKey
+                ? "AI가 최신 경영/경제 트렌드를 분석하여<br>문제를 출제 중입니다..."
+                : "오늘의 문제를 준비하고 있습니다...";
+            window.isAnswerSubmitted = false;
+
+            if (window.questionQueue.length > 0) {
+                renderQuizUI(window.questionQueue.shift());
+                fillQuestionQueue();
+            } else {
+                fillQuestionQueue();
+                const checkInterval = setInterval(() => {
+                    if (window.questionQueue.length > 0) {
+                        clearInterval(checkInterval);
+                        renderQuizUI(window.questionQueue.shift());
+                        fillQuestionQueue();
+                    }
+                }, 500);
+
+                setTimeout(() => {
+                    if (!document.getElementById('loadingIndicator').classList.contains('hidden')) {
+                        clearInterval(checkInterval);
+                        renderQuizUI(getUnsolvedFallback());
+                    }
+                }, 10000);
+            }
+        }
+
+        function renderQuizUI(qData) {
+            window.currentQData = qData;
+            document.getElementById('loadingIndicator').classList.add('hidden');
+            document.getElementById('loadingIndicator').classList.remove('flex');
+            document.getElementById('quizContent').classList.remove('hidden');
+            document.getElementById('feedbackArea').className = "hidden mt-6 p-6 rounded-2xl border slide-up"; 
+            
+            document.getElementById('quizCounter').innerText = `오늘의 퀴즈 ${window.currentUser.todaySolved + 1} / ${DAILY_LIMIT}`;
+            document.getElementById('quizQuestion').innerText = qData.question;
+            
+            const optionsBox = document.getElementById('quizOptions');
+            optionsBox.innerHTML = '';
+            
+            qData.options.forEach((opt, idx) => {
+                optionsBox.innerHTML += `
+                    <div>
+                        <input type="radio" name="quizOpt" id="opt${idx}" value="${idx}">
+                        <label for="opt${idx}" id="labelOpt${idx}" class="block w-full p-4 border-2 border-slate-200 rounded-xl cursor-pointer transition-all hover:bg-slate-50 text-center font-medium text-lg text-slate-700">${opt}</label>
+                    </div>
+                `;
+            });
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = false;
+            submitBtn.className = "w-full bg-slate-800 hover:bg-indigo-600 text-white font-bold text-lg py-4 rounded-xl transition-colors shadow-md flex justify-center items-center gap-2";
+            submitBtn.innerHTML = `<i data-lucide="check-circle" class="w-5 h-5"></i> 정답 제출하기`;
+            updateIcons();
+        }
+
+        window.submitQuiz = function() {
+            if (window.isAnswerSubmitted) return;
+
+            const selectedOption = document.querySelector('input[name="quizOpt"]:checked');
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (!selectedOption) {
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = `<i data-lucide="alert-circle" class="w-5 h-5"></i> 보기를 선택해주세요!`;
+                submitBtn.classList.add('bg-red-500');
+                updateIcons();
+                setTimeout(() => { submitBtn.innerHTML = originalText; submitBtn.classList.remove('bg-red-500'); updateIcons(); }, 2000);
+                return;
+            }
+
+            window.isAnswerSubmitted = true;
+            const selectedValue = parseInt(selectedOption.value);
+            const isCorrect = (selectedValue === window.currentQData.answerIndex);
+            
+            const todayStr = window.getTodayString();
+            if (!window.currentUser.dailyRecords) window.currentUser.dailyRecords = {};
+            if (!window.currentUser.dailyRecords[todayStr]) window.currentUser.dailyRecords[todayStr] = { score: 0, solved: 0 };
+
+            window.currentUser.todaySolved++;
+            window.currentUser.totalSolved++;
+            window.currentUser.dailyRecords[todayStr].solved++;
+
+            if (window.currentQData && window.currentQData.id && !window.currentQData.id.startsWith("ai_")) {
+                if (!window.currentUser.solvedQuestionIds) window.currentUser.solvedQuestionIds = [];
+                if (!window.currentUser.solvedQuestionIds.includes(window.currentQData.id)) {
+                    window.currentUser.solvedQuestionIds.push(window.currentQData.id);
+                }
+            }
+
+            const feedbackArea = document.getElementById('feedbackArea');
+            const feedbackResult = document.getElementById('feedbackResult');
+            
+            feedbackArea.classList.remove('hidden');
+            document.getElementById('feedbackExplanation').innerHTML = window.currentQData.explanation;
+
+            if (isCorrect) {
+                window.currentUser.score += 10;
+                window.currentUser.dailyRecords[todayStr].score += 10;
+                document.getElementById('myScore').innerText = window.currentUser.score;
+                
+                feedbackArea.classList.add('bg-green-50', 'border-green-200');
+                feedbackResult.innerHTML = `<div class="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center"><i data-lucide="check" class="w-5 h-5"></i></div><span class="text-green-700 font-bold text-lg">정답입니다! (+10점)</span>`;
+            } else {
+                feedbackArea.classList.add('bg-red-50', 'border-red-200');
+                feedbackResult.innerHTML = `<div class="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center"><i data-lucide="x" class="w-5 h-5"></i></div><span class="text-red-700 font-bold text-lg">아쉽네요. 오답입니다.</span>`;
+            }
+
+            for(let i=0; i<4; i++) {
+                const label = document.getElementById(`labelOpt${i}`);
+                const radio = document.getElementById(`opt${i}`);
+                radio.disabled = true;
+                if(i === window.currentQData.answerIndex) {
+                    label.className = "block w-full p-4 border-2 rounded-xl bg-green-50 border-green-400 text-green-800 font-bold text-center text-lg";
+                } else if(i === selectedValue && !isCorrect) {
+                    label.className = "block w-full p-4 border-2 rounded-xl bg-red-50 border-red-300 text-red-800 text-center font-medium text-lg";
+                } else {
+                    label.className = "block w-full p-4 border-2 border-slate-200 rounded-xl text-slate-400 text-center font-medium text-lg opacity-50";
+                }
+            }
+
+            window.dbSaveStudent(window.currentUser);
+            
+            submitBtn.className = "w-full bg-slate-400 text-white font-bold text-lg py-4 rounded-xl shadow-md flex justify-center items-center gap-2 cursor-not-allowed";
+            submitBtn.innerHTML = `<i data-lucide="check-square" class="w-5 h-5"></i> 채점 완료`;
+            
+            const nextBtn = document.getElementById('nextQuizBtn');
+            if (window.currentUser.todaySolved >= DAILY_LIMIT) {
+                nextBtn.innerHTML = `오늘의 학습 완료 <i data-lucide="award" class="w-5 h-5"></i>`;
+                nextBtn.className = "w-full bg-green-600 hover:bg-green-700 text-white font-bold text-lg py-3 rounded-xl transition-colors shadow-sm flex justify-center items-center gap-2";
+            } else {
+                nextBtn.innerHTML = `다음 문제 풀기 <i data-lucide="arrow-right" class="w-5 h-5"></i>`;
+            }
+            updateIcons();
+        }
+
+        // --- UI View Transitions & Home Button ---
+        window.confirmGoHome = function() {
+            if (document.getElementById('studentView').classList.contains('hidden') && 
+                document.getElementById('adminView').classList.contains('hidden')) {
+                // 이미 로그인 화면인 경우
+                return;
+            }
+
+            if(confirm("현재 진행상황을 저장하고 메인(로그인) 화면으로 돌아가시겠습니까?")) {
+                window.logout();
+            }
+        }
+
+        window.showTeacherLogin = function() {
+            document.getElementById('studentLoginForm').classList.add('hidden');
+            document.getElementById('teacherLoginForm').classList.remove('hidden');
+        }
+        window.cancelTeacherLogin = function() {
+            document.getElementById('teacherLoginForm').classList.add('hidden');
+            document.getElementById('studentLoginForm').classList.remove('hidden');
+        }
+        window.handleBack = function() {
+            if(!document.getElementById('adminView').classList.contains('hidden') || !document.getElementById('studentView').classList.contains('hidden')) {
+                window.logout();
+            } else {
+                window.cancelTeacherLogin();
+            }
+        }
+
+        window.loginAsStudent = function() {
+            const name = document.getElementById('studentNameInput').value.trim();
+            const pwd = document.getElementById('studentPwdInput').value.trim();
+            const errorMsg = document.getElementById('loginErrorMsg');
+
+            if (!name || !pwd) return errorMsg.innerText = "이름과 비밀번호를 모두 입력해주세요.";
+
+            let student = window.mockStudents.find(s => s.name === name);
+            const todayStr = window.getTodayString();
+            let needsSave = false;
+
+            if (!student) {
+                student = { name: name, password: pwd, score: 0, totalSolved: 0, todaySolved: 0, lastDate: todayStr, dailyRecords: { [todayStr]: { score: 0, solved: 0 } }, solvedQuestionIds: [] };
+                needsSave = true;
+            } else {
+                if (student.password !== pwd) return errorMsg.innerText = "비밀번호가 일치하지 않습니다.";
+                if (!student.solvedQuestionIds) { student.solvedQuestionIds = []; needsSave = true; }
+                
+                if (student.lastDate !== todayStr) {
+                    student.todaySolved = 0; student.lastDate = todayStr;
+                    if (!student.dailyRecords) student.dailyRecords = {};
+                    if (!student.dailyRecords[todayStr]) student.dailyRecords[todayStr] = { score: 0, solved: 0 };
+                    needsSave = true;
+                }
+            }
+            if (needsSave) window.dbSaveStudent(student);
+
+            window.currentUser = student;
+            window.sessionAskedIds = [];
+            
+            document.getElementById('welcomeStudentName').innerText = student.name;
+            document.getElementById('myScore').innerText = student.score;
+
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('studentView').classList.remove('hidden');
+            document.getElementById('backBtn').classList.remove('hidden');
+            document.getElementById('logoutBtn').classList.remove('hidden');
+            
+            errorMsg.innerText = "";
+            window.loadNextQuestion();
+            updateIcons();
+            
+            // 배너 애니메이션 시작
+            startMotivationalBanner();
+        }
+
+        window.loginAsTeacher = function() {
+            const pwd = document.getElementById('teacherPwdInput').value;
+            if (pwd === window.currentAdminPassword) {
+                document.getElementById('teacherLoginError').innerText = "";
+                if (pwd === "1234") {
+                    window.openPwdChangeModal(true, 'admin');
+                } else {
+                    document.getElementById('loginView').classList.add('hidden');
+                    document.getElementById('adminView').classList.remove('hidden');
+                    document.getElementById('backBtn').classList.remove('hidden');
+                    document.getElementById('logoutBtn').classList.remove('hidden');
+                    document.getElementById('adminDateFilter').value = window.getTodayString();
+                    window.renderAdminTable();
+                }
+            } else {
+                document.getElementById('teacherLoginError').innerText = "비밀번호가 일치하지 않습니다.";
+            }
+        }
+
+        window.logout = function() {
+            window.currentUser = null;
+            document.getElementById('studentView').classList.add('hidden');
+            document.getElementById('adminView').classList.add('hidden');
+            document.getElementById('loginView').classList.remove('hidden');
+            document.getElementById('backBtn').classList.add('hidden');
+            document.getElementById('logoutBtn').classList.add('hidden');
+            document.getElementById('studentNameInput').value = "";
+            document.getElementById('studentPwdInput').value = "";
+            document.getElementById('teacherPwdInput').value = "";
+            window.questionQueue = [];
+            window.isFetchingQ = false;
+            window.sessionAskedIds = [];
+            
+            document.getElementById('dailyDoneBox').classList.add('hidden');
+            document.getElementById('quizBox').classList.remove('hidden');
+            
+            stopMotivationalBanner();
+            window.cancelTeacherLogin();
+        }
+
+        // --- Admin Board ---
+        window.sendBulkSms = function() {
+            const todayStr = window.getTodayString();
+            const dateStr = document.getElementById('adminDateFilter').value || todayStr;
+
+            if (dateStr !== todayStr) {
+                alert("일괄 독려 문자는 '오늘' 날짜를 조회 중일 때만 보낼 수 있습니다.");
+                return;
+            }
+
+            const uncompletedStudents = window.mockStudents.filter(std => {
+                let daily = { score: 0, solved: 0 };
+                if (std.dailyRecords && std.dailyRecords[todayStr]) {
+                    daily = std.dailyRecords[todayStr];
+                }
+                return daily.solved < DAILY_LIMIT;
+            });
+
+            if (uncompletedStudents.length === 0) {
+                alert("모든 학생이 오늘의 퀴즈를 완료했습니다! 훌륭합니다 🎉");
+                return;
+            }
+
+            const names = uncompletedStudents.map(s => s.name).join(', ');
+            const smsMessage = encodeURIComponent(`[Daily HANIL Biz & Fin] 📢 미완료 알림\n오늘 퀴즈 미완료 학생(${names})은 늦지 않게 접속해서 문제를 풀어주세요! 🚀`);
+            
+            window.location.href = `sms:?body=${smsMessage}`;
+        }
+
+        window.renderAdminTable = function() {
+            const tbody = document.getElementById('studentTableBody');
+            tbody.innerHTML = '';
+            
+            let dateStr = document.getElementById('adminDateFilter').value;
+            if (!dateStr) dateStr = window.getTodayString();
+            
+            document.getElementById('statParticipantLabel').innerText = (dateStr === window.getTodayString()) ? "오늘 참여자" : "조회일 참여자";
+
+            const sorted = [...window.mockStudents].sort((a, b) => b.score - a.score);
+            let totalScore = 0; let participantsCount = 0;
+
+            sorted.forEach((std, idx) => {
+                totalScore += std.score;
+                let daily = { score: 0, solved: 0 };
+                if (std.dailyRecords && std.dailyRecords[dateStr]) daily = std.dailyRecords[dateStr];
+                if (daily.solved > 0) participantsCount++;
+
+                const isDone = daily.solved >= DAILY_LIMIT;
+                const badge = isDone 
+                    ? `<span class="px-3 py-1 rounded-lg text-sm font-bold bg-green-100 text-green-700 shadow-sm">완료 (${daily.solved}회) / +${daily.score}점</span>`
+                    : (daily.solved > 0 
+                        ? `<span class="px-3 py-1 rounded-lg text-sm font-bold bg-indigo-50 text-indigo-700 shadow-sm">진행중 (${daily.solved}회) / +${daily.score}점</span>`
+                        : `<span class="px-3 py-1 rounded-lg text-sm font-bold bg-slate-100 text-slate-400">기록 없음</span>`);
+
+                let smsButton = '';
+                if (!isDone && dateStr === window.getTodayString()) {
+                    const smsMessage = encodeURIComponent(`[Daily HANIL Biz & Fin] ${std.name} 학생! 오늘 경영/경제 퀴즈가 아직 완료되지 않았어요. 늦지 않게 접속해서 오늘의 퀴즈를 풀어주세요! 🚀`);
+                    smsButton = `
+                        <a href="sms:?body=${smsMessage}" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 font-bold px-2 py-1.5 rounded-lg transition-colors shadow-sm whitespace-nowrap flex items-center gap-1" title="문자 앱으로 바로가기">
+                            <i data-lucide="smartphone" class="w-3 h-3"></i> 독려 문자
+                        </a>
+                    `;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                        <td class="py-4 px-6 font-bold text-slate-600">${idx + 1}</td>
+                        <td class="py-4 px-6 font-medium text-slate-800">${std.name}</td>
+                        <td class="py-4 px-6 font-black text-indigo-600">${std.score}점</td>
+                        <td class="py-4 px-6 text-slate-600">${std.totalSolved}회</td>
+                        <td class="py-4 px-6 bg-indigo-50/20">${badge}</td>
+                        <td class="py-4 px-6 text-center">
+                            <div class="flex items-center justify-center gap-1">
+                                ${smsButton}
+                                <button onclick="resetStudentPassword('${std.name}')" class="text-xs bg-rose-100 hover:bg-rose-200 text-rose-600 font-bold px-2 py-1.5 rounded-lg transition-colors shadow-sm whitespace-nowrap">
+                                    비번 초기화
+                                </button>
+                                <button onclick="deleteStudent('${std.name}')" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-2 py-1.5 rounded-lg transition-colors shadow-sm whitespace-nowrap">
+                                    삭제
+                                </button>
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+
+            if(sorted.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400 font-medium">등록된 학생이 없습니다.</td></tr>`;
+            }
+
+            document.getElementById('statTotalStudents').innerText = `${sorted.length}명`;
+            document.getElementById('statTodayParticipants').innerText = `${participantsCount}명`;
+            document.getElementById('statAvgScore').innerText = `${sorted.length > 0 ? Math.round(totalScore / sorted.length) : 0}점`;
+            updateIcons();
+        }
+
+        // --- Modals ---
+        window.openBatchRegisterModal = function() {
+            document.getElementById('batchRegisterModal').classList.remove('hidden');
+            document.getElementById('studentNamesInput').value = '';
+            document.getElementById('batchRegisterError').innerText = '';
+        }
+        window.closeBatchRegisterModal = function() { document.getElementById('batchRegisterModal').classList.add('hidden'); }
+        
+        window.processBatchRegister = function() {
+            const input = document.getElementById('studentNamesInput').value;
+            const errorMsg = document.getElementById('batchRegisterError');
+            const newNames = input.split(/[\n,]+/).map(n => n.trim()).filter(n => n.length > 0);
+            
+            if (newNames.length === 0) return errorMsg.innerText = '유효한 학생 이름이 없습니다.';
+
+            const todayStr = window.getTodayString();
+            let addedCount = 0;
+            newNames.forEach(name => {
+                if (!window.mockStudents.some(std => std.name === name)) {
+                    const newStd = { name: name, password: "1234", score: 0, totalSolved: 0, todaySolved: 0, lastDate: todayStr, dailyRecords: {}, solvedQuestionIds: [] };
+                    window.mockStudents.push(newStd);
+                    window.dbSaveStudent(newStd); 
+                    addedCount++;
+                }
+            });
+
+            if (addedCount === 0) return errorMsg.innerText = '이미 모두 등록된 학생입니다.';
+            window.renderAdminTable(); 
+            window.closeBatchRegisterModal();
+        }
+
+        window.resetStudentPassword = async function(studentName) {
+            if(!confirm(`${studentName} 학생의 비밀번호를 '1234'로 초기화하시겠습니까?`)) return;
+            
+            let student = window.mockStudents.find(s => s.name === studentName);
+            if(student) {
+                student.password = "1234";
+                await window.dbSaveStudent(student);
+                alert(`${studentName} 학생의 비밀번호가 '1234'로 초기화되었습니다.`);
+            }
+        }
+
+        window.deleteStudent = async function(studentName) {
+            if(!confirm(`정말 ${studentName} 학생을 삭제하시겠습니까?\n(삭제된 데이터는 복구할 수 없습니다!)`)) return;
+            
+            if(!user || !db) return;
+            try {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', studentName));
+                window.mockStudents = window.mockStudents.filter(s => s.name !== studentName);
+                alert(`${studentName} 학생이 목록에서 완전히 삭제되었습니다.`);
+                window.renderAdminTable();
+            } catch(e) {
+                console.error("학생 삭제 오류:", e);
+                alert("삭제 처리 중 오류가 발생했습니다.");
+            }
+        }
+
+        window.openPwdChangeModal = function(isForced = false, mode = 'admin') {
+            window.isForcedResetMode = isForced;
+            window.currentPwdMode = mode;
+            document.getElementById('pwdChangeModal').classList.remove('hidden');
+            document.getElementById('newPwdInput').value = '';
+            document.getElementById('confirmPwdInput').value = '';
+            document.getElementById('pwdChangeError').innerText = '';
+            
+            document.getElementById('pwdModalTitle').innerText = (mode === 'admin') ? "관리자 비번 변경" : "내 비밀번호 변경";
+
+            if(isForced) {
+                document.getElementById('pwdChangeGuide').innerText = "보안을 위해 초기 비밀번호(1234)를 변경해 주세요.";
+                document.getElementById('closePwdModalBtn').classList.add('hidden');
+                document.getElementById('cancelPwdBtn').classList.add('hidden');
+            } else {
+                document.getElementById('pwdChangeGuide').innerText = "새로운 비밀번호를 설정해주세요.";
+                document.getElementById('closePwdModalBtn').classList.remove('hidden');
+                document.getElementById('cancelPwdBtn').classList.remove('hidden');
+            }
+        }
+        
+        window.openStudentPwdModal = function() { window.openPwdChangeModal(false, 'student'); }
+        window.closePwdChangeModal = function() { if(!window.isForcedResetMode) document.getElementById('pwdChangeModal').classList.add('hidden'); }
+
+        window.processPwdChange = async function() {
+            const newPwd = document.getElementById('newPwdInput').value;
+            const confirmPwd = document.getElementById('confirmPwdInput').value;
+            const errorMsg = document.getElementById('pwdChangeError');
+
+            if (!newPwd || !confirmPwd) return errorMsg.innerText = "비밀번호를 입력해주세요.";
+            if (newPwd !== confirmPwd) return errorMsg.innerText = "비밀번호가 일치하지 않습니다.";
+            if (newPwd === "1234") return errorMsg.innerText = "1234 이외의 비밀번호를 사용해주세요.";
+
+            if(window.currentPwdMode === 'admin') {
+                window.currentAdminPassword = newPwd;
+                await window.dbSaveConfig({ password: newPwd });
+                alert("관리자 비밀번호가 변경되었습니다.");
+                document.getElementById('pwdChangeModal').classList.add('hidden');
+                if (window.isForcedResetMode) {
+                    window.isForcedResetMode = false;
+                    document.getElementById('loginView').classList.add('hidden');
+                    document.getElementById('adminView').classList.remove('hidden');
+                    document.getElementById('backBtn').classList.remove('hidden');
+                    document.getElementById('logoutBtn').classList.remove('hidden');
+                    window.renderAdminTable();
+                }
+            } else {
+                window.currentUser.password = newPwd;
+                await window.dbSaveStudent(window.currentUser); 
+                alert("비밀번호가 성공적으로 변경되었습니다.");
+                document.getElementById('pwdChangeModal').classList.add('hidden');
+            }
+        }
+
+        // --- 문제 관리 모달 관련 로직 ---
+        window.openManageQModal = function() {
+            document.getElementById('manageQModal').classList.remove('hidden');
+            window.renderManageQList();
+        }
+
+        window.closeManageQModal = function() {
+            document.getElementById('manageQModal').classList.add('hidden');
+        }
+
+        window.renderManageQList = function() {
+            const tbody = document.getElementById('manageQTableBody');
+            tbody.innerHTML = '';
+            
+            if(!window.customQuestionsDB || window.customQuestionsDB.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="py-10 text-center text-slate-500 font-medium">등록된 문제가 없습니다.<br><span class="text-xs text-slate-400">문제 출제 메뉴를 이용해 문제를 등록해보세요.</span></td></tr>';
+                return;
+            }
+            
+            window.customQuestionsDB.forEach((q, idx) => {
+                const qText = q.question.length > 35 ? q.question.substring(0, 35) + '...' : q.question;
+                const ansText = q.options[q.answerIndex] ? q.options[q.answerIndex].substring(0, 15) : '';
+                
+                tbody.innerHTML += `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td class="py-3 px-4 font-bold text-slate-400 text-center">${idx + 1}</td>
+                        <td class="py-3 px-4 font-medium text-slate-700 truncate max-w-[200px]" title="${q.question}">${qText}</td>
+                        <td class="py-3 px-4 text-emerald-600 font-medium text-xs truncate max-w-[100px]" title="${ansText}">${ansText}</td>
+                        <td class="py-3 px-4 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                <button onclick="window.openCustomQModal('${q.id}')" class="text-xs bg-sky-100 hover:bg-sky-200 text-sky-700 font-bold px-2 py-1.5 rounded-lg transition-colors shadow-sm">수정</button>
+                                <button onclick="window.deleteCustomQ('${q.id}')" class="text-xs bg-rose-100 hover:bg-rose-200 text-rose-600 font-bold px-2 py-1.5 rounded-lg transition-colors shadow-sm">삭제</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.deleteCustomQ = async function(id) {
+            if(!confirm("이 문제를 정말 삭제하시겠습니까? (삭제 후 복구할 수 없습니다.)")) return;
+            try {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customQuestions', id));
+                window.customQuestionsDB = window.customQuestionsDB.filter(q => q.id !== id);
+                window.renderManageQList();
+            } catch(e) {
+                console.error("문제 삭제 오류:", e);
+                alert("삭제 중 오류가 발생했습니다.");
+            }
+        }
+
+        // --- 직접 출제 및 수정 모달 로직 ---
+        window.openCustomQModal = function(editId = null) {
+            document.getElementById('customQModal').classList.remove('hidden');
+            document.getElementById('cqError').innerText = '';
+            
+            const titleEl = document.getElementById('customQModalTitle');
+            const btnEl = document.getElementById('btnSaveCustomQ');
+            const tabNav = document.getElementById('customQTabNav');
+            
+            window.editingQuestionId = editId;
+
+            if (editId) {
+                titleEl.innerText = "출제 문제 수정";
+                btnEl.innerText = "수정 내용 저장";
+                tabNav.classList.add('hidden'); 
+                window.switchCustomQTab('manual');
+                
+                const qData = window.customQuestionsDB.find(q => q.id === editId);
+                if (qData) {
+                    document.getElementById('cqQuestion').value = qData.question;
+                    document.getElementById('cqOpt0').value = qData.options[0];
+                    document.getElementById('cqOpt1').value = qData.options[1];
+                    document.getElementById('cqOpt2').value = qData.options[2];
+                    document.getElementById('cqOpt3').value = qData.options[3];
+                    document.getElementById('cqAnswer').value = qData.answerIndex.toString();
+                    document.getElementById('cqExplanation').value = qData.explanation;
+                }
+            } else {
+                titleEl.innerText = "문제 출제";
+                btnEl.innerText = "문제 등록하기";
+                tabNav.classList.remove('hidden');
+                window.switchCustomQTab('manual');
+
+                document.getElementById('cqQuestion').value = '';
+                document.getElementById('cqOpt0').value = '';
+                document.getElementById('cqOpt1').value = '';
+                document.getElementById('cqOpt2').value = '';
+                document.getElementById('cqOpt3').value = '';
+                document.getElementById('cqAnswer').value = '0';
+                document.getElementById('cqExplanation').value = '<strong>[해설]</strong> ';
+            }
+        }
+
+        window.closeCustomQModal = function() {
+            document.getElementById('customQModal').classList.add('hidden');
+            window.editingQuestionId = null; 
+        }
+
+        window.saveCustomQ = async function() {
+            const q = document.getElementById('cqQuestion').value.trim();
+            const o0 = document.getElementById('cqOpt0').value.trim();
+            const o1 = document.getElementById('cqOpt1').value.trim();
+            const o2 = document.getElementById('cqOpt2').value.trim();
+            const o3 = document.getElementById('cqOpt3').value.trim();
+            const ans = parseInt(document.getElementById('cqAnswer').value);
+            const exp = document.getElementById('cqExplanation').value.trim();
+            const err = document.getElementById('cqError');
+
+            if(!q || !o0 || !o1 || !o2 || !o3) {
+                err.innerText = "문제 내용과 4개의 보기를 모두 입력해주세요.";
+                return;
+            }
+
+            const newId = window.editingQuestionId ? window.editingQuestionId : "tq_" + Date.now() + "_" + Math.floor(Math.random()*1000);
+            
+            const qData = {
+                id: newId,
+                question: q.startsWith("Q.") ? q : "Q. " + q,
+                options: [o0, o1, o2, o3],
+                answerIndex: ans,
+                explanation: exp || "해설이 등록되지 않았습니다."
+            };
+
+            err.innerText = window.editingQuestionId ? "수정 중입니다..." : "저장 중입니다...";
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customQuestions', newId), qData);
+                alert(window.editingQuestionId ? "수정 완료되었습니다." : "문제가 성공적으로 등록되었습니다!");
+                window.closeCustomQModal();
+                
+                if (!document.getElementById('manageQModal').classList.contains('hidden')) {
+                    window.renderManageQList();
+                }
+            } catch(e) {
+                err.innerText = "처리 중 오류가 발생했습니다. 권한을 확인해주세요.";
+                console.error("문제 등록/수정 오류:", e);
+            }
+        }
+
+        // --- 엑셀 일괄 업로드 로직 ---
+        window.switchCustomQTab = function(tabName) {
+            const tabManual = document.getElementById('tabManual');
+            const tabExcel = document.getElementById('tabExcel');
+            const secManual = document.getElementById('cqManualSection');
+            const secExcel = document.getElementById('cqExcelSection');
+
+            if (tabName === 'manual') {
+                tabManual.className = "flex-1 py-2 font-bold text-emerald-700 bg-emerald-100 rounded-lg transition-colors";
+                tabExcel.className = "flex-1 py-2 font-bold text-slate-500 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors";
+                secManual.classList.remove('hidden');
+                secExcel.classList.add('hidden');
+            } else {
+                tabExcel.className = "flex-1 py-2 font-bold text-emerald-700 bg-emerald-100 rounded-lg transition-colors";
+                tabManual.className = "flex-1 py-2 font-bold text-slate-500 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors";
+                secExcel.classList.remove('hidden');
+                secManual.classList.add('hidden');
+            }
+            updateIcons();
+        }
+
+        window.downloadExcelTemplate = function() {
+            const ws_data = [
+                ["문제내용", "보기1", "보기2", "보기3", "보기4", "정답(1~4)", "해설"],
+                ["Q. 기회비용의 올바른 설명은?", "매몰비용이다", "가장 가치있는 대안", "고정비용이다", "가변비용이다", "2", "<strong>[해설]</strong> 기회비용은..."]
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "템플릿");
+            XLSX.writeFile(wb, "퀴즈_일괄등록_템플릿.xlsx");
+        }
+
+        window.processExcelUpload = function() {
+            const fileInput = document.getElementById('excelFileInput');
+            const errEl = document.getElementById('cqExcelError');
+            const succEl = document.getElementById('cqExcelSuccess');
+            errEl.innerText = "";
+            succEl.innerText = "";
+
+            if (!fileInput.files || fileInput.files.length === 0) {
+                errEl.innerText = "파일을 선택해주세요.";
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+
+                    if(json.length < 2) {
+                        errEl.innerText = "데이터가 없거나 첫 번째 행(헤더)만 존재합니다.";
+                        return;
+                    }
+
+                    succEl.innerText = "데이터 파싱 중...";
+                    let addCount = 0;
+
+                    for(let i=1; i<json.length; i++) {
+                        const row = json[i];
+                        if(!row || row.length < 6) continue; 
+
+                        let q = row[0] ? row[0].toString().trim() : "";
+                        let o0 = row[1] ? row[1].toString().trim() : "";
+                        let o1 = row[2] ? row[2].toString().trim() : "";
+                        let o2 = row[3] ? row[3].toString().trim() : "";
+                        let o3 = row[4] ? row[4].toString().trim() : "";
+                        let ansStr = row[5] ? row[5].toString().trim() : "";
+                        let exp = row[6] ? row[6].toString().trim() : "";
+
+                        if(!q || !o0 || !o1 || !o2 || !o3 || !ansStr) continue;
+
+                        let ansIdx = parseInt(ansStr) - 1; 
+                        if(isNaN(ansIdx) || ansIdx < 0 || ansIdx > 3) continue;
+
+                        const newId = "tq_" + Date.now() + "_" + Math.floor(Math.random()*1000) + "_" + i;
+                        const qData = {
+                            id: newId,
+                            question: q.startsWith("Q.") ? q : "Q. " + q,
+                            options: [o0, o1, o2, o3],
+                            answerIndex: ansIdx,
+                            explanation: exp || "해설이 등록되지 않았습니다."
+                        };
+
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customQuestions', newId), qData);
+                        addCount++;
+                    }
+
+                    if (addCount > 0) {
+                        succEl.innerText = `총 ${addCount}문제가 성공적으로 등록되었습니다!`;
+                        setTimeout(() => {
+                            window.closeCustomQModal();
+                            fileInput.value = "";
+                            succEl.innerText = "";
+                        }, 2000);
+                    } else {
+                        errEl.innerText = "등록할 유효한 문제 데이터가 없습니다. 양식을 확인해주세요.";
+                        succEl.innerText = "";
+                    }
+
+                } catch(err) {
+                    console.error(err);
+                    errEl.innerText = "엑셀 파일을 처리하는 중 오류가 발생했습니다.";
+                    succEl.innerText = "";
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 초기화
+        updateIcons(); 
+        initFirebase(); 
+    </script>
+</body>
+</html>
