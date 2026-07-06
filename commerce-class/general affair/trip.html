@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>한일여고 공공사무행정과 학과체험 (Hanil STAR ENT.)</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&family=Noto+Sans+KR:wght@400;700;900&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #fdf2f8; }
+        
+        .font-jua { font-family: 'Jua', sans-serif; }
+        .font-gowun { font-family: 'Gowun Dodum', sans-serif; }
+        
+        @keyframes sparkle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+        .sparkle-anim { animation: sparkle 2s infinite ease-in-out; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .float-anim { animation: float 3s ease-in-out infinite; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .animate-shake { animation: shake 0.3s ease-in-out; }
+
+        @keyframes textGlow {
+            0%, 100% { text-shadow: 0 0 10px #f472b6, 0 0 20px #f472b6; transform: scale(1); color: #db2777; }
+            50% { text-shadow: 0 0 20px #c084fc, 0 0 30px #c084fc; transform: scale(1.05); color: #9333ea; }
+        }
+        .animate-text-glow { animation: textGlow 2s infinite ease-in-out; display: inline-block; }
+
+        @keyframes marquee {
+            0% { transform: translateX(100vw); }
+            100% { transform: translateX(-100%); }
+        }
+        .animate-marquee {
+            display: inline-block;
+            white-space: nowrap;
+            animation: marquee 25s linear infinite;
+            will-change: transform;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .bg-girlish {
+            background: linear-gradient(-45deg, #ffe4e6, #fbcfe8, #f3e8ff, #e0e7ff);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        @media print {
+            body * { visibility: hidden; }
+            .print-area, .print-area * { visibility: visible; }
+            .print-area { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 20px; box-shadow: none !important; }
+            .no-print { display: none !important; }
+        }
+
+        .chat-scrollbar::-webkit-scrollbar { width: 6px; }
+        .chat-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .chat-scrollbar::-webkit-scrollbar-thumb { background: #fbcfe8; border-radius: 10px; }
+        .no-select { user-select: none; -webkit-user-select: none; }
+    </style>
+</head>
+<body class="text-slate-800">
+    <div id="root"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        window.fb = {
+            initializeApp, getAuth, signInAnonymously, signInWithCustomToken,
+            getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, getDocs
+        };
+        
+        window.dispatchEvent(new Event('firebase-loaded'));
+    </script>
+
+    <script type="text/babel" data-presets="react,env">
+        const { useState, useEffect, useRef } = React;
+
+        const firebaseConfig = {
+  apiKey: "AIzaSyDaHOumwjGBzUv9BCi9eChfVEPTWDcHALk",
+  authDomain: "trip-cb013.firebaseapp.com",
+  projectId: "trip-cb013",
+  storageBucket: "trip-cb013.firebasestorage.app",
+  messagingSenderId: "472215917379",
+  appId: "1:472215917379:web:8eac5b50f3ef25595b15f6",
+  measurementId: "G-2XP7ZLGCCB"
+};
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'star-ent-app-v3';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // 탭 기반 쪽지 메시지 내용
+        const ceoMessages = {
+            login: '사원 여러분, 좋은 아침입니다. 출근 체크하시고 오늘 하루도 파이팅합시다!',
+            applyTab: '1단계 업무: [기안서 작성]을 꼼꼼하게 진행해주시기 바랍니다. 예산 신청도 잊지마세요.',
+            settleTab: '2단계 업무: 현장 도착 확인 후, 영수증을 바탕으로 [사후 정산] 업무를 정확히 처리하세요.',
+            certTab: '3단계 업무: 정산이 승인되면 마지막으로 [공문서 결재(증명서 발급)] 심사를 진행하세요.',
+            lifeTab: '사내 생활 탭입니다! 잠시 휴식하며 필요한 비품을 신청하거나 점심 메뉴 투표를 완료해주세요.',
+            lunchDone: '오후 업무 시작! 미진한 서류나 정산 내역이 없는지 다시 한번 체크바랍니다. 오늘 부서 업무 마감을 준비해주세요. 수고 많으셨습니다!'
+        };
+
+        // --- 외부 컴포넌트 분리 (입력창 포커스 풀림 방지 및 성능 최적화) ---
+        const ApplyGameComponent = ({ phrase, onComplete, onCancel }) => {
+            const [input, setInput] = useState('');
+            const [errorAnim, setErrorAnim] = useState(false);
+
+            const handleCheck = () => {
+                if(input.trim() === phrase) {
+                    onComplete();
+                } else {
+                    setErrorAnim(true);
+                    setTimeout(() => setErrorAnim(false), 500);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-slate-900/95 z-[200] flex justify-center items-center p-4">
+                    <div className={`bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl relative border-8 border-pink-200 ${errorAnim ? 'animate-shake border-red-400' : ''}`}>
+                        <div className="text-5xl mb-4 text-fuchsia-500"><i className="fas fa-keyboard"></i></div>
+                        <h2 className="text-2xl font-black text-fuchsia-800 mb-2">결재 전 타자 미션</h2>
+                        <p className="text-slate-600 font-bold mb-6 text-sm">상사에게 서류를 내기 전, 아래 문장을 <span className="text-pink-600">띄어쓰기까지 정확하게</span> 입력하세요!</p>
+                        
+                        <div className="bg-slate-100 p-4 rounded-xl border-2 border-slate-200 mb-6 font-bold text-lg text-slate-800 select-none break-keep">
+                            "{phrase}"
+                        </div>
+
+                        <input 
+                            type="text" 
+                            value={input} 
+                            onChange={(e) => setInput(e.target.value)} 
+                            placeholder="위 문장을 똑같이 입력하세요" 
+                            className="w-full p-4 border-2 border-fuchsia-200 rounded-xl mb-4 text-center font-bold focus:outline-none focus:border-fuchsia-500"
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleCheck(); }}
+                            autoFocus
+                        />
+                        
+                        <button onClick={handleCheck} className="w-full bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white font-black text-xl py-4 rounded-2xl shadow-lg hover:scale-[1.02] transition">
+                            입력 완료 (결재 올리기)
+                        </button>
+                        <button onClick={onCancel} className="mt-4 text-sm text-slate-400 underline font-bold">기안 취소</button>
+                    </div>
+                </div>
+            );
+        };
+
+        const MiniGameComponent = ({ onComplete, onFail, onCancel }) => {
+            const [clicks, setClicks] = useState(0);
+            const [timeLeft, setTimeLeft] = useState(10);
+            const [isPlaying, setIsPlaying] = useState(false);
+            const goal = 25;
+
+            useEffect(() => {
+                let timer;
+                if (isPlaying && timeLeft > 0) timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000);
+                else if (isPlaying && timeLeft === 0) {
+                    if (clicks < goal) {
+                        onFail();
+                        setIsPlaying(false); setClicks(0); setTimeLeft(10);
+                    }
+                }
+                return () => clearTimeout(timer);
+            }, [isPlaying, timeLeft, clicks, onFail]);
+
+            useEffect(() => {
+                if (clicks >= goal && isPlaying) {
+                    setIsPlaying(false);
+                    onComplete();
+                }
+            }, [clicks, isPlaying, onComplete]);
+
+            return (
+                <div className="fixed inset-0 bg-slate-900/95 z-[200] flex justify-center items-center p-4">
+                    <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl relative border-8 border-pink-200">
+                        <div className="text-6xl mb-4 animate-bounce">🏃‍♀️💨</div>
+                        <h2 className="text-2xl font-black text-fuchsia-800 mb-2">긴급 미션: 지각 위기!</h2>
+                        <p className="text-slate-600 font-bold mb-6 text-sm">10초 안에 <span className="text-red-500 text-lg">광클 {goal}번</span> 채우기</p>
+                        {!isPlaying ? (
+                            <button onClick={() => { setIsPlaying(true); setClicks(0); setTimeLeft(10); }} className="w-full bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-black text-2xl py-5 rounded-2xl hover:scale-105 transition-transform shadow-lg">달리기 시작!</button>
+                        ) : (
+                            <div>
+                                <div className="flex justify-between items-center mb-2 font-black text-lg">
+                                    <span className="text-red-500">남은 시간: {timeLeft}초</span>
+                                    <span className="text-fuchsia-600">진행률: {Math.floor((clicks/goal)*100)}%</span>
+                                </div>
+                                <div className="w-full bg-slate-200 h-8 rounded-full overflow-hidden mb-6">
+                                    <div className="bg-gradient-to-r from-pink-400 to-fuchsia-600 h-full" style={{width: `${Math.min((clicks/goal)*100, 100)}%`}}></div>
+                                </div>
+                                <button onMouseDown={() => setClicks(prev => prev + 1)} onTouchStart={(e) => { e.preventDefault(); setClicks(prev => prev + 1); }} className="w-full h-36 bg-fuchsia-100 border-4 border-fuchsia-400 text-fuchsia-800 font-black text-4xl rounded-2xl shadow-inner active:bg-fuchsia-300 no-select">TAP!</button>
+                            </div>
+                        )}
+                        <button onClick={onCancel} className="mt-6 text-sm text-slate-400 underline font-bold">다음에 하기</button>
+                    </div>
+                </div>
+            );
+        };
+
+        const SettleGameComponent = ({ onComplete, onCancel }) => {
+            const questions = [
+                { q: "법인카드로 내 개인적인 물건을 사도 된다?", ans: "X" },
+                { q: "스케줄 중 스태프들과 먹은 식대는 법인카드 결제가 가능하다?", ans: "O" },
+                { q: "증빙을 위한 영수증은 결제 후 바로 버려도 된다?", ans: "X" },
+                { q: "업무상 필요해서 탄 택시비는 교통비로 정산받을 수 있다?", ans: "O" },
+                { q: "정산 서류는 금액만 맞으면 영수증 없이도 통과된다?", ans: "X" }
+            ];
+            const [qIndex] = useState(Math.floor(Math.random() * questions.length));
+            const [errorAnim, setErrorAnim] = useState(false);
+
+            const handleAnswer = (choice) => {
+                if (choice === questions[qIndex].ans) {
+                    onComplete();
+                } else {
+                    setErrorAnim(true);
+                    setTimeout(() => setErrorAnim(false), 400);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-slate-900/95 z-[200] flex justify-center items-center p-4">
+                    <div className={`bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl relative border-8 border-indigo-200 ${errorAnim ? 'animate-shake border-red-400' : ''}`}>
+                        <div className="text-6xl mb-4"><i className="fas fa-receipt text-indigo-500"></i></div>
+                        <h2 className="text-xl font-black text-indigo-800 mb-2">재무팀 정산 O/X 퀴즈</h2>
+                        <p className="text-slate-600 font-bold mb-4 text-sm">정산 서류 제출 전, 알맞은 답을 골라주세요!</p>
+                        
+                        <div className="bg-slate-100 p-6 rounded-xl border-2 border-slate-200 mb-6 font-bold text-lg text-slate-800 break-keep">
+                            Q. {questions[qIndex].q}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                            <button onClick={() => handleAnswer('O')} className="bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 text-blue-600 font-black text-5xl py-6 rounded-2xl transition shadow-sm active:scale-95">O</button>
+                            <button onClick={() => handleAnswer('X')} className="bg-red-50 hover:bg-red-100 border-2 border-red-200 text-red-600 font-black text-5xl py-6 rounded-2xl transition shadow-sm active:scale-95">X</button>
+                        </div>
+                        
+                        <button onClick={onCancel} className="mt-2 text-sm text-slate-400 underline font-bold">정산 취소</button>
+                    </div>
+                </div>
+            );
+        };
+
+        const CertGameComponent = ({ onComplete, onCancel }) => {
+            const [barPos, setBarPos] = useState(0);
+            const [isPlaying, setIsPlaying] = useState(true);
+            const [result, setResult] = useState(null);
+
+            useEffect(() => {
+                if (!isPlaying) return;
+                let animationFrameId;
+                const start = Date.now();
+                const speed = 0.003;
+                const animate = () => {
+                    const elapsed = Date.now() - start;
+                    const pos = (Math.sin(elapsed * speed) + 1) * 50;
+                    setBarPos(pos);
+                    animationFrameId = requestAnimationFrame(animate);
+                };
+                animate();
+                return () => cancelAnimationFrame(animationFrameId);
+            }, [isPlaying]);
+
+            const handleStamp = () => {
+                setIsPlaying(false);
+                if (barPos >= 40 && barPos <= 60) {
+                    setResult('success');
+                    setTimeout(() => {
+                        onComplete();
+                    }, 1500);
+                } else {
+                    setResult('fail');
+                    setTimeout(() => {
+                        setIsPlaying(true);
+                        setResult(null);
+                    }, 1000);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-slate-900/95 z-[200] flex justify-center items-center p-4">
+                    <div className={`bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl relative border-8 border-emerald-200 ${result === 'fail' ? 'animate-shake border-red-400' : ''}`}>
+                        <div className="text-6xl mb-4"><i className="fas fa-stamp text-emerald-500"></i></div>
+                        <h2 className="text-xl font-black text-emerald-800 mb-2">공공사무행정 결재 미션</h2>
+                        <p className="text-slate-600 font-bold mb-6 text-sm">타이밍에 맞춰 직인을 찍어 서류를 발급하세요!<br/><span className="text-emerald-500">(중앙 초록색 영역에 맞추세요)</span></p>
+                        
+                        <div className="relative w-full bg-slate-200 h-10 rounded-xl mb-8 overflow-hidden shadow-inner border-2 border-slate-300">
+                            <div className="absolute left-[40%] right-[40%] h-full bg-emerald-400/50 border-x-2 border-emerald-500"></div>
+                            <div className="absolute w-2 h-full bg-red-600 shadow-md top-0" style={{ left: `calc(${barPos}% - 4px)` }}></div>
+                        </div>
+                        
+                        <div className="relative h-20 flex justify-center items-center mb-4">
+                            {result === 'success' && <div className="absolute text-red-500 font-black text-4xl border-4 border-red-500 p-2 rounded-full transform -rotate-12 bg-white/90 z-10 whitespace-nowrap">결재 승인</div>}
+                            {result === 'fail' && <div className="absolute text-slate-500 font-black text-4xl border-4 border-slate-500 p-2 rounded-full transform rotate-12 bg-white/90 z-10 whitespace-nowrap">위치 이탈</div>}
+                            
+                            <button onClick={handleStamp} disabled={!isPlaying} className={`w-full h-full text-white font-black text-xl rounded-2xl transition shadow-lg ${!isPlaying ? 'bg-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:scale-105 active:scale-95'}`}>
+                                직인 쾅! 찍기 (TAP)
+                            </button>
+                        </div>
+                        
+                        <button onClick={onCancel} className="mt-2 text-sm text-slate-400 underline font-bold">결재 보류(취소)</button>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 메인 App 영역 ---
+        function App() {
+            const [isDbReady, setIsDbReady] = useState(false);
+            const [db, setDb] = useState(null);
+            
+            const [user, setUser] = useState(null); 
+            const [isAdminMode, setIsAdminMode] = useState(false);
+            const [adminConfig, setAdminConfig] = useState({ password: '1234' });
+            
+            const [showAdminLogin, setShowAdminLogin] = useState(false);
+            const [adminPw, setAdminPw] = useState('');
+            const [activeTab, setActiveTab] = useState('dashboard');
+
+            const [registeredUsers, setRegisteredUsers] = useState([]);
+            const [trips, setTrips] = useState([]);
+            const [certificates, setCertificates] = useState([]);
+            const [messages, setMessages] = useState([]);
+            const [dailyTasks, setDailyTasks] = useState([]);
+
+            const [filterClass, setFilterClass] = useState('전체');
+
+            const [modal, setModal] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
+            const showAlert = (title, message) => setModal({ isOpen: true, type: 'alert', title, message, onConfirm: null });
+            const showConfirm = (title, message, onConfirm) => setModal({ isOpen: true, type: 'confirm', title, message, onConfirm });
+            const closeModal = () => setModal({ ...modal, isOpen: false });
+
+            const [loginForm, setLoginForm] = useState({ employeeId: '', name: '', password: '' });
+            const [adminNotice, setAdminNotice] = useState('');
+            
+            const [newTrip, setNewTrip] = useState({ artist: '뉴진스', destination: '마산 본사 -> 서울 지점', startDate: '', endDate: '', purpose: '', budget: '' });
+            const [customArtistImage, setCustomArtistImage] = useState(null);
+            const [selectedTripId, setSelectedTripId] = useState('');
+            const [expenseItems, setExpenseItems] = useState([{ category: '식대(간식)', amount: '', note: '', hasReceipt: false }]);
+            const [isChatOpen, setIsChatOpen] = useState(false);
+            const [chatInput, setChatInput] = useState('');
+            const messagesEndRef = useRef(null);
+            
+            const [showMiniGame, setShowMiniGame] = useState(false);
+            const [showSettleGame, setShowSettleGame] = useState(false);
+            const [showCertGame, setShowCertGame] = useState(false);
+            
+            const [showApplyGame, setShowApplyGame] = useState(false);
+            const [applyGamePhrase, setApplyGamePhrase] = useState('');
+
+            const [certToIssue, setCertToIssue] = useState(null);
+            const [selectedCertForView, setSelectedCertForView] = useState(null);
+
+            const [showEventModal, setShowEventModal] = useState(false);
+            const [currentEvent, setCurrentEvent] = useState(null);
+            const events = [
+                { icon: '🚕', title: '사생팬 발견!', desc: '팬들을 피해 급하게 모범택시를 잡아탔습니다!', category: '교통비', amount: 35000, note: '팬 회피용 모범택시' },
+                { icon: '☕', title: '아티스트가 쏜다!', desc: '고생한다고 아티스트가 스태프 전원에게 커피를 샀습니다! 내 지출 0원!', category: null, amount: 0, note: '' },
+                { icon: '👗', title: '무대의상 긴급 수선', desc: '의상이 찢어져 급하게 근처 수선집에서 퀵서비스로 옷을 보냈습니다.', category: '기타비용', amount: 20000, note: '의상 퀵서비스' },
+                { icon: '🍕', title: '대기실 피자 파티', desc: '음악방송 1위 기념으로 대기실에서 피자를 시켜 먹었습니다.', category: '식대(간식)', amount: 55000, note: '1위 기념 피자 파티' }
+            ];
+
+            const [showUserSetting, setShowUserSetting] = useState(false);
+            const [userPwForm, setUserPwForm] = useState({ currentPw: '', newPw: '' });
+            const [adminPwForm, setAdminPwForm] = useState({ newPw: '' });
+            const [manualUser, setManualUser] = useState({ className: '', employeeId: '', name: '' });
+
+            // 자동 메시지 중복 방지 플래그
+            const autoMsgFlags = useRef({ 
+                login: false, apply: false, settle: false, life: false,
+                ceoLogin: false, ceoApplyTab: false, ceoSettleTab: false, ceoCertTab: false, ceoLifeTab: false,
+                ceoStep1: false, ceoStep2: false, ceoStep3: false, ceoLunch: false
+            });
+
+            // 학생별 정보 격리 (로그아웃 시 입력 데이터 및 플래그 완벽 초기화)
+            const resetSessionData = () => {
+                setUser(null);
+                setActiveTab('dashboard');
+                setNewTrip({ artist: '뉴진스', destination: '마산 본사 -> 서울 지점', startDate: '', endDate: '', purpose: '', budget: '' });
+                setCustomArtistImage(null);
+                setSelectedTripId('');
+                setExpenseItems([{ category: '식대(간식)', amount: '', note: '', hasReceipt: false }]);
+                setIsChatOpen(false);
+                setChatInput('');
+                setCertToIssue(null);
+                setSelectedCertForView(null);
+                setShowApplyGame(false);
+                setShowMiniGame(false);
+                setShowSettleGame(false);
+                setShowCertGame(false);
+                setLoginForm({ employeeId: '', name: '', password: '' });
+                
+                // 새로운 학생 접속을 대비하여 플래그 완전 리셋
+                autoMsgFlags.current = { 
+                    login: false, apply: false, settle: false, life: false,
+                    ceoLogin: false, ceoApplyTab: false, ceoSettleTab: false, ceoCertTab: false, ceoLifeTab: false,
+                    ceoStep1: false, ceoStep2: false, ceoStep3: false, ceoLunch: false
+                };
+            };
+
+            useEffect(() => {
+                const initFirebase = async () => {
+                    if (!window.fb) return;
+                    if (!firebaseConfig || !firebaseConfig.apiKey) {
+                        console.error("Firebase config is missing or invalid.");
+                        return;
+                    }
+                    try {
+                        const app = window.fb.initializeApp(firebaseConfig);
+                        const auth = window.fb.getAuth(app);
+                        const firestore = window.fb.getFirestore(app);
+                        
+                        if (initialAuthToken) await window.fb.signInWithCustomToken(auth, initialAuthToken);
+                        else await window.fb.signInAnonymously(auth);
+                        
+                        setDb(firestore);
+                        setIsDbReady(true);
+                    } catch (error) { console.error("Firebase init failed:", error); }
+                };
+
+                if (window.fb) initFirebase();
+                else {
+                    window.addEventListener('firebase-loaded', initFirebase);
+                    return () => window.removeEventListener('firebase-loaded', initFirebase);
+                }
+            }, []);
+
+            useEffect(() => {
+                if (!isDbReady || !db) return;
+                
+                const usersRef = window.fb.collection(db, 'artifacts', appId, 'public', 'data', 'users');
+                const tripsRef = window.fb.collection(db, 'artifacts', appId, 'public', 'data', 'trips');
+                const certsRef = window.fb.collection(db, 'artifacts', appId, 'public', 'data', 'certificates');
+                const msgsRef = window.fb.collection(db, 'artifacts', appId, 'public', 'data', 'messages');
+                const tasksRef = window.fb.collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
+                const adminRef = window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'adminSettings', 'config');
+
+                const unsubUsers = window.fb.onSnapshot(usersRef, (snap) => setRegisteredUsers(snap.docs.map(d => ({id: d.id, ...d.data()}))));
+                const unsubTrips = window.fb.onSnapshot(tripsRef, (snap) => setTrips(snap.docs.map(d => ({id: d.id, ...d.data()}))));
+                const unsubCerts = window.fb.onSnapshot(certsRef, (snap) => setCertificates(snap.docs.map(d => ({id: d.id, ...d.data()}))));
+                const unsubMsgs = window.fb.onSnapshot(msgsRef, (snap) => {
+                    setMessages(snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.timestamp - b.timestamp));
+                });
+                const unsubTasks = window.fb.onSnapshot(tasksRef, (snap) => setDailyTasks(snap.docs.map(d => ({id: d.id, ...d.data()}))));
+                
+                const unsubAdmin = window.fb.onSnapshot(adminRef, (doc) => {
+                    if(doc.exists()) setAdminConfig(doc.data());
+                    else window.fb.setDoc(adminRef, { password: '1234' });
+                });
+
+                return () => { unsubUsers(); unsubTrips(); unsubCerts(); unsubMsgs(); unsubTasks(); unsubAdmin(); };
+            }, [isDbReady, db]);
+
+            useEffect(() => {
+                if(isChatOpen && messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+            }, [messages, isChatOpen]);
+
+            // 기본 탭 클릭 시 메시지 발송 및 2분 간격 순차 메시지
+            useEffect(() => {
+                if (user && db) {
+                    // 로그인 시 첫 메시지 및 2분 간격 메시지
+                    if (!autoMsgFlags.current.ceoLogin) {
+                        autoMsgFlags.current.ceoLogin = true;
+                        setTimeout(() => sendChatMessage('대표이사', ceoMessages.login, '👑', 'notice', true), 1000);
+                    }
+                    if (!autoMsgFlags.current.login) {
+                        autoMsgFlags.current.login = true;
+                        setTimeout(() => sendChatMessage('대표이사', `여러분은 오늘 한일 엔터테이너 회사의 첫출근하셨습니다. 축하~^^ 첫 업무, 출장 관리를 시작해보세요.`, '👑', 'notice', true), 2000);
+                        // 2분 뒤
+                        setTimeout(() => sendChatMessage('사수 선배', `신입사원님 환영합니다! 상단의 '업무 흐름도'를 보고 순서대로 진행해주세요.`, '👨‍🏫', 'normal', true), 120000); 
+                        // 4분 뒤
+                        setTimeout(() => sendChatMessage('입사 동기', `헐 우리 첫날부터 출장이야? ㅠㅠ 같이 화이팅하자! 모르는거 있으면 공유해줘!`, '🥺', 'normal', true), 240000); 
+                    }
+
+                    // 1단계(기안) 탭 클릭 시 즉시 쪽지 발송 + 2분 간격 추가 메시지
+                    if (activeTab === 'apply') {
+                        if (!autoMsgFlags.current.ceoApplyTab) {
+                            autoMsgFlags.current.ceoApplyTab = true;
+                            setTimeout(() => sendChatMessage('대표이사', ceoMessages.applyTab, '👑', 'notice', true), 1000);
+                        }
+                        if (!autoMsgFlags.current.apply) {
+                            autoMsgFlags.current.apply = true;
+                            setTimeout(() => sendChatMessage('사수 선배', `기안서 쓰실 때 [예산]은 넉넉히 적어두세요!`, '💡', 'normal', true), 2000); // 탭 클릭 시 즉시(2초 뒤) 발송
+                            setTimeout(() => sendChatMessage('박팀장 (기획팀)', `오늘 아티스트 현장 지원 나가는 인원들, 기안서 시간 엄수 바랍니다.`, '💼', 'normal', true), 120000); // 2분 뒤 발송
+                        }
+                    }
+
+                    // 2단계(정산) 탭 클릭 시 즉시 쪽지 발송 + 2분 간격 추가 메시지
+                    if (activeTab === 'settle') {
+                        if (!autoMsgFlags.current.ceoSettleTab) {
+                            autoMsgFlags.current.ceoSettleTab = true;
+                            setTimeout(() => sendChatMessage('대표이사', ceoMessages.settleTab, '👑', 'notice', true), 1000);
+                        }
+                        if (!autoMsgFlags.current.settle) {
+                            autoMsgFlags.current.settle = true;
+                            setTimeout(() => sendChatMessage('재무팀', `사후 정산 시 '돌발카드 뽑기'를 잊지마시고, 제출 전 [영수증 분류 테스트]를 통과하셔야 승인됩니다.`, '💰', 'normal', true), 120000); // 2분
+                        }
+                    }
+
+                    // 3단계(제증명) 탭 클릭 시 즉시 쪽지 발송
+                    if (activeTab === 'cert') {
+                        if (!autoMsgFlags.current.ceoCertTab) {
+                            autoMsgFlags.current.ceoCertTab = true;
+                            setTimeout(() => sendChatMessage('대표이사', ceoMessages.certTab, '👑', 'notice', true), 1000);
+                        }
+                    }
+
+                    // 사내생활 탭 클릭 시 즉시 쪽지 발송 + 2분 간격 추가 메시지
+                    if (activeTab === 'life') {
+                        if (!autoMsgFlags.current.ceoLifeTab) {
+                            autoMsgFlags.current.ceoLifeTab = true;
+                            setTimeout(() => sendChatMessage('대표이사', ceoMessages.lifeTab, '👑', 'notice', true), 1000);
+                        }
+                        if (!autoMsgFlags.current.life) {
+                            autoMsgFlags.current.life = true;
+                            setTimeout(() => sendChatMessage('김대리 (총무팀)', `신입사원분들 환영합니다~ 탕비실에 간식 채워놨으니 드시면서 하세요! 점심 투표도 꼭 해주시고요!`, '☕', 'normal', true), 120000); // 2분
+                            setTimeout(() => sendChatMessage('인사총무팀', `사내 생활 탭에서는 점심 메뉴 투표와 비품 신청을 할 수 있습니다!`, '📢', 'normal', true), 240000); // 4분
+                        }
+                    }
+                }
+            }, [user, activeTab, db]);
+
+            // 단계별 업무 완료 후 (2분 뒤) 간헐적 완료 알림 발송
+            useEffect(() => {
+                if (!user || !db) return;
+                const myUser = registeredUsers.find(u => u.employeeId === user.employeeId);
+                if (!myUser) return;
+
+                if (myUser.progress?.step1 && !autoMsgFlags.current.ceoStep1) {
+                    autoMsgFlags.current.ceoStep1 = true;
+                    // 업무 처리 후 2분 뒤 간헐적 알림 발송
+                    setTimeout(() => sendChatMessage('인사총무팀', `[안내] 기안서 제출이 확인되었습니다. 이어서 현장 도착 후 '정산' 탭으로 이동해주세요.`, '✅', 'notice', true), 120000);
+                }
+                if (myUser.progress?.step2 && !autoMsgFlags.current.ceoStep2) {
+                    autoMsgFlags.current.ceoStep2 = true;
+                    // 업무 처리 후 2분 뒤 간헐적 알림 발송
+                    setTimeout(() => sendChatMessage('재무팀', `[안내] 정산 서류 처리가 완료되었습니다. '사무행정(제증명)' 탭에서 스태프증 발급을 진행하세요.`, '✅', 'notice', true), 120000);
+                }
+                if (myUser.progress?.step3 && !autoMsgFlags.current.ceoStep3) {
+                    autoMsgFlags.current.ceoStep3 = true;
+                    // 업무 처리 후 2분 뒤 간헐적 알림 발송
+                    setTimeout(() => sendChatMessage('대표이사', `오전 업무가 모두 끝났군요! 수고 많았습니다. 이제 '사내 생활' 탭으로 가서 점심 메뉴 투표를 완료해주세요.`, '👑', 'notice', true), 120000);
+                }
+                
+                const hasVoted = dailyTasks.some(t => t.type === 'lunch' && t.employeeId === user.employeeId);
+                if (hasVoted && !autoMsgFlags.current.ceoLunch) {
+                    autoMsgFlags.current.ceoLunch = true;
+                    // 업무 처리 후 2분 뒤 간헐적 알림 발송
+                    setTimeout(() => sendChatMessage('대표이사', ceoMessages.lunchDone, '👑', 'notice', true), 120000);
+                }
+            }, [registeredUsers, dailyTasks, user, db]);
+
+            useEffect(() => {
+                if(user && activeTab === 'cert') {
+                    const hasMyCert = certificates.some(c => c.reqId === user.employeeId);
+                    if(!hasMyCert && db) {
+                        const newCertId = Date.now().toString();
+                        const newCert = {
+                            id: newCertId, reqId: user.employeeId, reqName: user.name, 
+                            artistTeam: '스타엔터', certType: '팬사인회 스태프증', purpose: '현장 진행 및 경호', status: '발급 대기', requestDate: new Date().toLocaleDateString()
+                        };
+                        window.fb.setDoc(window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'certificates', newCertId), newCert);
+                    }
+                }
+            }, [user, activeTab, db, certificates]);
+
+            const sendChatMessage = async (sender, content, icon, type = 'normal', isAuto = false) => {
+                if (!db) return;
+                const newMsg = { sender, time: new Date().toLocaleTimeString('ko-KR', {hour: '2-digit', minute:'2-digit'}), content, icon, type, timestamp: Date.now() };
+                const msgId = Date.now().toString() + Math.random().toString(36).substring(7);
+                await window.fb.setDoc(window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'messages', msgId), newMsg);
+                if(!isChatOpen && !isAuto) setIsChatOpen(true);
+            };
+
+            const handleChatSubmit = (e) => {
+                e.preventDefault();
+                if(!chatInput.trim() || !user) return;
+                sendChatMessage(user.name, chatInput, '👩‍💼');
+                setChatInput('');
+                setIsChatOpen(true);
+            };
+
+            const updateUserProgress = async (empId, step) => {
+                if (!db) return;
+                try {
+                    await window.fb.updateDoc(window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'users', empId), { 
+                        [`progress.${step}`]: true 
+                    });
+                } catch(error) {
+                    console.error("Progress update error:", error);
+                }
+            };
+
+            const handleTabChange = (tabId) => {
+                if (tabId === 'settle' && user) {
+                    const myUser = registeredUsers.find(u => u.employeeId === user.employeeId);
+                    if (myUser && myUser.progress && myUser.progress.step1 && !myUser.progress.gameDone) {
+                        setShowMiniGame(true);
+                        return;
+                    }
+                }
+                setActiveTab(tabId);
+            };
+
+            const handleLogin = (e) => {
+                e.preventDefault();
+                const validUser = registeredUsers.find(u => u.employeeId === loginForm.employeeId && u.name === loginForm.name);
+                if(!validUser) return showAlert('로그인 실패', '등록되지 않은 학번이거나 이름이 틀렸습니다.');
+                if(validUser.password !== loginForm.password) return showAlert('로그인 실패', '비밀번호가 틀렸습니다.');
+
+                // 로그인 성공 시 이전 플래그 완전 초기화 및 폼 내용 비우기
+                autoMsgFlags.current = { 
+                    login: false, apply: false, settle: false, life: false,
+                    ceoLogin: false, ceoApplyTab: false, ceoSettleTab: false, ceoCertTab: false, ceoLifeTab: false,
+                    ceoStep1: false, ceoStep2: false, ceoStep3: false, ceoLunch: false
+                };
+                setLoginForm({ employeeId: '', name: '', password: '' });
+
+                setUser(validUser);
+                sendChatMessage('시스템 알림', `[${validUser.className || '소속'}] ${validUser.name} 사원님이 출근하셨습니다! 환영합니다.`, '🎉');
+            };
+
+            const handleApplyStart = (e) => {
+                e.preventDefault();
+                const phrases = [
+                    "정확한 예산 편성은 총무의 기본입니다",
+                    "아티스트 현장지원 스케줄 기안 상신합니다",
+                    "법인카드 한도 내에서 지출하겠습니다"
+                ];
+                setApplyGamePhrase(phrases[Math.floor(Math.random() * phrases.length)]);
+                setShowApplyGame(true);
+            };
+
+            const executeApply = async () => {
+                const tripId = Date.now().toString();
+                const tripData = {
+                    ...newTrip, id: tripId, employeeId: user.employeeId, employeeName: user.name, className: user.className || '공통', status: '정산대기', timestamp: Date.now()
+                };
+                
+                await window.fb.setDoc(window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'trips', tripId), tripData);
+                await updateUserProgress(user.employeeId, 'step1');
+                
+                setNewTrip({ artist: '뉴진스', destination: '마산 본사 -> 서울 지점', startDate: '', endDate: '', purpose: '', budget: '' });
+                setCustomArtistImage(null);
+                
+                showAlert('기안 제출 완료', '기안서가 성공적으로 제출되었습니다!\n(다음 정산 업무를 하려면 현장 도착 미니게임을 통과해야 합니다!)');
+                setActiveTab('dashboard');
+                sendChatMessage('결재 시스템', `[기안 상신] ${user.className ? user.className+'반 ' : ''}${user.name} 사원이 스케줄 품의를 올렸습니다.`, '📝');
+            };
+
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setCustomArtistImage(reader.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const prepareSettlement = (e) => {
+                e.preventDefault();
+                if(!selectedTripId) return showAlert('안내', '정산할 일정을 선택하세요.');
+                let emptyItems = expenseItems.filter(item => !item.amount || !item.note);
+                if(emptyItems.length > 0) return showAlert('입력 오류', '금액과 사용처를 모두 입력해주세요.');
+                
+                setShowSettleGame(true);
+            };
+
+            const finalizeSettlement = async () => {
+                let total = expenseItems.reduce((sum, item) => sum + Number(item.amount), 0);
+                await window.fb.updateDoc(window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'trips', selectedTripId), { 
+                    status: '정산완료', expenses: expenseItems, totalSpent: total 
+                });
+                await updateUserProgress(user.employeeId, 'step2');
+                
+                showAlert('정산 완료', '영수증 분류 테스트 통과! 지출 결의서 정산이 최종 완료되었습니다!');
+                setSelectedTripId('');
+                setExpenseItems([{ category: '식대(간식)', amount: '', note: '', hasReceipt: false }]);
+                setActiveTab('dashboard');
+                sendChatMessage('재무팀', `[정산 승인] ${user.name} 사원의 출장비(${total.toLocaleString()}원) 정산이 완료되었습니다.`, '💳');
+            };
+
+            const handleLunchVote = async (menu) => {
+                const taskId = `lunch_${user.employeeId}_${new Date().toLocaleDateString('ko-KR').replace(/\./g, '')}`;
+                await window.fb.setDoc(window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), {
+                    id: taskId, type: 'lunch', employeeId: user.employeeId, employeeName: user.name, menu: menu, timestamp: Date.now()
+                });
+                showAlert('투표 완료', `${menu}에 투표하셨습니다!`);
+            };
+
+            const handleSupplyRequest = async (e) => {
+                e.preventDefault();
+                const item = e.target.supplyItem.value;
+                const reason = e.target.supplyReason.value;
+                if(!item) return;
+                
+                const taskId = Date.now().toString();
+                await window.fb.setDoc(window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), {
+                    id: taskId, type: 'supply', employeeId: user.employeeId, employeeName: user.name, item: item, reason: reason, status: '요청됨', timestamp: Date.now()
+                });
+                showAlert('신청 완료', `${item} 비품 신청이 접수되었습니다.`);
+                e.target.reset();
+                sendChatMessage('총무팀', `${user.name} 사원님이 [${item}] 비품을 신청했습니다.`, '📦');
+            };
+
+            const finalizeIssueCert = async (cert) => {
+                if(!db) return;
+                await window.fb.updateDoc(window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'certificates', cert.id), { status: '발급 완료', issuer: user.name, issueDate: new Date().toLocaleDateString('ko-KR') });
+                await updateUserProgress(user.employeeId, 'step3');
+                showAlert('결재 완료', '공문서 결재 완료! 스태프증 발급이 최종 승인되었습니다.\n목록에서 [증명서 인쇄]를 눌러 인쇄할 수 있습니다.');
+                sendChatMessage('인사총무팀', `${user.name} 사원의 '팬사인회 스태프증' 발급안이 공식 결재되었습니다.`, '🖨️');
+            };
+
+            // 렌더링 함수 형태로 변경 (모달 포커스 유지용)
+            const renderCustomModal = () => {
+                if (!modal.isOpen) return null;
+                return (
+                    <div className="fixed inset-0 bg-slate-900/60 z-[300] flex justify-center items-center p-4 animate-fadeIn">
+                        <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full text-center border-2 border-fuchsia-100">
+                            <h3 className="text-xl font-black text-fuchsia-800 mb-3">{modal.title}</h3>
+                            <p className="text-slate-600 font-bold mb-6 whitespace-pre-line">{modal.message}</p>
+                            <div className="flex gap-3 justify-center">
+                                {modal.type === 'confirm' && (
+                                    <button onClick={closeModal} className="px-5 py-2.5 bg-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-300">취소</button>
+                                )}
+                                <button onClick={() => { if(modal.onConfirm) modal.onConfirm(); closeModal(); }} className="px-5 py-2.5 bg-fuchsia-600 text-white font-bold rounded-xl hover:bg-fuchsia-700">확인</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderUserSettingModal = () => {
+                if (!showUserSetting) return null;
+                return (
+                    <div className="fixed inset-0 bg-slate-900/60 z-[300] flex justify-center items-center p-4 animate-fadeIn">
+                        <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full border-2 border-fuchsia-100">
+                            <h3 className="text-xl font-black text-fuchsia-800 mb-4 border-b pb-2"><i className="fas fa-cog"></i> 내 정보 (비밀번호 변경)</h3>
+                            <form onSubmit={async (e) => {
+                                e.preventDefault();
+                                if(userPwForm.currentPw !== user.password) return showAlert('오류', '현재 비밀번호가 틀렸습니다.');
+                                if(userPwForm.newPw.length < 4) return showAlert('안내', '새 비밀번호는 4자리 이상 입력해주세요.');
+                                await window.fb.updateDoc(window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'users', user.employeeId), { password: userPwForm.newPw });
+                                setUser({...user, password: userPwForm.newPw});
+                                showAlert('성공', '비밀번호가 성공적으로 변경되었습니다.');
+                                setShowUserSetting(false);
+                                setUserPwForm({currentPw:'', newPw:''});
+                            }} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-600 mb-1">현재 비밀번호</label>
+                                    <input type="password" required className="w-full p-3 border rounded-xl" value={userPwForm.currentPw} onChange={e=>setUserPwForm({...userPwForm, currentPw:e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-600 mb-1">새로운 비밀번호</label>
+                                    <input type="password" required className="w-full p-3 border rounded-xl" value={userPwForm.newPw} onChange={e=>setUserPwForm({...userPwForm, newPw:e.target.value})} />
+                                </div>
+                                <div className="flex gap-3 pt-2">
+                                    <button type="button" onClick={()=>setShowUserSetting(false)} className="flex-1 px-4 py-2.5 bg-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-300">취소</button>
+                                    <button type="submit" className="flex-1 px-4 py-2.5 bg-fuchsia-600 text-white font-bold rounded-xl hover:bg-fuchsia-700">변경하기</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                );
+            };
+
+            const CompanyRules = () => (
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 text-sm shadow-sm">
+                    <h4 className="font-black text-slate-800 mb-2 flex items-center gap-2">
+                        <i className="fas fa-clipboard-check text-fuchsia-600"></i> [필독] STAR ENT. 출장 및 정산 사내 규정
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-700 font-bold">
+                        <div className="flex items-center gap-2"><i className="fas fa-bed text-indigo-400 w-5"></i> 최대 숙박비: 1박 80,000원</div>
+                        <div className="flex items-center gap-2"><i className="fas fa-train text-orange-400 w-5"></i> 교통비: 1회 60,000원</div>
+                        <div className="flex items-center gap-2"><i className="fas fa-utensils text-green-400 w-5"></i> 식비: 1식 10,000원</div>
+                        <div className="flex items-center gap-2"><i className="fas fa-receipt text-pink-400 w-5"></i> 잡비: 20,000원</div>
+                    </div>
+                    <p className="mt-3 text-xs text-red-500 bg-red-50 inline-block px-2 py-1 rounded border border-red-100 font-bold">
+                        * 1박 2일 이상 출장 시 반드시 폼에서 시작일시와 종료일시를 모두 정확히 기재 바랍니다.
+                    </p>
+                </div>
+            );
+
+            const renderDashboard = () => {
+                const classes = ['전체', ...new Set(registeredUsers.map(u => u.className || '미지정'))].sort();
+                const filteredUsers = filterClass === '전체' ? registeredUsers : registeredUsers.filter(u => (u.className || '미지정') === filterClass);
+                
+                return (
+                    <div className="space-y-6 animate-fadeIn">
+                        <div className="glass-card p-6 rounded-2xl shadow-sm border border-pink-100">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-xl font-bold text-fuchsia-800 flex items-center gap-2">
+                                    <i className="fas fa-chart-line"></i> 실시간 업무 진도표
+                                    <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-[10px] flex items-center gap-1 animate-pulse shadow-sm"><div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>LIVE</span>
+                                </h2>
+                                <select className="p-2 border border-slate-200 rounded-lg text-sm font-bold bg-slate-50/80" value={filterClass} onChange={e=>setFilterClass(e.target.value)}>
+                                    {classes.map(c => <option key={c} value={c}>{c === '전체' ? '모든 반 보기' : `${c}반`}</option>)}
+                                </select>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-center text-sm border-collapse bg-white/60 rounded-xl overflow-hidden">
+                                    <thead>
+                                        <tr className="bg-pink-100/50 text-slate-600 border-b-2 border-pink-200">
+                                            <th className="p-3 font-bold text-left">사원(학생)명</th>
+                                            <th className="p-3 font-bold">1단계: 기안서 작성</th>
+                                            <th className="p-3 font-bold">미니게임: 현장도착</th>
+                                            <th className="p-3 font-bold">2단계: 정산 완료</th>
+                                            <th className="p-3 font-bold">3단계: 공문서 결재</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredUsers.map(u => {
+                                            const p = u.progress || {};
+                                            return (
+                                                <tr key={u.employeeId} className={`border-b border-slate-100/50 ${u.employeeId === user.employeeId ? 'bg-fuchsia-100/40' : 'hover:bg-white/40'}`}>
+                                                    <td className="p-3 font-bold text-left"><span className="text-xs text-slate-400 mr-1">[{u.className||'미지정'}]</span>{u.employeeId} {u.name} {u.employeeId === user.employeeId && <span className="bg-fuchsia-100 text-fuchsia-600 text-[10px] px-1 rounded ml-1">ME</span>}</td>
+                                                    <td className="p-3">
+                                                        {p.step1 ? <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 shadow-sm">완료</span> : 
+                                                                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 shadow-sm animate-pulse">작성중✍️</span>}
+                                                    </td>
+                                                    <td className="p-3">
+                                                        {p.gameDone ? <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 shadow-sm">도착</span> : 
+                                                         (p.step1 ? <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 shadow-sm animate-pulse">이동중🏃‍♂️</span> : 
+                                                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400">대기</span>)}
+                                                    </td>
+                                                    <td className="p-3">
+                                                        {p.step2 ? <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 shadow-sm">완료</span> : 
+                                                         (p.gameDone ? <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700 shadow-sm animate-pulse">정산중💳</span> : 
+                                                                       <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400">대기</span>)}
+                                                    </td>
+                                                    <td className="p-3">
+                                                        {p.step3 ? <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 shadow-sm">최종완료🎉</span> : 
+                                                         (p.step2 ? <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 shadow-sm animate-pulse">심사중🗂️</span> : 
+                                                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400">대기</span>)}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                        {filteredUsers.length === 0 && <tr><td colSpan="5" className="p-6 text-slate-400 font-bold bg-white/50">해당 조건의 명단이 없습니다.</td></tr>}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const artistImages = {
+                '뉴진스': './NEWJEANS.png',
+                '아이브': './IVE.png',
+                '에스파': './AESPA.png',
+                '세븐틴': './SEVENTEEN.png',
+                '방탄소년단': './BTS.png',
+                '투어스': './TWS.png',
+                '코르티스': './CORTIS.png'
+            };
+
+            const fallbackImages = {
+                '뉴진스': 'https://placehold.co/300x400/ffe4e6/be185d?font=playfair&text=NewJeans',
+                '아이브': 'https://placehold.co/300x400/fef08a/854d0e?font=playfair&text=IVE',
+                '에스파': 'https://placehold.co/300x400/e9d5ff/6b21a8?font=playfair&text=aespa',
+                '세븐틴': 'https://placehold.co/300x400/bfdbfe/1e3a8a?font=playfair&text=SEVENTEEN',
+                '방탄소년단': 'https://placehold.co/300x400/dcfce7/166534?font=playfair&text=BTS',
+                '투어스': 'https://placehold.co/300x400/ffedd5/c2410c?font=playfair&text=TWS',
+                '코르티스': 'https://placehold.co/300x400/f3e8ff/7e22ce?font=playfair&text=CORTIS'
+            };
+
+            const renderApplyTab = () => (
+                <div className="glass-card p-6 md:p-8 rounded-2xl shadow-sm border border-pink-100 max-w-4xl mx-auto animate-fadeIn">
+                    <h2 className="text-2xl font-black text-fuchsia-800 mb-6 border-b-2 border-pink-100/50 pb-4">
+                        <i className="fas fa-pen-nib"></i> 총무: 아티스트 현장지원 스케줄 기안서
+                    </h2>
+                    
+                    <CompanyRules />
+
+                    <div className="flex flex-col md:flex-row gap-8 items-center md:items-start">
+                        <div className="md:w-1/3 w-full flex justify-center">
+                            <div key={newTrip.artist} className="bg-white/80 p-4 rounded-xl shadow-xl border border-slate-200/50 transform -rotate-2 hover:rotate-0 hover:scale-105 transition-all duration-300 max-w-[240px] animate-fadeIn relative group">
+                                <div className="w-full h-64 flex justify-center items-center bg-slate-100/50 rounded-lg shadow-inner overflow-hidden">
+                                    <img 
+                                        src={customArtistImage || artistImages[newTrip.artist]} 
+                                        alt={newTrip.artist} 
+                                        onError={(e) => { if(!customArtistImage) e.target.src = fallbackImages[newTrip.artist]; }}
+                                        className="w-full h-full object-contain transition-all" 
+                                    />
+                                </div>
+                                <label className="absolute inset-0 bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer rounded-lg m-4 h-64 backdrop-blur-sm border-2 border-dashed border-white/50">
+                                    <i className="fas fa-camera text-3xl mb-2"></i>
+                                    <span className="font-bold text-sm">사진 변경 (클릭)</span>
+                                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                                </label>
+                                <div className="text-center mt-4 mb-1">
+                                    <span className="font-jua text-2xl text-fuchsia-600">{newTrip.artist}</span>
+                                    <p className="text-xs text-slate-500 font-bold mt-1">STAR ENT. ARTIST</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="md:w-2/3 w-full">
+                            <form onSubmit={handleApplyStart} className="space-y-5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div><label className="block text-sm font-bold text-slate-700 mb-1">담당 아티스트</label>
+                                        <select className="w-full p-3 border border-slate-200/50 rounded-xl bg-white/70 focus:ring-2 focus:ring-fuchsia-200 focus:outline-none transition-shadow" value={newTrip.artist} onChange={e=>{setNewTrip({...newTrip, artist:e.target.value}); setCustomArtistImage(null);}}>
+                                            <option>뉴진스</option>
+                                            <option>아이브</option>
+                                            <option>에스파</option>
+                                            <option>세븐틴</option>
+                                            <option>방탄소년단</option>
+                                            <option>투어스</option>
+                                            <option>코르티스</option>
+                                        </select>
+                                    </div>
+                                    <div><label className="block text-sm font-bold text-slate-700 mb-1">출장 경로 및 장소</label>
+                                        <input type="text" required placeholder="예: 마산 -> 서울" className="w-full p-3 border border-slate-200/50 rounded-xl bg-white/70 focus:ring-2 focus:ring-fuchsia-200 focus:outline-none transition-shadow" value={newTrip.destination} onChange={e=>setNewTrip({...newTrip, destination:e.target.value})} />
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">출장 일정 (시작 및 종료)</label>
+                                    <div className="flex flex-col sm:flex-row gap-2 items-center bg-white/50 p-2 rounded-xl border border-slate-200/50 shadow-inner">
+                                        <div className="w-full relative bg-white/80 rounded-lg border border-slate-100 shadow-sm transition hover:border-fuchsia-300">
+                                            <span className="absolute left-3 top-2 text-fuchsia-500 text-[10px] font-black tracking-wider"><i className="fas fa-plane-departure mr-1"></i>출발일시</span>
+                                            <input type="datetime-local" required className="w-full p-3 pt-6 border-none bg-transparent outline-none text-sm font-bold text-slate-700" value={newTrip.startDate} onChange={e=>setNewTrip({...newTrip, startDate:e.target.value})} />
+                                        </div>
+                                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm shrink-0 border border-slate-200 z-10 text-slate-400">
+                                            <i className="fas fa-chevron-right sm:block hidden"></i>
+                                            <i className="fas fa-chevron-down block sm:hidden"></i>
+                                        </div>
+                                        <div className="w-full relative bg-white/80 rounded-lg border border-slate-100 shadow-sm transition hover:border-fuchsia-300">
+                                            <span className="absolute left-3 top-2 text-fuchsia-500 text-[10px] font-black tracking-wider"><i className="fas fa-plane-arrival mr-1"></i>도착(종료)일시</span>
+                                            <input type="datetime-local" required className="w-full p-3 pt-6 border-none bg-transparent outline-none text-sm font-bold text-slate-700" value={newTrip.endDate} onChange={e=>setNewTrip({...newTrip, endDate:e.target.value})} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div><label className="block text-sm font-bold text-slate-700 mb-1">지원 목적 및 내용</label>
+                                    <textarea required placeholder="예: 팬미팅 현장 굿즈 판매 및 질서 유지 지원" className="w-full p-3 border border-slate-200/50 rounded-xl bg-white/70 h-24 focus:ring-2 focus:ring-fuchsia-200 focus:outline-none transition-shadow" value={newTrip.purpose} onChange={e=>setNewTrip({...newTrip, purpose:e.target.value})}></textarea>
+                                </div>
+                                <div className="bg-pink-50/80 p-4 rounded-xl border border-pink-200/50">
+                                    <label className="block text-sm font-bold text-pink-800 mb-1">법인카드 예상 사용액 (예산 신청)</label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-3 text-pink-500 font-bold">₩</span>
+                                        <input type="number" required placeholder="50000" className="w-full p-3 pl-10 border border-white rounded-lg bg-white/90 font-bold text-lg text-fuchsia-900 focus:ring-2 focus:ring-fuchsia-300 focus:outline-none transition-shadow" value={newTrip.budget} onChange={e=>setNewTrip({...newTrip, budget:e.target.value})} />
+                                    </div>
+                                </div>
+                                <button type="submit" className="w-full bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white font-black tracking-wide py-4 rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all shadow-md text-lg">결재 올리기 (미니게임 시작)</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderSettleTab = () => {
+                const myPending = trips.filter(t => t.employeeId === user.employeeId && t.status !== '정산완료');
+                return (
+                    <div className="max-w-4xl mx-auto relative animate-fadeIn">
+                        {showEventModal && currentEvent && (
+                            <div className="fixed inset-0 bg-black/60 z-[100] flex justify-center items-center p-4">
+                                <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm text-center transform scale-105 border-4 border-yellow-300">
+                                    <div className="text-7xl mb-4 float-anim">{currentEvent.icon}</div>
+                                    <h3 className="text-2xl font-black text-fuchsia-800 mb-2">돌발 상황 발생!</h3>
+                                    <p className="text-lg font-bold text-slate-700 mb-2">{currentEvent.title}</p>
+                                    <p className="text-sm text-slate-500 mb-6">{currentEvent.desc}</p>
+                                    <button onClick={() => {
+                                        if(currentEvent.category) {
+                                            setExpenseItems([...expenseItems, {category: currentEvent.category, amount: currentEvent.amount, note: currentEvent.note, hasReceipt: true}]);
+                                            sendChatMessage('🚨 법인카드 알림', `${user.name} 사원이 [${currentEvent.title}] 사유로 결제했습니다!`, '💳', 'alert');
+                                        } else {
+                                            sendChatMessage('🎉 알림', `${user.name} 사원님이 [${currentEvent.title}] 당첨!`, '🎁');
+                                        }
+                                        setShowEventModal(false);
+                                    }} className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold py-3 rounded-xl shadow-lg">상황 대처하기 (영수증 추가)</button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="glass-card p-6 md:p-8 rounded-2xl shadow-sm border border-pink-100">
+                            <h2 className="text-2xl font-black text-fuchsia-800 mb-6 border-b-2 border-pink-100/50 pb-4">
+                                <i className="fas fa-credit-card"></i> 회계실무: 법인카드 지출 정산
+                            </h2>
+
+                            <CompanyRules />
+
+                            <form onSubmit={prepareSettlement}>
+                                <div className="mb-6">
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">정산할 내 스케줄 선택</label>
+                                    <select required className="w-full p-3 border border-slate-200/50 rounded-xl bg-white/70" value={selectedTripId} onChange={e=>setSelectedTripId(e.target.value)}>
+                                        <option value="">-- 선택하세요 --</option>
+                                        {myPending.map(t => <option key={t.id} value={t.id}>[{t.artist}] {t.destination} (예산: {Number(t.budget).toLocaleString()}원)</option>)}
+                                    </select>
+                                </div>
+                                {selectedTripId && (
+                                    <div className="animate-fadeIn">
+                                        <div className="flex justify-between items-end mb-4">
+                                            <label className="block text-sm font-bold text-slate-700">사용 내역 입력 (영수증 증빙)</label>
+                                            <div className="flex gap-2">
+                                                <button type="button" onClick={() => { setCurrentEvent(events[Math.floor(Math.random() * events.length)]); setShowEventModal(true); }} className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-md sparkle-anim"><i className="fas fa-dice"></i> 돌발카드 뽑기</button>
+                                                <button type="button" onClick={() => setExpenseItems([...expenseItems, {category:'식대(간식)', amount:'', note:'', hasReceipt:false}])} className="bg-white/80 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg hover:bg-white shadow-sm border border-slate-200/50"><i className="fas fa-plus"></i> 일반 내역 추가</button>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-3 bg-white/40 p-4 rounded-xl border border-slate-100/50">
+                                            {expenseItems.map((item, idx) => (
+                                                <div key={idx} className="flex flex-wrap gap-2 items-center bg-white/80 p-2 rounded-lg shadow-sm border border-slate-200/50">
+                                                    <select className="p-2 border border-slate-200/50 rounded-lg text-sm w-28 bg-transparent" value={item.category} onChange={e => {const arr=[...expenseItems]; arr[idx].category=e.target.value; setExpenseItems(arr);}}>
+                                                        <option>식대(간식)</option><option>교통비</option><option>숙박비</option><option>소품비</option><option>기타비용</option>
+                                                    </select>
+                                                    <input required type="text" placeholder="사용처" className="p-2 border border-slate-200/50 rounded-lg text-sm flex-1 min-w-[120px] bg-transparent" value={item.note} onChange={e => {const arr=[...expenseItems]; arr[idx].note=e.target.value; setExpenseItems(arr);}} />
+                                                    <input required type="number" placeholder="금액" className="p-2 border border-slate-200/50 rounded-lg text-sm w-24 text-right font-bold bg-transparent" value={item.amount} onChange={e => {const arr=[...expenseItems]; arr[idx].amount=e.target.value; setExpenseItems(arr);}} />
+                                                    <button type="button" onClick={() => {const arr=[...expenseItems]; arr[idx].hasReceipt=true; setExpenseItems(arr);}} className={`p-2 rounded-lg text-xs font-bold transition-colors ${item.hasReceipt ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-slate-200/50 text-slate-600 hover:bg-slate-200'}`}>
+                                                        {item.hasReceipt ? '제출완료' : '영수증 찍기'}
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            <div className="text-right pt-4 border-t border-slate-200/50 mt-4">
+                                                <span className="text-sm text-slate-500 mr-2">총 사용 금액:</span>
+                                                <span className="text-xl font-black text-fuchsia-700">{expenseItems.reduce((s, i)=>s+Number(i.amount||0),0).toLocaleString()}원</span>
+                                            </div>
+                                        </div>
+                                        <button type="submit" className="w-full bg-gradient-to-r from-emerald-400 to-green-500 text-white font-bold py-4 rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all shadow-md text-lg mt-6">재무팀에 정산 서류 제출 (테스트 후 2단계 완료)</button>
+                                    </div>
+                                )}
+                            </form>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderCertTab = () => {
+                const myCerts = certificates.filter(c => c.reqId === user.employeeId);
+
+                return (
+                    <div className="max-w-4xl mx-auto space-y-6 animate-fadeIn">
+                        <div className="glass-card p-6 md:p-8 rounded-2xl shadow-sm border border-emerald-100/50">
+                            <h2 className="text-2xl font-black text-emerald-700 mb-6 border-b-2 border-emerald-100/50 pb-4">
+                                <i className="fas fa-file-signature"></i> 공공사무행정: 공문서 및 제증명(스태프증) 발급 심사
+                            </h2>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse bg-white/60 rounded-xl overflow-hidden">
+                                    <thead>
+                                        <tr className="bg-emerald-50/80 text-emerald-800 text-sm border-y border-emerald-200/50">
+                                            <th className="p-3">결재 상태</th>
+                                            <th className="p-3">발급 대상자</th>
+                                            <th className="p-3 text-center">사무행정 업무</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {myCerts.map(cert => (
+                                            <tr key={cert.id} className="border-b border-emerald-50/50 hover:bg-white/40 transition-colors">
+                                                <td className="p-3"><span className={`px-2 py-1 text-xs font-bold rounded-full shadow-sm ${cert.status === '발급 완료' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-100/80 text-slate-600 border border-slate-200'}`}>{cert.status}</span></td>
+                                                <td className="p-3 text-sm font-bold">{cert.artistTeam} <span className="text-emerald-600">{cert.reqName}</span></td>
+                                                <td className="p-3 text-center">
+                                                    {cert.status === '발급 대기' ? 
+                                                        <button onClick={() => {
+                                                            setCertToIssue(cert);
+                                                            setShowCertGame(true);
+                                                        }} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:scale-105 transition-transform text-white text-xs font-bold py-1.5 px-3 rounded shadow-md sparkle-anim">결재 심사하기 (3단계)</button>
+                                                    : 
+                                                        <button onClick={() => setSelectedCertForView(cert)} className="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold py-1.5 px-3 rounded shadow-sm transition-colors"><i className="fas fa-print"></i> 증명서 인쇄</button>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {selectedCertForView && (
+                            <div className="fixed inset-0 bg-slate-900/90 z-[100] flex justify-center items-center p-4 no-print">
+                                <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl relative animate-fadeIn">
+                                    <div className="p-4 flex justify-between bg-slate-100 border-b">
+                                        <button onClick={() => window.print()} className="bg-slate-800 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-slate-900"><i className="fas fa-print"></i> 인쇄하기</button>
+                                        <button onClick={() => setSelectedCertForView(null)} className="text-slate-500 hover:text-slate-800 transition-colors"><i className="fas fa-times text-xl"></i></button>
+                                    </div>
+                                    <div className="print-area bg-gradient-to-b from-fuchsia-900 to-indigo-900 text-white p-8 w-[300px] h-[450px] mx-auto my-4 rounded-2xl relative shadow-inner flex flex-col items-center justify-center border-4 border-pink-200">
+                                        <div className="absolute top-4 left-0 w-full text-center">
+                                            <h1 className="text-2xl font-black tracking-widest text-pink-300 drop-shadow-md">STAR ENT.</h1>
+                                        </div>
+                                        <div className="w-32 h-32 bg-white rounded-full mb-6 mt-8 border-4 border-pink-400 flex justify-center items-center overflow-hidden shadow-lg">
+                                            <i className="fas fa-user-astronaut text-5xl text-slate-300"></i>
+                                        </div>
+                                        <h2 className="text-3xl font-black mb-1 text-white drop-shadow-lg">{selectedCertForView.reqName}</h2>
+                                        <p className="text-pink-300 font-bold mb-6 tracking-wider">{selectedCertForView.artistTeam}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            const renderCompanyLifeTab = () => {
+                const lunchVotes = dailyTasks.filter(t => t.type === 'lunch');
+                const supplyRequests = dailyTasks.filter(t => t.type === 'supply');
+                const hasVoted = lunchVotes.some(v => v.employeeId === user.employeeId);
+
+                return (
+                    <div className="max-w-4xl mx-auto space-y-8 animate-fadeIn">
+                        <div className="glass-card p-6 md:p-8 rounded-2xl shadow-sm border border-orange-100/50">
+                            <h2 className="text-2xl font-black text-orange-600 mb-4 flex items-center gap-2"><i className="fas fa-utensils"></i> 오늘의 팀 점심 메뉴 투표</h2>
+                            <p className="text-sm text-slate-600 mb-6 font-bold">복리후생 지원! 오늘 팀원들과 함께 먹을 점심 메뉴를 선택해주세요.</p>
+                            
+                            {!hasVoted ? (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {[
+                                        {name: '한식 (제육볶음)', icon: '🍱', color: 'bg-red-50/80 hover:bg-red-100 border-red-200/50 text-red-700'},
+                                        {name: '양식 (파스타)', icon: '🍝', color: 'bg-yellow-50/80 hover:bg-yellow-100 border-yellow-200/50 text-yellow-700'},
+                                        {name: '일식 (돈까스)', icon: '🍛', color: 'bg-orange-50/80 hover:bg-orange-100 border-orange-200/50 text-orange-700'},
+                                        {name: '다이어트 샐러드', icon: '🥗', color: 'bg-green-50/80 hover:bg-green-100 border-green-200/50 text-green-700'}
+                                    ].map(menu => (
+                                        <button key={menu.name} onClick={() => handleLunchVote(menu.name)} className={`p-6 border-2 rounded-2xl flex flex-col items-center justify-center transition shadow-sm hover:scale-[1.03] ${menu.color}`}>
+                                            <span className="text-4xl mb-2">{menu.icon}</span>
+                                            <span className="font-bold text-sm">{menu.name}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="bg-orange-50/80 p-6 rounded-xl border border-orange-200/50 text-center shadow-inner">
+                                    <h3 className="font-bold text-orange-800 mb-4">현재 실시간 투표 현황</h3>
+                                    <div className="flex flex-wrap gap-2 justify-center">
+                                        {lunchVotes.map(v => (
+                                            <span key={v.id} className="bg-white/90 border border-orange-200/50 px-3 py-1.5 rounded-full text-xs font-bold text-slate-700 shadow-sm">
+                                                {v.employeeName} <span className="text-orange-500 ml-1">{v.menu}</span>
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="glass-card p-6 md:p-8 rounded-2xl shadow-sm border border-blue-100/50">
+                            <h2 className="text-2xl font-black text-blue-600 mb-4 flex items-center gap-2"><i className="fas fa-box-open"></i> 탕비실 / 사무용품 비품 신청</h2>
+                            <form onSubmit={handleSupplyRequest} className="flex flex-col md:flex-row gap-4 mb-6">
+                                <input type="text" name="supplyItem" required placeholder="필요한 비품 (예: 무소음 마우스)" className="p-3 border border-slate-200/50 rounded-xl bg-white/70 flex-1 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-shadow" />
+                                <input type="text" name="supplyReason" required placeholder="신청 사유" className="p-3 border border-slate-200/50 rounded-xl bg-white/70 flex-1 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-shadow" />
+                                <button type="submit" className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold px-6 py-3 rounded-xl hover:shadow-lg hover:scale-105 transition-all shadow-md whitespace-nowrap">신청하기</button>
+                            </form>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm border-collapse bg-white/60 rounded-xl overflow-hidden">
+                                    <thead>
+                                        <tr className="bg-blue-50/50 border-y border-blue-100/50 text-blue-800">
+                                            <th className="p-3 font-bold">신청자</th>
+                                            <th className="p-3 font-bold">신청 품목</th>
+                                            <th className="p-3 font-bold">사유</th>
+                                            <th className="p-3 font-bold text-center">상태</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {supplyRequests.map(req => (
+                                            <tr key={req.id} className="border-b border-slate-100/50 hover:bg-white/40 transition-colors">
+                                                <td className="p-3 font-bold text-slate-700">{req.employeeName}</td>
+                                                <td className="p-3 text-blue-600 font-bold">{req.item}</td>
+                                                <td className="p-3 text-slate-500">{req.reason}</td>
+                                                <td className="p-3 text-center"><span className="bg-slate-200/80 text-slate-600 border border-slate-300/50 px-2 py-1 rounded-full text-[10px] font-bold shadow-sm">{req.status}</span></td>
+                                            </tr>
+                                        ))}
+                                        {supplyRequests.length === 0 && <tr><td colSpan="4" className="p-4 text-center text-slate-400 bg-white/50 font-bold">아직 신청된 비품이 없습니다.</td></tr>}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const MarqueeBanner = () => (
+                <div className="bg-gradient-to-r from-pink-400 via-fuchsia-400 to-purple-400 text-white py-1.5 overflow-hidden w-full shadow-sm no-print relative z-50">
+                    <div className="whitespace-nowrap animate-marquee font-black tracking-widest text-[15px] drop-shadow-md font-jua">
+                        🎀 환영합니다! 한일여자고등학교 공공사무행정과 학과체험에 오신 것을 환영합니다! 🎀 Hanil STAR ENT. 신입사원 포털 🎀 환영합니다! 한일여자고등학교 공공사무행정과 학과체험에 오신 것을 환영합니다! 🎀
+                    </div>
+                </div>
+            );
+
+            if(isAdminMode) {
+                return (
+                    <div className="min-h-screen bg-girlish p-6 flex flex-col items-center">
+                        {renderCustomModal()}
+                        <div className="bg-white/95 backdrop-blur-md p-8 rounded-2xl shadow-xl w-full max-w-5xl">
+                            <div className="flex justify-between items-center mb-6 border-b pb-4">
+                                <h2 className="text-2xl font-bold text-fuchsia-700 flex items-center gap-2 font-jua"><i className="fas fa-crown"></i> 선생님 전용 관리자 페이지</h2>
+                                <button onClick={() => setIsAdminMode(false)} className="px-4 py-2 bg-slate-200 rounded-xl font-bold hover:bg-slate-300">체험 화면으로 복귀</button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                                <div className="space-y-6">
+                                    <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                                        <h3 className="font-bold mb-2 text-slate-700">👩‍🎓 엑셀(Excel) 일괄 등록</h3>
+                                        <p className="text-xs text-red-500 font-bold mb-3">양식 필수: 1열(반 이름), 2열(학번), 3열(이름) <br/><span className="text-slate-500 font-normal">※ 첫 줄은 제목행으로 무시됨</span></p>
+                                        <input type="file" accept=".xlsx, .xls" onChange={async (e) => {
+                                            if(!db) return showAlert('오류', '데이터베이스 연결을 기다리는 중입니다.');
+                                            const file = e.target.files[0];
+                                            if(!file) return;
+                                            const reader = new FileReader();
+                                            reader.onload = async (evt) => {
+                                                try {
+                                                    const bstr = evt.target.result;
+                                                    const wb = XLSX.read(bstr, {type:'binary'});
+                                                    const ws = wb.Sheets[wb.SheetNames[0]];
+                                                    const data = XLSX.utils.sheet_to_json(ws, {header:1});
+                                                    let count = 0;
+                                                    for (let i = 1; i < data.length; i++) {
+                                                        const row = data[i];
+                                                        if (row[0] && row[1] && row[2]) {
+                                                            const cls = String(row[0]).trim();
+                                                            const empId = String(row[1]).trim();
+                                                            const name = String(row[2]).trim();
+                                                            const userData = {
+                                                                className: cls, employeeId: empId, name: name, password: '1234',
+                                                                progress: { step1: false, step2: false, step3: false, gameDone: false }
+                                                            };
+                                                            await window.fb.setDoc(window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'users', empId), userData);
+                                                            count++;
+                                                        }
+                                                    }
+                                                    showAlert('등록 성공', `총 ${count}명의 학생 명단이 등록되었습니다!`);
+                                                    e.target.value = ''; 
+                                                } catch (error) {
+                                                    showAlert('파일 오류', '엑셀 파일을 읽는 중 오류가 발생했습니다.');
+                                                }
+                                            };
+                                            reader.readAsBinaryString(file);
+                                        }} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-fuchsia-50 file:text-fuchsia-700 hover:file:bg-fuchsia-100" />
+                                    </div>
+
+                                    <div className="bg-pink-50 p-6 rounded-xl border border-pink-200">
+                                        <h3 className="font-bold mb-2 text-pink-800">📝 학생 수동 추가</h3>
+                                        <form onSubmit={async (e) => {
+                                            e.preventDefault();
+                                            if(!manualUser.className || !manualUser.employeeId || !manualUser.name) return showAlert('안내', '모두 입력해주세요.');
+                                            const userData = { ...manualUser, password: '1234', progress: { step1: false, step2: false, step3: false, gameDone: false } };
+                                            await window.fb.setDoc(window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'users', userData.employeeId), userData);
+                                            showAlert('성공', `${userData.name} 학생이 추가되었습니다.`);
+                                            setManualUser({ className: '', employeeId: '', name: '' });
+                                        }} className="flex gap-2 text-sm">
+                                            <input type="text" required placeholder="반 (예: 1)" className="w-16 p-2 border rounded" value={manualUser.className} onChange={e=>setManualUser({...manualUser, className:e.target.value})} />
+                                            <input type="text" required placeholder="학번" className="w-24 p-2 border rounded" value={manualUser.employeeId} onChange={e=>setManualUser({...manualUser, employeeId:e.target.value})} />
+                                            <input type="text" required placeholder="이름" className="flex-1 p-2 border rounded" value={manualUser.name} onChange={e=>setManualUser({...manualUser, name:e.target.value})} />
+                                            <button type="submit" className="bg-pink-600 text-white px-3 py-2 rounded font-bold hover:bg-pink-700">추가</button>
+                                        </form>
+                                    </div>
+                                    
+                                    <div className="mt-4">
+                                        <h4 className="text-sm font-bold text-slate-700 mb-2">클라우드에 등록된 학생 ({registeredUsers.length}명)</h4>
+                                        <div className="h-48 overflow-y-auto bg-white border rounded p-2 text-sm space-y-1 shadow-inner">
+                                            {registeredUsers.map(u => (
+                                                <div key={u.employeeId} className="flex justify-between items-center p-2 hover:bg-slate-50 border-b border-slate-100 last:border-0 rounded">
+                                                    <span><span className="text-slate-400 mr-2 text-xs font-bold">[{u.className||'미지정'}]</span> <span className="font-bold text-slate-700 mr-1">{u.employeeId}</span> {u.name}</span>
+                                                    <button onClick={() => {
+                                                        showConfirm('삭제', `정말 ${u.name} 학생을 삭제하시겠습니까?`, async () => {
+                                                            await window.fb.deleteDoc(window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'users', u.employeeId));
+                                                            showAlert('삭제', '삭제 완료');
+                                                        });
+                                                    }} className="text-red-500 hover:text-white border border-red-200 hover:bg-red-500 hover:border-red-500 px-2 py-1 rounded text-[10px] font-bold transition-all shadow-sm">
+                                                        <i className="fas fa-trash-alt mr-1"></i>삭제
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-6">
+                                    <div className="bg-orange-50 p-6 rounded-xl border border-orange-200">
+                                        <h3 className="font-bold mb-2 text-orange-800"><i className="fas fa-bullhorn"></i> 대표이사 수동 공지 발송</h3>
+                                        <textarea className="w-full h-20 p-3 border border-orange-300 rounded mb-2 text-sm" placeholder="예: 여러분, 1단계 기안서를 10분 내로 모두 작성해주세요!" value={adminNotice} onChange={e=>setAdminNotice(e.target.value)}></textarea>
+                                        <button onClick={async () => {
+                                            if(!adminNotice.trim()) return;
+                                            await sendChatMessage('대표이사', adminNotice, '👑', 'notice');
+                                            showAlert('공지 발송', '전체 학생에게 공지가 발송되었습니다.');
+                                            setAdminNotice('');
+                                        }} className="w-full bg-orange-500 text-white font-bold py-2 rounded hover:bg-orange-600">전체 학생에게 발송</button>
+                                        
+                                        <div className="mt-4 border-t border-orange-200 pt-4">
+                                            <h4 className="text-sm font-bold text-orange-800 mb-2">업무 진행도별 자동 공지 (2분 간격)</h4>
+                                            <ul className="text-xs text-orange-700 space-y-1 bg-white p-3 rounded border border-orange-100 shadow-inner">
+                                                <li><strong>[로그인 직후]</strong> 환영 안내</li>
+                                                <li><strong>[각 탭 클릭시]</strong> 해당 단계 업무 안내 (즉시)</li>
+                                                <li><strong>[기안/정산/제증명 완료시]</strong> 다음 단계 안내 (2분 뒤 간헐적 발송)</li>
+                                            </ul>
+                                            <p className="text-[10px] text-slate-500 mt-1">※ 학생들의 화면에 메신저가 너무 많이 뜨지 않도록 2분 단위로 간격을 조절했습니다.</p>
+                                        </div>
+                                    </div>
+                                    <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                                        <h3 className="font-bold mb-2 text-slate-800"><i className="fas fa-key"></i> 관리자 비밀번호 재설정</h3>
+                                        <form onSubmit={async (e) => {
+                                            e.preventDefault();
+                                            if(adminPwForm.newPw.length < 4) return showAlert('안내', '비밀번호는 4자리 이상 입력해주세요.');
+                                            await window.fb.updateDoc(window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'adminSettings', 'config'), { password: adminPwForm.newPw });
+                                            showAlert('성공', '선생님 비밀번호가 변경되었습니다.');
+                                            setAdminPwForm({newPw:''});
+                                        }} className="flex gap-2">
+                                            <input type="text" required placeholder="새 비밀번호 입력" className="flex-1 p-2 border rounded" value={adminPwForm.newPw} onChange={e=>setAdminPwForm({newPw: e.target.value})} />
+                                            <button type="submit" className="bg-slate-700 text-white px-4 py-2 rounded font-bold hover:bg-slate-800">변경</button>
+                                        </form>
+                                        <p className="text-xs text-slate-500 mt-2">현재 비밀번호: {adminConfig.password}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (!user) {
+                return (
+                    <div className="min-h-screen bg-girlish flex flex-col justify-center items-center relative overflow-hidden">
+                        <MarqueeBanner />
+                        <div className="flex-1 w-full flex flex-col justify-center items-center p-4 relative">
+                            {renderCustomModal()}
+                            {showAdminLogin && (
+                                <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4">
+                                    <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm">
+                                        <h3 className="font-bold text-lg mb-4">선생님 접속</h3>
+                                        <input type="password" placeholder="비밀번호" className="w-full p-3 border rounded-xl mb-4" value={adminPw} onChange={e=>setAdminPw(e.target.value)} />
+                                        <div className="flex gap-2">
+                                            <button onClick={() => setShowAdminLogin(false)} className="flex-1 p-3 bg-gray-200 rounded-xl font-bold">취소</button>
+                                            <button onClick={() => { if(adminPw === adminConfig.password){setIsAdminMode(true); setShowAdminLogin(false);}else{showAlert('실패','틀렸습니다.');} }} className="flex-1 p-3 bg-fuchsia-600 text-white rounded-xl font-bold">확인</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 여고생 감성 떠다니는 장식 효과 */}
+                            <div className="absolute top-10 w-full flex justify-center float-anim"><i className="fas fa-star text-yellow-300 text-6xl drop-shadow-md sparkle-anim"></i></div>
+                            <div className="absolute bottom-10 left-10 text-4xl opacity-60 float-anim" style={{animationDelay: '1s'}}>🌸</div>
+                            <div className="absolute top-20 right-10 text-5xl opacity-60 float-anim" style={{animationDelay: '0.5s'}}>🎵</div>
+                            <div className="absolute bottom-20 right-20 text-4xl opacity-60 float-anim" style={{animationDelay: '1.5s'}}>💖</div>
+                            <div className="absolute top-32 left-20 text-3xl opacity-60 float-anim" style={{animationDelay: '2s'}}>🎀</div>
+                            <div className="absolute bottom-32 left-1/3 text-2xl opacity-60 float-anim" style={{animationDelay: '0.8s'}}>✨</div>
+                            <div className="absolute top-1/4 right-1/4 text-3xl opacity-60 float-anim" style={{animationDelay: '2.5s'}}>🦋</div>
+
+                            <div className="glass-card p-8 rounded-[2rem] shadow-2xl w-full max-w-md z-10 border-4 border-white/60 relative">
+                                <div className="text-center mb-6">
+                                    <div className="w-full flex justify-center mb-3">
+                                        <svg viewBox="0 0 120 120" className="w-24 h-24 drop-shadow-xl float-anim">
+                                            <path d="M60 10 C 85 10, 95 45, 60 65 C 25 45, 35 10, 60 10 Z" fill="#b3b7bb" stroke="#003984" strokeWidth="4" strokeLinejoin="round"/>
+                                            <path d="M25 45 C -5 60, 10 105, 50 95 C 70 70, 40 45, 25 45 Z" fill="#00a2e8" stroke="#003984" strokeWidth="4" strokeLinejoin="round"/>
+                                            <path d="M95 45 C 125 60, 110 105, 70 95 C 50 70, 80 45, 95 45 Z" fill="#8fc23f" stroke="#003984" strokeWidth="4" strokeLinejoin="round"/>
+                                            <circle cx="60" cy="58" r="26" fill="#003984" />
+                                            <text x="60" y="70" fontFamily="'Georgia', serif" fontSize="34" fill="white" fontWeight="bold" textAnchor="middle">H</text>
+                                        </svg>
+                                    </div>
+                                    <p className="font-bold text-slate-700 font-gowun text-xs mb-3 tracking-wider drop-shadow-sm">학교법인 한효학원 한일여자고등학교</p>
+                                    <div className="mb-5 mt-1">
+                                        <span className="font-black text-3xl font-jua animate-text-glow tracking-widest relative z-10">
+                                            ✨공공사무행정과✨
+                                        </span>
+                                    </div>
+                                    <h1 className="text-4xl font-jua text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-600 to-pink-500 mb-2 pt-4 border-t-2 border-pink-300/50 drop-shadow-sm">Hanil STAR ENT.</h1>
+                                    <p className="font-bold text-slate-600 font-gowun">경영지원본부 신입사원 포털</p>
+                                </div>
+                                
+                                {!isDbReady ? (
+                                    <div className="text-center text-pink-600 py-8 font-bold"><i className="fas fa-spinner fa-spin mr-2"></i> 시스템 연결 중...</div>
+                                ) : (
+                                    <form onSubmit={handleLogin} className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-bold text-fuchsia-900 mb-1 ml-1 drop-shadow-sm">학번 (사원번호)</label>
+                                            <input type="text" className="w-full p-3 border-2 border-pink-200 rounded-2xl focus:border-pink-400 focus:outline-none bg-white/80 transition-shadow" value={loginForm.employeeId} onChange={e => setLoginForm({...loginForm, employeeId: e.target.value})} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-fuchsia-900 mb-1 ml-1 drop-shadow-sm">이름</label>
+                                            <input type="text" className="w-full p-3 border-2 border-pink-200 rounded-2xl focus:border-pink-400 focus:outline-none bg-white/80 transition-shadow" value={loginForm.name} onChange={e => setLoginForm({...loginForm, name: e.target.value})} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-fuchsia-900 mb-1 ml-1 drop-shadow-sm">비밀번호</label>
+                                            <input type="password" placeholder="초기비번: 1234" className="w-full p-3 border-2 border-pink-200 rounded-2xl focus:border-pink-400 focus:outline-none bg-white/80 transition-shadow" value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} />
+                                        </div>
+                                        <button type="submit" className="w-full bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white font-bold py-4 rounded-2xl hover:shadow-lg hover:scale-[1.02] transition-all text-lg mt-4 shadow-md font-jua tracking-wider">출근하기 🌸</button>
+                                    </form>
+                                )}
+                                <div className="mt-6 text-center">
+                                    <button onClick={() => setShowAdminLogin(true)} className="text-xs text-slate-500 hover:text-fuchsia-700 font-bold underline transition-colors drop-shadow-sm">선생님 전용 관리페이지</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen flex flex-col bg-girlish relative">
+                    {renderCustomModal()}
+                    {renderUserSettingModal()}
+                    
+                    {showApplyGame && <ApplyGameComponent 
+                        phrase={applyGamePhrase}
+                        onComplete={() => { setShowApplyGame(false); executeApply(); }}
+                        onCancel={() => setShowApplyGame(false)}
+                    />}
+                    {showMiniGame && <MiniGameComponent 
+                        onComplete={() => {
+                            showAlert('도착 완료', '🏃‍♀️ 스케줄 현장 도착 성공! 이제 정산업무를 시작합니다.');
+                            updateUserProgress(user.employeeId, 'gameDone');
+                            setShowMiniGame(false);
+                            setActiveTab('settle');
+                            sendChatMessage('시스템 알림', `${user.name} 사원이 무사히 스케줄 현장에 도착했습니다! 💦`, '🏃‍♀️', 'normal', true);
+                        }}
+                        onFail={() => showAlert('실패', '앗! 차량을 놓쳤습니다. 다시 뛰어보세요!')}
+                        onCancel={() => setShowMiniGame(false)}
+                    />}
+                    {showSettleGame && <SettleGameComponent 
+                        onComplete={() => {
+                            setShowSettleGame(false);
+                            finalizeSettlement();
+                        }}
+                        onCancel={() => setShowSettleGame(false)}
+                    />}
+                    {showCertGame && <CertGameComponent 
+                        onComplete={() => {
+                            finalizeIssueCert(certToIssue);
+                            setShowCertGame(false);
+                        }}
+                        onCancel={() => setShowCertGame(false)}
+                    />}
+                    
+                    <div className={`fixed bottom-4 right-4 z-50 flex flex-col items-end transition-all duration-300 ${isChatOpen ? 'w-[350px] h-[500px]' : 'w-14 h-14'} no-print`}>
+                        {!isChatOpen ? (
+                            <button onClick={() => setIsChatOpen(true)} className="w-14 h-14 bg-fuchsia-600 text-white rounded-full shadow-2xl flex justify-center items-center text-2xl hover:bg-fuchsia-700 transition relative animate-bounce border-2 border-white/50">
+                                <i className="fas fa-comments"></i><span className="absolute top-0 right-0 w-4 h-4 bg-red-500 border-2 border-white rounded-full"></span>
+                            </button>
+                        ) : (
+                            <div className="w-full h-full glass-card rounded-2xl shadow-2xl flex flex-col overflow-hidden border-2 border-pink-200 animate-fadeIn">
+                                <div className="bg-gradient-to-r from-fuchsia-600 to-pink-500 p-4 text-white flex justify-between items-center shadow-md z-10">
+                                    <h3 className="font-bold flex items-center gap-2"><i className="fas fa-comment-dots"></i> Hanil STAR 메신저</h3>
+                                    <button onClick={() => setIsChatOpen(false)} className="hover:text-pink-200"><i className="fas fa-times"></i></button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-4 bg-white/60 chat-scrollbar space-y-4 flex flex-col backdrop-blur-sm">
+                                    {messages.map(msg => (
+                                        <div key={msg.id} className={`flex gap-2 ${msg.sender === user.name ? 'flex-row-reverse' : ''} animate-fadeIn`}>
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-sm shrink-0 ${msg.type === 'notice' ? 'bg-orange-100 text-orange-600' : 'bg-white border border-slate-200'}`}>
+                                                {msg.icon}
+                                            </div>
+                                            <div className={`flex flex-col ${msg.sender === user.name ? 'items-end' : 'items-start'} max-w-[75%]`}>
+                                                <span className="text-[10px] text-slate-600 font-bold mb-0.5">{msg.sender} <span className="font-normal opacity-70 ml-1">{msg.time}</span></span>
+                                                <div className={`p-2.5 rounded-2xl text-sm shadow-sm ${msg.sender === user.name ? 'bg-fuchsia-500 text-white rounded-tr-none' : msg.type === 'notice' ? 'bg-orange-50 text-orange-800 border border-orange-200 font-bold rounded-tl-none' : msg.type === 'alert' ? 'bg-red-50 text-red-700 border border-red-200 rounded-tl-none' : 'bg-white text-slate-700 border border-slate-200 rounded-tl-none'}`}>
+                                                    {msg.content}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div ref={messagesEndRef} />
+                                </div>
+                                <form onSubmit={handleChatSubmit} className="p-3 bg-white/90 border-t border-pink-100 flex gap-2">
+                                    <input type="text" placeholder="메시지 보내기..." className="flex-1 p-2 bg-slate-50 border border-pink-200 rounded-lg text-sm focus:outline-none focus:border-fuchsia-400" value={chatInput} onChange={e=>setChatInput(e.target.value)} />
+                                    <button type="submit" className="bg-fuchsia-600 text-white p-2 rounded-lg hover:bg-fuchsia-700 shadow-sm"><i className="fas fa-paper-plane"></i></button>
+                                </form>
+                            </div>
+                        )}
+                    </div>
+
+                    <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-40 border-b border-pink-200/60 no-print">
+                        <MarqueeBanner />
+                        <div className="max-w-5xl mx-auto px-4 mt-2">
+                            <div className="flex items-center justify-between h-14">
+                                <div className="flex items-center gap-2 cursor-pointer" onClick={() => showConfirm('메인 화면 이동', '현재 화면에서 로그아웃 되고 로그인 화면으로 돌아가시겠습니까?\n(작성 중이던 내용은 초기화됩니다.)', resetSessionData)}>
+                                    <div className="bg-gradient-to-br from-fuchsia-500 to-pink-500 w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm"><i className="fas fa-star"></i></div>
+                                    <span className="font-black text-fuchsia-900 tracking-tight text-lg font-jua hover:text-fuchsia-600 transition drop-shadow-sm">Hanil STAR ENT.</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-white/80 px-3 py-1.5 rounded-full border border-pink-200 flex items-center gap-2 shadow-sm">
+                                        <span className="text-xs font-bold text-fuchsia-800">[{user.className||'소속'}] {user.employeeId} {user.name} 님</span>
+                                        <button onClick={() => setShowUserSetting(true)} className="text-fuchsia-500 hover:text-fuchsia-700"><i className="fas fa-cog"></i></button>
+                                    </div>
+                                    <button onClick={() => showConfirm('퇴근 확인', '퇴근하시겠습니까?\n(작성 중이던 내용은 초기화됩니다.)', resetSessionData)} className="text-xs bg-white/80 hover:bg-pink-100 text-slate-600 border border-pink-200 font-bold px-3 py-1.5 rounded-full transition shadow-sm"><i className="fas fa-sign-out-alt"></i> 퇴근</button>
+                                </div>
+                            </div>
+                            <nav className="flex gap-2 overflow-x-auto no-scrollbar pb-2 pt-1">
+                                {[
+                                    { id: 'dashboard', label: '📊 전사 현황판' },
+                                    { id: 'apply', label: '📝 총무 (기안작성)' },
+                                    { id: 'settle', label: '💳 회계실무 (정산)' },
+                                    { id: 'cert', label: '🗂️ 사무행정 (제증명)' },
+                                    { id: 'life', label: '☕ 사내 생활 (점심/비품)' }
+                                ].map((tab) => (
+                                    <button key={tab.id} onClick={() => handleTabChange(tab.id)} className={`px-4 py-2 text-sm font-bold rounded-xl transition-all whitespace-nowrap shadow-sm border border-transparent ${activeTab === tab.id ? 'bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white' : 'bg-white/70 text-slate-600 hover:bg-white border-pink-100'}`}>
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </nav>
+                        </div>
+                    </header>
+
+                    <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8 no-print pb-24 relative z-10">
+                        {user && (
+                            <div className="bg-gradient-to-r from-fuchsia-600 via-purple-500 to-pink-500 text-white rounded-2xl p-5 mb-8 shadow-xl relative overflow-hidden animate-fadeIn border border-fuchsia-400/50">
+                                <div className="absolute top-0 right-0 opacity-10 text-9xl transform translate-x-4 -translate-y-8 pointer-events-none"><i className="fas fa-route"></i></div>
+                                <h3 className="font-black text-lg mb-3 relative z-10 drop-shadow-md"><i className="fas fa-map-signs"></i> 총무/회계 신입사원 필수 업무 흐름도</h3>
+                                <div className="flex flex-wrap items-center gap-3 text-sm font-bold relative z-10">
+                                    <span className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm border border-white/30">1️⃣ 사전 기안 <span className="text-[10px] font-normal opacity-90 px-1.5 py-0.5 bg-black/30 rounded-full">타자 미션</span></span>
+                                    <i className="fas fa-chevron-right text-pink-200"></i>
+                                    <span className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm border border-white/30 animate-pulse">🏃‍♂️ 현장 도착 <span className="text-[10px] font-normal opacity-90 px-1.5 py-0.5 bg-black/30 rounded-full">광클 미션</span></span>
+                                    <i className="fas fa-chevron-right text-pink-200"></i>
+                                    <span className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm border border-white/30">2️⃣ 사후 정산 <span className="text-[10px] font-normal opacity-90 px-1.5 py-0.5 bg-black/30 rounded-full">퀴즈 미션</span></span>
+                                    <i className="fas fa-chevron-right text-pink-200"></i>
+                                    <span className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-xl flex items-center gap-2 shadow-sm border border-white/30">3️⃣ 제증명 <span className="text-[10px] font-normal opacity-90 px-1.5 py-0.5 bg-black/30 rounded-full">타이밍 미션</span></span>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'dashboard' && renderDashboard()}
+                        {activeTab === 'apply' && renderApplyTab()}
+                        {activeTab === 'settle' && renderSettleTab()}
+                        {activeTab === 'cert' && renderCertTab()}
+                        {activeTab === 'life' && renderCompanyLifeTab()}
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

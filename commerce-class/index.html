@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>상업과 교실 : AI 융합 학습 자료실</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700;900&family=Noto+Sans+KR:wght@400;500;700&family=Roboto+Mono:wght@500;700&display=swap');
+:root{
+  --cover:#1F3D2E; --cover-dark:#152A20; --paper:#F3EEDD; --paper-line:#DDD5B8;
+  --ink:#223447; --gold:#B8892B;
+  --c-accounting:#2B5F8A;   /* 회계원리 */
+  --c-marketing:#A13D3D;    /* 마케팅 */
+  --c-management:#6B4E9E;   /* 경영일반 */
+  --c-general-affairs:#2F8A6B; /* 총무 */
+  --c-office:#8A5A2B;       /* 사무행정 */
+  --c-acc-practice:#1F7A8C; /* 회계실무 */
+  --c-tax:#8A7B2B;          /* 세무실무 */
+  --c-finance:#2B3F8A;      /* 금융일반 */
+  --c-econ:#B8622B;         /* 상업경제 */
+  --c-erp:#4A4A6E;          /* ERP */
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);color:var(--ink);min-height:100vh;padding:28px 14px 70px;}
+.wrap{max-width:1060px;margin:0 auto;}
+
+.hero{background:var(--cover);border:2px solid var(--gold);border-radius:12px;padding:32px 30px;color:var(--paper);margin-bottom:18px;position:relative;overflow:hidden;}
+.hero::before{content:"商";position:absolute;right:24px;top:10px;font-family:'Noto Serif KR';font-size:96px;color:rgba(184,137,43,0.15);}
+.eyebrow{font-size:12px;letter-spacing:4px;color:var(--gold);font-weight:700;margin-bottom:10px;}
+.hero h1{font-family:'Noto Serif KR',serif;font-weight:900;font-size:30px;margin:0 0 8px;}
+.hero p{margin:0;font-size:14px;opacity:.85;line-height:1.7;max-width:660px;}
+
+.quicknav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:30px;}
+.quicknav a{font-size:12.5px;font-weight:700;color:var(--paper);background:rgba(243,238,221,0.08);border:1px solid rgba(243,238,221,0.25);border-radius:20px;padding:6px 14px;text-decoration:none;display:flex;align-items:center;gap:6px;}
+.quicknav a:hover{background:rgba(243,238,221,0.16);}
+.quicknav .dot{width:8px;height:8px;border-radius:50%;}
+
+.section{margin-bottom:30px;scroll-margin-top:16px;}
+.section-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-left:2px;}
+.section-dot{width:10px;height:10px;border-radius:50%;flex:none;}
+.section-head h2{font-family:'Noto Serif KR';font-weight:700;font-size:18px;color:var(--paper);margin:0;}
+.section-head .cnt{font-family:'Roboto Mono';font-size:12px;color:var(--paper);opacity:.6;}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+.game-card{background:var(--paper);border:1.5px solid var(--paper-line);border-radius:10px;padding:18px 20px;text-decoration:none;color:var(--ink);display:block;box-shadow:0 3px 0 var(--paper-line);transition:transform .12s;}
+.game-card:hover{transform:translateY(-3px);}
+.game-tag{display:inline-block;font-family:'Roboto Mono';font-size:10.5px;font-weight:700;letter-spacing:.5px;color:#fff;border-radius:20px;padding:2px 10px;margin-bottom:10px;}
+.game-card h3{font-family:'Noto Serif KR';font-size:16px;margin:0 0 6px;color:var(--cover);}
+.game-card p{font-size:12.5px;color:#6b6247;line-height:1.6;margin:0 0 12px;}
+.game-card .go{font-size:12.5px;font-weight:700;color:var(--gold);}
+
+.empty-card{background:rgba(255,255,255,0.06);border:1.5px dashed rgba(243,238,221,0.35);border-radius:10px;padding:18px 20px;color:var(--paper);opacity:.6;font-size:12.5px;line-height:1.6;}
+
+.footer-note{text-align:center;font-size:11.5px;color:var(--paper);opacity:.5;margin-top:40px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="eyebrow">특성화고 상업과 · AI 융합수업</div>
+    <h1>상업과 교실 학습 자료실</h1>
+    <p>회계원리, 사무행정, 회계실무, 세무실무, 총무, 금융일반 등 상업과 교과의 개념을 게임 및 시뮬레이션 등으로 학습하는 공간입니다. 아래 과목 카드를 눌러 원하는 학습 활동으로 이동하세요.</p>
+  </div>
+
+  <div class="quicknav">
+    <a href="#accounting"><span class="dot" style="background:var(--c-accounting);"></span>회계원리</a>
+    <a href="#marketing"><span class="dot" style="background:var(--c-marketing);"></span>마케팅</a>
+    <a href="#management"><span class="dot" style="background:var(--c-management);"></span>경영일반</a>
+    <a href="#general-affairs"><span class="dot" style="background:var(--c-general-affairs);"></span>총무</a>
+    <a href="#office"><span class="dot" style="background:var(--c-office);"></span>사무행정</a>
+    <a href="#acc-practice"><span class="dot" style="background:var(--c-acc-practice);"></span>회계실무</a>
+    <a href="#tax"><span class="dot" style="background:var(--c-tax);"></span>세무실무</a>
+    <a href="#finance"><span class="dot" style="background:var(--c-finance);"></span>금융일반</a>
+    <a href="#econ"><span class="dot" style="background:var(--c-econ);"></span>상업경제</a>
+    <a href="#erp"><span class="dot" style="background:var(--c-erp);"></span>ERP</a>
+  </div>
+
+  <!-- 회계원리 -->
+  <div class="section" id="accounting">
+    <div class="section-head">
+      <span class="section-dot" style="background:var(--c-accounting);"></span>
+      <h2>회계원리</h2>
+      <span class="cnt">3개 활동</span>
+    </div>
+    <div class="grid">
+      <a class="game-card" href="accounting/bookkeeping-cafe-simulation.html">
+        <span class="game-tag" style="background:var(--c-accounting);">시뮬레이션</span>
+        <h3>부기 마스터 : 카페 창업 다이어리</h3>
+        <p>가상 카페를 창업하며 10가지 거래를 분개하고, 실시간으로 완성되는 재무상태표·손익계산서를 확인하는 스토리형 시뮬레이션입니다.</p>
+        <span class="go">시작하기 →</span>
+      </a>
+      <a class="game-card" href="accounting/bookkeeping-daily-practice.html">
+        <span class="game-tag" style="background:var(--c-accounting);">데일리 연습</span>
+        <h3>데일리 분개 트레이닝</h3>
+        <p>Day 1~7로 나뉜 60문항의 분개·개념 확인 문제은행. 하루 한 세트씩 꾸준히 풀며 자산·부채·자본부터 응용 거래까지 복습합니다.</p>
+        <span class="go">시작하기 →</span>
+      </a>
+      <a class="game-card" href="accounting/bookkeeping-matching-game.html">
+        <span class="game-tag" style="background:var(--c-accounting);">카드 게임</span>
+        <h3>거래 & 분개 짝맞추기</h3>
+        <p>거래 상황 카드와 정답 분개 카드의 짝을 맞추는 메모리 게임. 수업 워밍업이나 모둠 대결 활동으로 활용하기 좋습니다.</p>
+        <span class="go">시작하기 →</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- 마케팅 -->
+  <div class="section" id="marketing">
+    <div class="section-head">
+      <span class="section-dot" style="background:var(--c-marketing);"></span>
+      <h2>마케팅</h2>
+      <span class="cnt">준비 중</span>
+    </div>
+    <div class="grid">
+      <div class="empty-card">아직 등록된 활동이 없어요. marketing 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
+    </div>
+  </div>
+
+  <!-- 경영일반 -->
+  <div class="section" id="management">
+    <div class="section-head">
+      <span class="section-dot" style="background:var(--c-management);"></span>
+      <h2>경영일반</h2>
+      <span class="cnt">준비 중</span>
+    </div>
+    <div class="grid">
+      <div class="empty-card">아직 등록된 활동이 없어요. management 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
+    </div>
+  </div>
+
+  <!-- 총무 -->
+  <div class="section" id="general-affairs">
+    <div class="section-head">
+      <span class="section-dot" style="background:var(--c-general-affairs);"></span>
+      <h2>총무</h2>
+      <span class="cnt">준비 중</span>
+    </div>
+    <div class="grid">
+      <div class="empty-card">아직 등록된 활동이 없어요. general-affairs 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
+    </div>
+  </div>
+
+  <!-- 사무행정 -->
+  <div class="section" id="office">
+    <div class="section-head">
+      <span class="section-dot" style="background:var(--c-office);"></span>
+      <h2>사무행정</h2>
+      <span class="cnt">준비 중</span>
+    </div>
+    <div class="grid">
+      <div class="empty-card">아직 등록된 활동이 없어요. office 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
+    </div>
+  </div>
+
+  <!-- 회계실무 -->
+  <div class="section" id="acc-practice">
+    <div class="section-head">
+      <span class="section-dot" style="background:var(--c-acc-practice);"></span>
+      <h2>회계실무</h2>
+      <span class="cnt">준비 중</span>
+    </div>
+    <div class="grid">
+      <div class="empty-card">아직 등록된 활동이 없어요. acc-practice 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
+    </div>
+  </div>
+
+  <!-- 세무실무 -->
+  <div class="section" id="tax">
+    <div class="section-head">
+      <span class="section-dot" style="background:var(--c-tax);"></span>
+      <h2>세무실무</h2>
+      <span class="cnt">준비 중</span>
+    </div>
+    <div class="grid">
+      <div class="empty-card">아직 등록된 활동이 없어요. tax 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
+    </div>
+  </div>
+
+  <!-- 금융일반 -->
+  <div class="section" id="finance">
+    <div class="section-head">
+      <span class="section-dot" style="background:var(--c-finance);"></span>
+      <h2>금융일반</h2>
+      <span class="cnt">준비 중</span>
+    </div>
+    <div class="grid">
+      <div class="empty-card">아직 등록된 활동이 없어요. finance 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
+    </div>
+  </div>
+
+  <!-- 상업경제 -->
+  <div class="section" id="econ">
+    <div class="section-head">
+      <span class="section-dot" style="background:var(--c-econ);"></span>
+      <h2>상업경제</h2>
+      <span class="cnt">준비 중</span>
+    </div>
+    <div class="grid">
+      <div class="empty-card">아직 등록된 활동이 없어요. econ 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
+    </div>
+  </div>
+
+  <!-- ERP -->
+  <div class="section" id="erp">
+    <div class="section-head">
+      <span class="section-dot" style="background:var(--c-erp);"></span>
+      <h2>ERP</h2>
+      <span class="cnt">준비 중</span>
+    </div>
+    <div class="grid">
+      <div class="empty-card">아직 등록된 활동이 없어요. erp 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
+    </div>
+  </div>
+
+  <div class="footer-note">본 자료실은 수업 보조 학습 도구로 제작되었습니다.</div>
+</div>
+</body>
+</html>
