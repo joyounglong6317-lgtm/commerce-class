@@ -1,1 +1,1 @@
-# commerce-class-games
+# commerce-class
