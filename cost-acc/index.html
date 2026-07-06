@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전산세무 2급 원가회계 학습 프로그램</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel (브라우저에서 JSX를 컴파일하기 위함) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script>
+        // 최신 Babel이 지원하지 않는 브라우저 환경에서 import 에러가 나지 않도록 클래식 런타임 설정 강제 적용
+        Babel.registerPreset('react-classic', {
+            presets: [
+                [Babel.availablePresets['react'], { runtime: 'classic' }]
+            ]
+        });
+    </script>
+
+    <style>
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif; }
+        /* 스크롤바 디자인 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 overflow-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="env,react-classic">
+        const { useState, useEffect } = React;
+
+        // --- 단원별 학습 및 퀴즈 데이터 (총 50문제 유지) ---
+        const curriculumData = [
+          {
+            id: 1,
+            title: "제1절. 원가회계의 기본개념",
+            summary: [
+              "원가관리회계는 경영자의 관리적 의사결정에 필요한 정보를 제공하는 내부정보이용자를 위한 회계입니다.",
+              "기본원가(기초원가) = 직접재료비 + 직접노무비",
+              "가공원가(전환원가) = 직접노무비 + 제조간접비",
+              "원가행태에 따른 분류: 변동비(조업도 비례 총원가 증가, 단위당 일정), 고정비(총원가 일정, 조업도 증가시 단위당 감소)",
+              "관련원가와 비관련원가, 매몰원가(과거발생), 기회비용(포기한 대안 중 최대금액)"
+            ],
+            questions: [
+              { question: "다음 중 기본원가(기초원가)이면서 동시에 가공원가(전환원가)에도 모두 속하는 항목은 무엇인가요?", options: ["직접재료비", "직접노무비", "제조간접비", "간접재료비"], answer: 1, explanation: "기본원가는 직접재료비와 직접노무비의 합이며, 가공원가는 직접노무비와 제조간접비의 합이므로 '직접노무비'는 양쪽에 모두 포함됩니다." },
+              { question: "조업도가 증가하면 단위당 원가는 감소하고, 총원가는 조업도의 변동에 관계없이 일정하게 발생하는 원가는?", options: ["변동비", "고정비", "준변동비", "준고정비"], answer: 1, explanation: "총원가가 일정한 것은 고정비입니다. 고정비는 생산량(조업도)이 증가할수록 제품 1개당 부담하는 원가(단위당 원가)가 감소합니다." },
+              { question: "다음 중 원가관리회계의 주요 목적이 아닌 것은?", options: ["재무제표 작성을 위한 제품원가 계산", "경영자의 의사결정을 위한 정보 제공", "외부 주주를 위한 배당금 결정", "원가 통제 및 성과 평가"], answer: 2, explanation: "외부 주주를 위한 배당금 결정은 주로 '재무회계'의 목적에 해당합니다. 원가관리회계는 주로 내부 경영자를 위한 것입니다." },
+              { question: "과거의 의사결정으로 이미 발생한 원가로서, 현재나 미래의 어떤 의사결정을 하더라도 회수할 수 없는 원가를 무엇이라 하는가?", options: ["매몰원가(Sunk Cost)", "기회비용", "변동원가", "관련원가"], answer: 0, explanation: "이미 발생하여 돌이킬 수 없는 원가를 '매몰원가'라고 하며, 의사결정 시 고려해서는 안 되는 비관련원가입니다." },
+              { question: "여러 대안 중에서 어느 하나를 선택하였을 때 포기해야 하는 다른 대안들의 효익 중 가장 큰 것을 의미하는 용어는?", options: ["변동비", "고정비", "기회비용(기회원가)", "매몰원가"], answer: 2, explanation: "포기한 대안 중 최선의 가치를 '기회비용'이라 하며, 올바른 의사결정을 위해 반드시 고려해야 하는 관련원가입니다." },
+              { question: "다음 중 제조기업의 '제조원가'에 해당하지 않는 것은?", options: ["공장 생산직 근로자의 임금", "본사 영업부 건물의 감가상각비", "공장 건물의 화재보험료", "제품 생산용 기계장치 수선비"], answer: 1, explanation: "본사 영업부 관련 비용은 제조원가가 아닌 손익계산서상의 '판매비와관리비'에 해당합니다." },
+              { question: "원가를 특정 제품에 추적할 수 있는지(추적가능성)에 따라 분류한 것으로 알맞은 것은?", options: ["직접비와 간접비", "변동비와 고정비", "관련원가와 비관련원가", "통제가능원가와 통제불능원가"], answer: 0, explanation: "특정 제품에 직접 추적이 가능한 원가를 '직접비', 여러 제품에 공통으로 발생하여 추적이 어려운 원가를 '간접비'라고 합니다." },
+              { question: "관련범위 내에서 조업도(생산량)가 증가함에 따라 총원가가 비례하여 증가하는 원가는?", options: ["변동비", "고정비", "준고정비", "기회원가"], answer: 0, explanation: "조업도가 증가할 때 총원가가 정비례하여 증가하는 원가를 변동비(예: 직접재료비)라고 합니다." },
+              { question: "전기요금이나 수도요금처럼 사용하지 않아도 발생하는 기본요금(고정비)과 사용량에 비례하는 요금(변동비)이 결합된 원가는?", options: ["계단원가", "준고정비", "준변동비(혼합원가)", "고정비"], answer: 2, explanation: "고정비 요소와 변동비 요소가 섞여 있는 원가를 준변동비 또는 혼합원가라고 부릅니다." },
+              { question: "제품 제조에 투입된 직접재료비가 300,000원, 직접노무비가 200,000원, 제조간접비가 400,000원일 때 '가공원가'는 얼마인가?", options: ["500,000원", "600,000원", "700,000원", "900,000원"], answer: 1, explanation: "가공원가 = 직접노무비 + 제조간접비 = 200,000원 + 400,000원 = 600,000원입니다." }
+            ]
+          },
+          {
+            id: 2,
+            title: "제2절. 원가의 흐름",
+            summary: [
+              "재료비 = 기초원재료재고액 + 당기원재료매입액 - 기말원재료재고액",
+              "당기총제조원가 = 직접재료비 + 직접노무비 + 제조간접비",
+              "당기제품제조원가 = 기초재공품 + 당기총제조원가 - 기말재공품",
+              "매출원가 = 기초제품 + 당기제품제조원가 - 기말제품",
+              "제조원가명세서: 당기제품제조원가를 산출하는 명세서로 기말제품재고액과 매출원가는 손익계산서에만 표시됩니다."
+            ],
+            questions: [
+              { question: "기초원재료 재고액이 100,000원, 당기 원재료 매입액이 500,000원, 기말원재료 재고액이 200,000원일 때, 당기 직접재료비는?", options: ["300,000원", "400,000원", "500,000원", "600,000원"], answer: 1, explanation: "당기재료비(사용액) = 기초(100,000) + 당기매입(500,000) - 기말(200,000) = 400,000원입니다." },
+              { question: "다음 중 '제조원가명세서'에 나타나지 않고 손익계산서에만 나타나는 항목은?", options: ["기말제품재고액", "당기총제조원가", "당기제품제조원가", "기말재공품재고액"], answer: 0, explanation: "완성된 제품의 재고인 '기말제품재고액'과 '매출원가'는 손익계산서에서만 확인 가능합니다." },
+              { question: "당기제품제조원가를 계산하는 공식으로 올바른 것은?", options: ["기초제품 + 당기총제조원가 - 기말제품", "기초원재료 + 당기매입액 - 기말원재료", "기초재공품 + 당기총제조원가 - 기말재공품", "기초재공품 + 당기제품제조원가 - 기말재공품"], answer: 2, explanation: "당기에 완성된 제품의 원가(당기제품제조원가)는 기초재공품에 당기총제조원가를 더하고 미완성된 기말재공품을 빼서 구합니다." },
+              { question: "손익계산서상의 '매출원가'를 구하는 공식으로 알맞은 것은?", options: ["기초재공품 + 당기제품제조원가 - 기말재공품", "기초제품 + 당기제품제조원가 - 기말제품", "기초원재료 + 당기총제조원가 - 기말원재료", "기초제품 + 당기총제조원가 - 기말제품"], answer: 1, explanation: "매출원가는 판매할 수 있었던 총 제품(기초제품 + 당기에 완성된 당기제품제조원가)에서 팔리지 않고 남은(기말제품)을 차감하여 구합니다." },
+              { question: "재공품 계정의 '대변(오른쪽)'에 기입되는 항목으로 짝지어진 것은?", options: ["기초재공품, 당기총제조원가", "당기총제조원가, 기말재공품", "당기제품제조원가, 기말재공품", "기초재공품, 당기제품제조원가"], answer: 2, explanation: "재공품 계정의 차변에는 기초재공품과 당기총제조원가가 기입되며, 대변에는 완성되어 나가는 '당기제품제조원가'와 남은 '기말재공품'이 기입됩니다." },
+              { question: "당기의 기말재공품이 기초재공품보다 더 큰 경우 발생하는 현상은?", options: ["당기총제조원가가 당기제품제조원가보다 크다.", "당기제품제조원가가 당기총제조원가보다 크다.", "당기제품제조원가가 매출원가보다 크다.", "매출원가가 당기제품제조원가보다 크다."], answer: 0, explanation: "기초재공품 + 당기총제조원가 = 당기제품제조원가 + 기말재공품입니다. 기말재공품이 더 크다면, 등식 유지를 위해 당기총제조원가가 당기제품제조원가보다 커야 합니다." },
+              { question: "당기 투입된 직접재료비가 300원, 직접노무비가 400원, 제조간접비가 800원일 때 당기총제조원가는 얼마인가?", options: ["700원", "1,200원", "1,100원", "1,500원"], answer: 3, explanation: "당기총제조원가는 당기에 투입된 모든 원가요소의 합이므로 300 + 400 + 800 = 1,500원입니다." },
+              { question: "임금의 당기 현금지급액 400원, 전기 미지급액 100원, 당기 미지급액 200원일 때, 발생주의에 따른 당기 투입 노무비는?", options: ["300원", "400원", "500원", "700원"], answer: 2, explanation: "당기 투입원가 = 당기 현금지급액(400) + 당기 미지급액(200) - 전기 미지급액(100) = 500원입니다." },
+              { question: "다음 중 제품 제조과정에 따른 원가계산 흐름 순서로 가장 알맞은 것은?", options: ["요소별 원가계산 → 부문별 원가계산 → 제품별 원가계산", "제품별 원가계산 → 부문별 원가계산 → 요소별 원가계산", "부문별 원가계산 → 제품별 원가계산 → 요소별 원가계산", "요소별 원가계산 → 제품별 원가계산 → 부문별 원가계산"], answer: 0, explanation: "재료비/노무비 등 요소별 파악 → 각 공정/보조부문별 집계 → 최종적으로 개별 제품에 배부하는 순서로 이루어집니다." },
+              { question: "기초제품 50,000원, 기말제품 40,000원, 당기매출원가가 550,000원일 때 당기제품제조원가는 얼마인가?", options: ["500,000원", "540,000원", "560,000원", "600,000원"], answer: 1, explanation: "매출원가(550,000) = 기초제품(50,000) + 당기제품제조원가(X) - 기말제품(40,000). 따라서 X = 540,000원입니다." }
+            ]
+          },
+          {
+            id: 3,
+            title: "제3절. 보조부문의 원가배분",
+            summary: [
+              "보조부문원가를 제조부문에 배분하는 방법에는 직접배분법, 단계배분법, 상호배분법이 있습니다.",
+              "직접배분법: 보조부문 상호 간의 용역수수관계를 전혀 고려하지 않고 배분 (가장 간단, 덜 정확)",
+              "단계배분법: 배분순서를 정하여 단계적으로 배분 (일부 고려)",
+              "상호배분법: 연립방정식을 통해 보조부문 간 용역수수관계를 100% 완전하게 고려 (가장 복잡, 가장 정확)",
+              "배분기준: 가장 이상적인 기준은 인과관계 기준입니다."
+            ],
+            questions: [
+              { question: "보조부문원가를 제조부문에 배부하는 방법 중, 보조부문 상호 간의 용역수수관계를 완전히 고려하는 가장 정확한 방법은?", options: ["직접배분법", "단계배분법", "상호배분법", "단일배분율법"], answer: 2, explanation: "상호배분법은 보조부문 상호 간의 제공 비율을 연립방정식 등을 이용하여 100% 반영하므로 가장 정확합니다." },
+              { question: "보조부문원가를 배분할 때 인과관계를 고려하여 가장 적합하지 않은 기준은?", options: ["건물관리부문 : 사용면적", "식당부문 : 종업원 수", "동력부문 : 전력사용량", "구매부문 : 기계시간"], answer: 3, explanation: "구매부문의 합리적인 배분기준은 주문횟수나 주문수량 등이 적합하며 기계가동시간과는 큰 인과관계가 없습니다." },
+              { question: "보조부문 상호 간의 용역수수관계를 '일부만' 반영하며, 배분 순서가 매우 중요한 배분 방법은?", options: ["직접배분법", "단계배분법", "상호배분법", "이중배분율법"], answer: 1, explanation: "단계배분법은 보조부문 간의 배분 순서를 미리 정한 뒤, 그 순서에 따라 단계적으로 배분하는 방법으로 순서가 다르면 금액도 달라집니다." },
+              { question: "보조부문의 원가를 변동비와 고정비로 구분하지 않고 하나의 배분기준만을 사용하여 일괄 배분하는 방법은?", options: ["단일배분율법", "이중배분율법", "상호배분법", "직접배분법"], answer: 0, explanation: "단일배분율법은 원가 행태(변동/고정)를 나누지 않고 단일 기준으로 배분하며, 나누어서 배분하면 이중배분율법입니다." },
+              { question: "공장건물 임차료를 각 제조부문과 보조부문에 배분하기 위한 가장 합리적인 기준은?", options: ["기계가동시간", "사용(점유) 면적", "종업원 수", "직접노무시간"], answer: 1, explanation: "임차료나 재산세 등은 건물을 차지하고 있는 '점유 면적'에 비례하여 배분하는 것이 인과관계에 가장 잘 맞습니다." },
+              { question: "부문공통원가를 각 부문에 배분할 때 가장 이상적이고 우선적으로 고려해야 하는 배분 기준은?", options: ["인과관계 기준", "수혜 기준", "부담능력 기준", "형평성 기준"], answer: 0, explanation: "원가가 발생한 원인과 결과의 관계를 추적하는 '인과관계 기준'이 원가 배분에 있어 가장 이상적인 원칙입니다." },
+              { question: "보조부문의 원가 배분 방법에 대한 설명 중 틀린 것은?", options: ["직접배분법은 보조부문 간의 용역수수관계를 전혀 고려하지 않는다.", "단계배분법은 배분 순서에 따라 배분 결과가 달라질 수 있다.", "상호배분법은 계산이 복잡하지만 가장 정확한 원가 배분 방법이다.", "어떤 배분방법을 선택하느냐에 따라 회사 전체의 총이익 금액이 달라진다."], answer: 3, explanation: "내부적으로 원가를 배분하는 방식만 다를 뿐이므로, 기초/기말 재고가 없다면 회사 전체의 제조간접비 총액이나 총이익은 변하지 않습니다." },
+              { question: "제품의 제조활동에 직접 참여하지 않고, 제조부문에 동력이나 수선 등의 용역을 제공하는 부문을 무엇이라 하는가?", options: ["주요부문", "통제부문", "제조부문", "보조부문"], answer: 3, explanation: "동력부문, 수선부문, 식당부문 등은 제조부문의 원활한 생산을 돕는 보조 역할을 하므로 보조부문이라 합니다." },
+              { question: "직접배분법을 적용할 때 보조부문의 원가는 어떻게 배분되는가?", options: ["제조부문에만 전액 배분된다.", "보조부문에만 전액 배분된다.", "제조부문과 다른 보조부문에 모두 배분된다.", "자기 부문을 제외한 다른 보조부문에만 배분된다."], answer: 0, explanation: "직접배분법은 보조부문 상호간의 용역수수관계를 완벽히 무시하고 오로지 제품을 생산하는 '제조부문'에만 직접 배분합니다." },
+              { question: "제조간접비 배부의 일반적인 절차 순서로 알맞은 것은?", options: ["부문간접비 배분 → 부문직접비 부과 → 제품 배부 → 보조부문원가 배분", "부문직접비 부과 → 부문간접비 배분 → 보조부문원가 배분 → 제품 배부", "제품 배부 → 보조부문원가 배분 → 부문직접비 부과 → 부문간접비 배분", "부문간접비 배분 → 보조부문원가 배분 → 부문직접비 부과 → 제품 배부"], answer: 1, explanation: "1단계: 특정 부문의 직접비 부과, 2단계: 공통 간접비 배분, 3단계: 보조부문 원가를 제조부문으로 배분, 4단계: 제조부문 원가를 각 제품으로 배부합니다." }
+            ]
+          },
+          {
+            id: 4,
+            title: "제4절. 개별원가계산",
+            summary: [
+              "개별원가계산: 다품종 소량생산, 주문생산에 적합 (건설업, 조선업, 기계제조 등)",
+              "제조지시서와 작업원가표를 통해 개별제품별로 제조원가를 집계합니다.",
+              "제조간접비의 배부가 원가계산의 핵심 과제입니다.",
+              "정상개별원가계산: 제조간접비 예정배부율 = 제조간접비 예산액 / 예정조업도",
+              "제조간접비 예정배부액 = 개별작업의 실제조업도 × 예정배부율"
+            ],
+            questions: [
+              { question: "다음 중 개별원가계산에 대한 설명으로 가장 옳지 않은 것은?", options: ["다양한 품종을 생산한다.", "주문생산형태로 제품을 제작한다.", "제조간접비의 배부가 핵심 과제이다.", "동일한 종류의 제품을 대량으로 생산한다."], answer: 3, explanation: "동일한 종류의 제품을 연속적으로 대량 생산하는 방식은 '종합원가계산'의 특징입니다." },
+              { question: "정상개별원가계산에서 제조간접비 '실제발생액'이 2,000,000원이고, 사전에 정한 '예정배부액'이 1,800,000원일 때, 배부차이는?", options: ["200,000원 과소배부", "200,000원 과대배부", "3,800,000원 과대배부", "배부차이 없음"], answer: 0, explanation: "미리 배부한 예정배부액(180만)이 실제발생액(200만)보다 작으므로 제품에 원가가 200,000원 덜 배부된 '과소배부'입니다." },
+              { question: "정상개별원가계산을 도입하는 가장 주된 목적(장점)은 무엇인가요?", options: ["직접재료비를 더 정확하게 추적하기 위해", "기말 시점까지 기다리지 않고 신속하게 제품 원가를 계산하기 위해", "제조간접비의 실제 발생액을 정확히 알기 위해", "모든 원가를 고정비와 변동비로 명확히 나누기 위해"], answer: 1, explanation: "실제 원가가 확정되는 기말까지 기다리면 원가 계산이 지연되므로, 예정배부율을 사용하여 신속하게 원가를 산출하기 위해 정상개별원가계산을 도입합니다." },
+              { question: "정상개별원가계산에서 '제조간접비 예정배부율'을 구하는 공식으로 옳은 것은?", options: ["제조간접비 예산액 ÷ 예정조업도", "제조간접비 실제발생액 ÷ 실제조업도", "제조간접비 예산액 ÷ 실제조업도", "제조간접비 실제발생액 ÷ 예정조업도"], answer: 0, explanation: "연초에 미리 정하는 배부율이므로, 1년간 예상되는 제조간접비 총액(예산)을 예상되는 기준 총수(예정조업도)로 나누어 구합니다." },
+              { question: "각 개별 작업(제품)에 배부되는 '제조간접비 예정배부액'의 계산 공식은?", options: ["예정조업도 × 예정배부율", "실제조업도 × 실제배부율", "실제조업도 × 예정배부율", "예정조업도 × 실제배부율"], answer: 2, explanation: "제품이 실제로 사용한 시간(실제조업도)에 연초에 정해둔 단가(예정배부율)를 곱하여 각 제품에 배부할 금액을 결정합니다." },
+              { question: "다음 중 제조간접비 배부차이를 조정하는 방법이 아닌 것은?", options: ["매출원가조정법", "비례조정법", "영업외손익법", "상호배분법"], answer: 3, explanation: "상호배분법은 보조부문 원가를 제조부문으로 배분하는 방법이며, 배부차이 조정법(매출원가/영업손익/비례조정)과는 관련이 없습니다." },
+              { question: "개별원가계산 방식을 적용하기에 가장 적합한 업종으로 묶인 것은?", options: ["정유업, 화학공업", "건설업, 조선업", "제지업, 시멘트공업", "식품가공업, 방직업"], answer: 1, explanation: "고객의 주문에 따라 크기, 모양이 다르고 개별적으로 생산하는 건설업, 선박(조선업), 항공기 제조업 등에 적합합니다." },
+              { question: "개별원가계산에서 제조를 현장에 명령하고, 발생한 원가를 개별 제품별로 집계하는 데 사용되는 핵심 서류 두 가지는?", options: ["제조원가명세서와 손익계산서", "제조지시서와 작업원가표", "세금계산서와 거래명세서", "재무상태표와 현금흐름표"], answer: 1, explanation: "제품 생산을 지시하는 '제조지시서(Job Order)'와 해당 지시서별로 원가를 묶어 기록하는 '작업원가표'가 개별원가계산의 핵심입니다." },
+              { question: "제조간접비 배부차이(과대 또는 과소배부) 전액을 손익계산서의 '매출원가'에 더하거나 빼서 조정하는 간편한 방법은?", options: ["매출원가조정법", "비례조정법", "원가요소기준법", "영업외손익법"], answer: 0, explanation: "가장 단순하고 실무에서 자주 쓰이는 방법으로, 배부차이 전액을 매출원가 계정 하나에서만 조정하는 방식을 매출원가조정법이라 합니다." },
+              { question: "어느 회사의 제조간접비 실제발생액은 500,000원이고, 개별 작업들에 배부한 예정배부액의 합계가 600,000원입니다. 이 경우 배부차이는?", options: ["100,000원 과소배부", "100,000원 과대배부", "1,100,000원 과소배부", "배부차이 없음"], answer: 1, explanation: "미리 제품에 원가로 잡은 금액(60만)이 실제 쓴 돈(50만)보다 크므로, 100,000원을 너무 많이 배부한 '과대배부' 상태입니다." }
+            ]
+          },
+          {
+            id: 5,
+            title: "제5절. 종합원가계산",
+            summary: [
+              "종합원가계산: 동종제품 대량생산, 연속생산에 적합 (정유, 화학, 시멘트 제지업 등)",
+              "원가요소를 재료비와 가공비(투입시점이 다름)로 구분하며 '완성품환산량' 계산이 핵심 과제입니다.",
+              "평균법 환산량: 완성품수량 + 기말재공품환산량 (기초를 당기투입과 동일하게 취급)",
+              "선입선출법 환산량: 완성품수량 + 기말재공품환산량 - 기초재공품환산량 (당기 작업량만 계산)",
+              "정상공손원가: 제조과정에서 불가피하게 발생하며 정상품(제품, 재공품) 원가의 일부를 구성합니다. 비정상공손원가는 영업외비용 처리합니다."
+            ],
+            questions: [
+              { question: "당기 완성품 수량이 1,000개, 기말재공품이 200개(완성도 50%)입니다. 가공비는 공정 전반에 균등 투입될 때 '평균법'에 의한 가공비 완성품환산량은?", options: ["1,000개", "1,100개", "1,200개", "900개"], answer: 1, explanation: "평균법 환산량 = 완성품수량(1,000) + 기말재공품환산량(200 × 50%) = 1,100개입니다." },
+              { question: "다음 중 종합원가계산에서 공손품 회계에 대한 설명으로 틀린 것은?", options: [ "비정상공손원가는 효율적으로 통제했다면 방지할 수 있는 것으로 영업외비용 처리한다.", "정상공손은 생산과정에서 불가피하게 발생하는 공손이다.", "정상공손원가는 발생 즉시 전액 영업외비용으로 처리한다.", "작업폐물(Scrap)은 제품 제조과정에서 나오는 원재료 부스러기로 공손품과는 다르다." ], answer: 2, explanation: "불가피하게 발생하는 '정상공손원가'는 제품 원가(정상품의 제조원가)에 포함시켜야 하며, 영업외비용으로 처리하는 것은 비정상공손원가입니다." },
+              { question: "종합원가계산에서 가장 중요하게 다뤄지는 핵심 계산 과제는 무엇인가요?", options: ["제조간접비의 배부", "작업원가표의 작성", "완성품환산량의 계산", "매몰원가의 파악"], answer: 2, explanation: "미완성된 재공품과 완성품을 공통된 기준으로 나누기 위해 투입 정도를 고려한 '완성품환산량'을 계산하는 것이 핵심입니다." },
+              { question: "기초재공품의 기완성도를 인정하여 당기 투입원가와 명확히 구분하고, 순수한 '당기 작업량'만을 기준으로 환산량을 구하는 방법은?", options: ["평균법", "선입선출법", "후입선출법", "단일배분법"], answer: 1, explanation: "기초재공품을 먼저 가공하여 완성시킨다고 가정하는 '선입선출법'은 전기 작업분과 당기 작업분을 엄격히 분리하여 정확도가 높습니다." },
+              { question: "평균법에 의한 완성품환산량과 선입선출법에 의한 완성품환산량의 결과값이 정확히 일치하게 되는 조건은?", options: ["당기 착수량이 없을 때", "기말재공품이 없을 때", "기초재공품이 전혀 없을 때", "기초재공품과 기말재공품의 수량이 같을 때"], answer: 2, explanation: "두 방법의 차이는 기초재공품을 어떻게 처리하느냐에 있으므로, 만약 공정에 기초재공품이 하나도 없다면 두 방법의 계산 결과는 동일해집니다." },
+              { question: "종합원가계산을 적용하기에 가장 적합한 업종들로 묶인 것은?", options: ["조선업, 항공기제조", "주문제작가구, 기계제작", "건설업, 인테리어업", "정유업, 시멘트공업, 제지업"], answer: 3, explanation: "종합원가계산은 정유, 시멘트, 제지, 밀가루 제분 등 똑같은 제품을 공정을 통해 연속적으로 대량 생산하는 업종에 맞습니다." },
+              { question: "재료가 공정 착수 시점(초기)에 100% 전량 투입될 경우, 진척도가 40%인 기말재공품의 '재료비 완성도'는 몇 %인가?", options: ["100%", "40%", "0%", "60%"], answer: 0, explanation: "공정 초기에 재료가 모두 부어졌으므로 미완성된 40% 지점의 재공품이라 할지라도 재료만큼은 이미 100% 투입된 상태입니다." },
+              { question: "비정상공손원가의 올바른 회계처리 방법은 무엇인가?", options: ["완성품원가에 모두 더한다.", "영업외비용으로 즉시 처리(비용화)한다.", "기말재공품원가에만 더한다.", "완성품과 기말재공품에 비율대로 나눠 배분한다."], answer: 1, explanation: "비정상공손은 통제 불가능한 상황이 아닌 작업자 부주의 등으로 발생한 손실이므로 원가에 가산하지 않고 당기의 영업외비용으로 털어냅니다." },
+              { question: "결합제품(연산품) 원가계산 시, 분리점(완성점)에서 각 제품을 시장에 내다 팔았을 때 받을 수 있는 금액의 비율로 원가를 나누는 방법은?", options: ["상대적 판매가치법", "물량기준법", "순실현가능가치법", "이중배분율법"], answer: 0, explanation: "분리점에서의 시장 판매가치(상대적 판매가치) 비율에 따라 결합원가를 배분하는 것을 '상대적 판매가치법'이라고 합니다." },
+              { question: "제품 제조 공정에서 동일한 원재료를 투입했는데 어쩔 수 없이 두 종류 이상의 서로 다른 제품이 동시에 쏟아져 나올 때, 이 제품들을 일컫는 말은?", options: ["공손품", "불량품", "작업폐물(Scrap)", "결합제품(연산품)"], answer: 3, explanation: "원유를 끓이면 휘발유, 경유, 등유가 같이 나오는 것처럼 동일 원재료/공정에서 필연적으로 함께 생산되는 제품을 결합제품(연산품)이라 합니다." }
+            ]
+          }
+        ];
+
+        function App() {
+          const [selectedChapter, setSelectedChapter] = useState(curriculumData[0]);
+          const [quizMode, setQuizMode] = useState(false);
+          const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
+          const [selectedOption, setSelectedOption] = useState(null);
+          const [isSubmitted, setIsSubmitted] = useState(false);
+          const [score, setScore] = useState(0);
+          const [showResult, setShowResult] = useState(false);
+          const [sidebarOpen, setSidebarOpen] = useState(true);
+
+          // --- 보상 및 학습 현황(XP/레벨/뱃지) 상태 ---
+          const [userXP, setUserXP] = useState(0);
+          const [userLevel, setUserLevel] = useState(1);
+          const [chapterRecords, setChapterRecords] = useState({});
+          const [earnedBadges, setEarnedBadges] = useState([]); 
+          const [showLevelUp, setShowLevelUp] = useState(false);
+
+          // 경험치 추가 및 레벨업 체크 함수
+          const addXP = (amount) => {
+            setUserXP(prev => {
+              const newXP = prev + amount;
+              const currentLv = Math.floor(prev / 100) + 1;
+              const newLevel = Math.floor(newXP / 100) + 1;
+              
+              if (newLevel > currentLv) {
+                setUserLevel(newLevel);
+                setShowLevelUp(true);
+                setTimeout(() => setShowLevelUp(false), 3000); 
+              }
+              return newXP;
+            });
+          };
+
+          // --- 게임 모드 상태 ---
+          const [gameActive, setGameActive] = useState(false);
+          const [gameStatus, setGameStatus] = useState('idle'); 
+          const [gameTime, setGameTime] = useState(60);
+          const [gameScore, setGameScore] = useState(0);
+          const [gameCombo, setGameCombo] = useState(0);
+          const [gameMaxCombo, setGameMaxCombo] = useState(0);
+          const [mixedQuestions, setMixedQuestions] = useState([]);
+          const [gameQIdx, setGameQIdx] = useState(0);
+          const [gameFeedback, setGameFeedback] = useState(null);
+
+          useEffect(() => {
+            if (gameStatus === 'over') {
+              if (gameScore >= 300 && !earnedBadges.includes('game_master')) {
+                setEarnedBadges(prev => [...prev, 'game_master']);
+                addXP(100); 
+              }
+            }
+          }, [gameStatus, gameScore]);
+
+          useEffect(() => {
+            let timer;
+            if (gameActive && gameStatus === 'playing') {
+              timer = setInterval(() => {
+                setGameTime(prev => {
+                  if (prev <= 1) {
+                    setGameStatus('over');
+                    return 0;
+                  }
+                  return prev - 1;
+                });
+              }, 1000);
+            }
+            return () => clearInterval(timer);
+          }, [gameActive, gameStatus]);
+
+          const handleChapterSelect = (chapter) => {
+            setSelectedChapter(chapter);
+            setQuizMode(false);
+            setGameActive(false);
+            resetQuiz();
+            if (window.innerWidth < 768) setSidebarOpen(false); 
+          };
+
+          const startQuiz = () => {
+            setQuizMode(true);
+            resetQuiz();
+          };
+
+          const resetQuiz = () => {
+            setCurrentQuestionIdx(0);
+            setSelectedOption(null);
+            setIsSubmitted(false);
+            setScore(0);
+            setShowResult(false);
+          };
+
+          const handleOptionSelect = (index) => {
+            if (isSubmitted) return;
+            setSelectedOption(index);
+          };
+
+          const handleSubmit = () => {
+            if (selectedOption === null) return;
+            
+            setIsSubmitted(true);
+            const isCorrect = selectedOption === selectedChapter.questions[currentQuestionIdx].answer;
+            if (isCorrect) {
+              setScore(score + 1);
+              addXP(10); 
+            }
+          };
+
+          const handleNextQuestion = () => {
+            if (currentQuestionIdx < selectedChapter.questions.length - 1) {
+              setCurrentQuestionIdx(currentQuestionIdx + 1);
+              setSelectedOption(null);
+              setIsSubmitted(false);
+            } else {
+              const currentBest = chapterRecords[selectedChapter.id] || 0;
+              if (score > currentBest) {
+                setChapterRecords(prev => ({...prev, [selectedChapter.id]: score}));
+              }
+              
+              if (score === selectedChapter.questions.length && !earnedBadges.includes(`perfect_ch${selectedChapter.id}`)) {
+                setEarnedBadges(prev => [...prev, `perfect_ch${selectedChapter.id}`]);
+                addXP(50); 
+              }
+              setShowResult(true);
+            }
+          };
+
+          const startFinalGame = () => {
+            let allQ = [];
+            curriculumData.forEach(ch => {
+              ch.questions.forEach(q => {
+                allQ.push({ ...q, chapterTitle: ch.title });
+              });
+            });
+            allQ = allQ.sort(() => Math.random() - 0.5).slice(0, 20);
+
+            setMixedQuestions(allQ);
+            setGameActive(true);
+            setGameStatus('playing');
+            setGameTime(60); 
+            setGameScore(0);
+            setGameCombo(0);
+            setGameMaxCombo(0);
+            setGameQIdx(0);
+            setGameFeedback(null);
+            setQuizMode(false);
+            setSelectedChapter(null);
+            if (window.innerWidth < 768) setSidebarOpen(false);
+          };
+
+          const handleGameOption = (idx) => {
+            if (gameStatus !== 'playing' || gameFeedback !== null) return;
+            const currentQ = mixedQuestions[gameQIdx];
+            const isCorrect = idx === currentQ.answer;
+
+            if (isCorrect) {
+              setGameScore(prev => prev + 10 + (gameCombo * 5));
+              addXP(5); 
+              setGameCombo(prev => {
+                const newCombo = prev + 1;
+                if (newCombo > gameMaxCombo) setGameMaxCombo(newCombo);
+                return newCombo;
+              });
+              setGameTime(prev => prev + 3); 
+              setGameFeedback({ type: 'correct', msg: '정답! +3초' });
+            } else {
+              setGameCombo(0); 
+              setGameTime(prev => Math.max(0, prev - 5)); 
+              setGameFeedback({ type: 'wrong', msg: '오답! -5초' });
+            }
+
+            setTimeout(() => {
+              setGameFeedback(null);
+              if (gameQIdx < mixedQuestions.length - 1) {
+                setGameQIdx(prev => prev + 1);
+              } else {
+                setGameStatus('over'); 
+              }
+            }, 600);
+          };
+
+          const renderSidebar = () => (
+            <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-white transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 overflow-y-auto flex flex-col`}>
+              <div className="p-6 pb-2">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <i className="fas fa-book-open text-indigo-400"></i>
+                  전산세무 2급
+                </h2>
+                
+                <div className="bg-slate-800 p-4 rounded-2xl mb-6 shadow-inner border border-slate-700 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-2 opacity-10">
+                    <i className="fas fa-medal text-6xl"></i>
+                  </div>
+                  <div className="flex justify-between items-end mb-2 relative z-10">
+                    <div className="font-bold flex items-center gap-2">
+                      <div className="bg-indigo-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm shadow-[0_0_10px_rgba(99,102,241,0.6)]">
+                        Lv.{userLevel}
+                      </div>
+                      <span className="text-sm">학습 레벨</span>
+                    </div>
+                    <span className="text-xs text-indigo-300 font-medium">{userXP % 100} / 100 XP</span>
+                  </div>
+                  <div className="h-2.5 bg-slate-900/50 rounded-full overflow-hidden mb-3 relative z-10 border border-slate-700/50">
+                    <div 
+                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${userXP % 100}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex gap-1.5 relative z-10">
+                    {curriculumData.map(ch => {
+                      const isPerfect = chapterRecords[ch.id] === ch.questions.length;
+                      const isAttempted = chapterRecords[ch.id] > 0;
+                      return (
+                        <div 
+                          key={ch.id} 
+                          className={`flex-1 h-6 rounded flex items-center justify-center text-xs font-bold transition-colors ${isPerfect ? 'bg-amber-400 text-amber-900 shadow-[0_0_5px_rgba(251,191,36,0.5)]' : (isAttempted ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-500')}`}
+                          title={`${ch.title} 최고점: ${chapterRecords[ch.id] || 0} / ${ch.questions.length}`}
+                        >
+                          {isPerfect ? <i className="fas fa-star text-xs"></i> : ch.id}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <p className="text-slate-400 text-sm mb-2">단원별 학습</p>
+              </div>
+              
+              <nav className="space-y-1 px-4 overflow-y-auto flex-1">
+                {curriculumData.map((chapter) => (
+                  <button
+                    key={chapter.id}
+                    onClick={() => handleChapterSelect(chapter)}
+                    className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-200 flex items-center justify-between group ${
+                      !gameActive && selectedChapter?.id === chapter.id
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    }`}
+                  >
+                    <span className="text-sm font-medium leading-tight">{chapter.title}</span>
+                    <i className={`fas fa-chevron-right text-xs opacity-0 group-hover:opacity-100 transition-opacity ${!gameActive && selectedChapter?.id === chapter.id ? 'opacity-100' : ''}`}></i>
+                  </button>
+                ))}
+              </nav>
+
+              <div className="p-6 border-t border-slate-700 bg-slate-900/50 mt-auto">
+                <button
+                  onClick={startFinalGame}
+                  className={`w-full text-left px-4 py-4 rounded-xl transition-all duration-200 flex items-center justify-between group shadow-lg ${
+                    gameActive
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
+                      : 'bg-slate-800 text-amber-400 hover:bg-slate-700 hover:text-amber-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <i className="fas fa-gamepad"></i>
+                    <span className="font-bold">종합평가 게임</span>
+                  </div>
+                  <i className={`fas fa-chevron-right text-xs opacity-0 group-hover:opacity-100 transition-opacity ${gameActive ? 'opacity-100' : ''}`}></i>
+                </button>
+              </div>
+            </div>
+          );
+
+          const renderStudyMode = () => (
+            <div className="max-w-4xl mx-auto animate-in fade-in duration-500" style={{ animationName: 'fadeIn', animationDuration: '0.5s' }}>
+              <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                <div className="bg-indigo-50 px-8 py-10 border-b border-indigo-100 relative overflow-hidden">
+                  <div className="absolute right-[-20px] top-[-20px] opacity-10">
+                    <i className="fas fa-book-open" style={{fontSize: '12rem'}}></i>
+                  </div>
+                  <h1 className="text-3xl font-extrabold text-slate-800 mb-2 relative z-10">{selectedChapter.title}</h1>
+                  <p className="text-indigo-600 font-medium relative z-10">핵심 요약 노트</p>
+                </div>
+                <div className="p-8">
+                  <ul className="space-y-4 mb-10">
+                    {selectedChapter.summary.map((item, idx) => (
+                      <li key={idx} className="flex gap-4 items-start text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <i className="fas fa-check-circle text-emerald-500 text-xl mt-0.5 flex-shrink-0"></i>
+                        <span className="leading-relaxed">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  <div className="flex justify-center border-t border-slate-100 pt-8">
+                    <button
+                      onClick={startQuiz}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 transition-colors shadow-sm hover:shadow-md"
+                    >
+                      <i className="fas fa-tasks"></i>
+                      이 단원 기출 퀴즈 풀기
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+
+          const renderQuizMode = () => {
+            if (showResult) return renderResult();
+
+            const currentQ = selectedChapter.questions[currentQuestionIdx];
+            const totalQ = selectedChapter.questions.length;
+
+            return (
+              <div className="max-w-3xl mx-auto animate-in fade-in duration-500" style={{ animationName: 'fadeIn', animationDuration: '0.5s' }}>
+                <div className="mb-6 flex items-center justify-between">
+                  <button 
+                    onClick={() => setQuizMode(false)}
+                    className="text-slate-500 hover:text-slate-800 flex items-center gap-2 font-medium transition-colors"
+                  >
+                    <i className="fas fa-chevron-left text-sm"></i> 학습 노트로 돌아가기
+                  </button>
+                  <div className="bg-white px-4 py-1.5 rounded-full text-sm font-bold text-indigo-600 shadow-sm border border-indigo-50">
+                    문제 {currentQuestionIdx + 1} / {totalQ}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                  <div className="p-8 lg:p-10">
+                    <h2 className="text-xl lg:text-2xl font-bold text-slate-800 leading-snug mb-8">
+                      <span className="text-indigo-600 mr-2">Q.</span>
+                      {currentQ.question}
+                    </h2>
+
+                    <div className="space-y-3">
+                      {currentQ.options.map((opt, idx) => {
+                        let btnStyle = "border-slate-200 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50";
+                        
+                        if (isSubmitted) {
+                          if (idx === currentQ.answer) {
+                            btnStyle = "border-emerald-500 bg-emerald-50 text-emerald-800 font-medium"; 
+                          } else if (idx === selectedOption) {
+                            btnStyle = "border-rose-300 bg-rose-50 text-rose-700"; 
+                          } else {
+                            btnStyle = "border-slate-200 text-slate-400 opacity-60"; 
+                          }
+                        } else if (selectedOption === idx) {
+                          btnStyle = "border-indigo-500 ring-2 ring-indigo-200 bg-indigo-50 text-indigo-700 font-medium"; 
+                        }
+
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => handleOptionSelect(idx)}
+                            disabled={isSubmitted}
+                            className={`w-full text-left p-5 rounded-2xl border-2 transition-all duration-200 ${btnStyle} flex justify-between items-center`}
+                          >
+                            <span className="text-lg leading-relaxed">{opt}</span>
+                            {isSubmitted && idx === currentQ.answer && <i className="fas fa-check-circle text-xl text-emerald-500"></i>}
+                            {isSubmitted && idx === selectedOption && idx !== currentQ.answer && <i className="fas fa-times-circle text-xl text-rose-500"></i>}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {isSubmitted && (
+                      <div className={`mt-8 p-6 rounded-2xl border ${selectedOption === currentQ.answer ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`} style={{ animationName: 'fadeIn', animationDuration: '0.3s' }}>
+                        <p className="font-bold mb-2 flex items-center gap-2 text-lg">
+                          {selectedOption === currentQ.answer ? (
+                            <><span className="text-emerald-600">정답입니다!</span> 🎉</>
+                          ) : (
+                            <><span className="text-rose-600">오답입니다.</span> 💦</>
+                          )}
+                        </p>
+                        <p className="text-slate-700 leading-relaxed text-lg">{currentQ.explanation}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-slate-50 p-6 flex justify-end border-t border-slate-100">
+                    {!isSubmitted ? (
+                      <button
+                        onClick={handleSubmit}
+                        disabled={selectedOption === null}
+                        className={`px-8 py-4 rounded-xl font-bold transition-all ${
+                          selectedOption !== null
+                            ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm'
+                            : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        }`}
+                      >
+                        정답 확인하기
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleNextQuestion}
+                        className="bg-slate-800 hover:bg-slate-900 text-white px-8 py-4 rounded-xl font-bold shadow-sm transition-all flex items-center gap-2"
+                      >
+                        {currentQuestionIdx < totalQ - 1 ? '다음 문제 풀기' : '결과 보기'}
+                        <i className="fas fa-chevron-right"></i>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          };
+
+          const renderResult = () => {
+            const total = selectedChapter.questions.length;
+            const isPerfect = score === total;
+
+            return (
+              <div className="max-w-2xl mx-auto text-center animate-in zoom-in-95 duration-500" style={{ animationName: 'zoomIn', animationDuration: '0.5s' }}>
+                <div className="bg-white p-10 lg:p-16 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden">
+                  {isPerfect && (
+                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500"></div>
+                  )}
+                  <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${isPerfect ? 'bg-amber-50' : 'bg-indigo-50'}`}>
+                    {isPerfect ? <i className="fas fa-star text-amber-500 text-5xl"></i> : <i className="fas fa-award text-indigo-600 text-5xl"></i>}
+                  </div>
+                  <h2 className="text-3xl font-extrabold text-slate-800 mb-2">학습 완료!</h2>
+                  <p className="text-slate-500 font-medium mb-8">'{selectedChapter.title}' 단원의 퀴즈를 모두 풀었습니다.</p>
+                  
+                  <div className={`rounded-2xl p-8 mb-10 border ${isPerfect ? 'bg-amber-50 border-amber-100' : 'bg-slate-50 border-slate-100'}`}>
+                    <p className="text-slate-600 mb-2">최종 점수</p>
+                    <div className={`text-5xl font-black ${isPerfect ? 'text-amber-600' : 'text-indigo-600'}`}>
+                      {score} <span className={`text-2xl font-bold ${isPerfect ? 'text-amber-400' : 'text-slate-400'}`}>/ {total}</span>
+                    </div>
+                    {isPerfect ? (
+                      <p className="text-amber-600 font-bold mt-4 flex items-center justify-center gap-2">
+                        <i className="fas fa-star text-sm"></i> 
+                        완벽하게 이해하셨네요! 만점 보너스 뱃지를 획득했습니다.
+                      </p>
+                    ) : (
+                      <p className="text-slate-600 mt-4">틀린 문제는 오답 노트를 통해 다시 한번 개념을 복습해보세요.</p>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button
+                      onClick={() => setQuizMode(false)}
+                      className="px-8 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                    >
+                      학습 노트 복습하기
+                    </button>
+                    <button
+                      onClick={startQuiz}
+                      className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-colors shadow-sm"
+                    >
+                      퀴즈 다시 풀기
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          };
+
+          const renderGameMode = () => {
+            if (gameStatus === 'over') {
+              const isMaster = gameScore >= 300;
+              return (
+                <div className="max-w-2xl mx-auto text-center animate-in zoom-in-95 duration-500 mt-10" style={{ animationName: 'zoomIn', animationDuration: '0.5s' }}>
+                  <div className="bg-white p-10 lg:p-16 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden">
+                    {isMaster && (
+                       <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-500 via-orange-500 to-amber-500"></div>
+                    )}
+                    <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-200">
+                      <i className="fas fa-trophy text-white text-5xl"></i>
+                    </div>
+                    <h2 className="text-3xl font-extrabold text-slate-800 mb-2">게임 종료!</h2>
+                    <p className="text-slate-500 font-medium mb-8">모든 단원의 종합평가가 끝났습니다.</p>
+                    
+                    <div className="bg-slate-50 rounded-2xl p-8 mb-6 border border-slate-100 grid grid-cols-2 gap-4">
+                      <div className="text-center">
+                        <p className="text-slate-500 mb-1 font-medium">최종 점수</p>
+                        <p className="text-5xl font-black text-amber-600">{gameScore}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-slate-500 mb-1 font-medium">최대 콤보</p>
+                        <p className="text-5xl font-black text-orange-500">{gameMaxCombo}</p>
+                      </div>
+                    </div>
+                    
+                    {isMaster && (
+                       <p className="text-orange-600 font-bold mb-8 flex items-center justify-center gap-2">
+                         <i className="fas fa-medal"></i> 
+                         훌륭합니다! 300점 이상 달성으로 '게임 마스터' 보너스 경험치를 획득했습니다!
+                       </p>
+                    )}
+
+                    <button
+                      onClick={startFinalGame}
+                      className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl transition-all shadow-md shadow-orange-200 flex items-center gap-2 justify-center w-full mx-auto text-lg"
+                    >
+                      <i className="fas fa-gamepad"></i>
+                      다시 도전하기
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
+            const currentQ = mixedQuestions[gameQIdx];
+
+            return (
+              <div className="max-w-3xl mx-auto animate-in fade-in duration-500 mt-4" style={{ animationName: 'fadeIn', animationDuration: '0.5s' }}>
+                <div className="mb-6 flex items-center justify-between bg-white p-4 lg:px-6 rounded-2xl shadow-sm border border-slate-100">
+                  <div className="flex items-center gap-3 lg:gap-6">
+                    <div className={`flex items-center gap-2 font-bold px-4 py-2 rounded-xl transition-colors ${gameTime <= 10 ? 'bg-rose-100 text-rose-600 animate-pulse' : 'bg-rose-50 text-rose-500'}`}>
+                      <i className="fas fa-stopwatch text-xl"></i>
+                      <span className="text-xl lg:text-2xl">{gameTime}초</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-amber-600 font-bold bg-amber-50 px-4 py-2 rounded-xl">
+                      <i className="fas fa-trophy text-xl"></i>
+                      <span className="text-xl lg:text-2xl">{gameScore}점</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-orange-500 font-bold bg-orange-50 px-4 py-2 rounded-xl">
+                    <i className="fas fa-bolt text-xl"></i>
+                    <span className="text-xl lg:text-2xl">{gameCombo} Combo</span>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden relative min-h-[400px]">
+                  {gameFeedback && (
+                    <div className={`absolute inset-0 z-10 flex items-center justify-center bg-white/85 backdrop-blur-sm animate-in fade-in duration-150`}>
+                      <div className={`text-4xl lg:text-5xl font-black drop-shadow-md ${gameFeedback.type === 'correct' ? 'text-emerald-500' : 'text-rose-500'}`} style={{ animationName: 'zoomIn', animationDuration: '0.2s' }}>
+                        {gameFeedback.msg}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="p-8 lg:p-10">
+                    <div className="text-sm font-bold text-amber-600 mb-4 bg-amber-50 inline-block px-3 py-1.5 rounded-lg border border-amber-100">
+                      {currentQ?.chapterTitle} (문제 {gameQIdx + 1} / 20)
+                    </div>
+                    <h2 className="text-xl lg:text-2xl font-bold text-slate-800 leading-snug mb-8">
+                      <span className="text-amber-500 mr-2">Q.</span>
+                      {currentQ?.question}
+                    </h2>
+
+                    <div className="space-y-3">
+                      {currentQ?.options.map((opt, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => handleGameOption(idx)}
+                          disabled={gameFeedback !== null}
+                          className="w-full text-left p-5 rounded-2xl border-2 border-slate-200 text-slate-700 hover:border-amber-400 hover:bg-amber-50 hover:text-amber-900 transition-all duration-200 font-medium shadow-sm hover:shadow active:scale-[0.98]"
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          };
+
+          return (
+            <div className="flex h-screen bg-slate-50 font-sans overflow-hidden text-slate-900">
+              <style>
+                {`
+                  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                  @keyframes zoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+                  @keyframes slideDown { from { opacity: 0; transform: translate(-50%, -20px); } to { opacity: 1; transform: translate(-50%, 0); } }
+                `}
+              </style>
+
+              {showLevelUp && (
+                <div className="fixed top-12 left-1/2 transform -translate-x-1/2 z-[100] bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-4 rounded-full shadow-[0_10px_40px_rgba(99,102,241,0.5)] flex items-center gap-3 border border-white/20" style={{ animationName: 'slideDown', animationDuration: '0.3s' }}>
+                  <i className="fas fa-chart-line text-indigo-100 text-xl"></i>
+                  <span className="font-bold text-lg">레벨 업! Lv.{userLevel} 달성</span>
+                </div>
+              )}
+
+              {sidebarOpen && (
+                <div 
+                  className="fixed inset-0 bg-slate-900/50 z-40 md:hidden transition-opacity" 
+                  onClick={() => setSidebarOpen(false)}
+                ></div>
+              )}
+
+              {renderSidebar()}
+
+              <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+                <header className="bg-white border-b border-slate-200 p-4 flex items-center md:hidden z-30 shrink-0">
+                  <button 
+                    onClick={() => setSidebarOpen(true)}
+                    className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    <i className="fas fa-bars text-xl"></i>
+                  </button>
+                  <span className="ml-2 font-bold text-slate-800">전산세무 2급 학습</span>
+                </header>
+
+                <main className="flex-1 overflow-y-auto p-6 md:p-10 lg:p-12 relative z-10">
+                  {gameActive ? renderGameMode() : (quizMode ? renderQuizMode() : renderStudyMode())}
+                </main>
+              </div>
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
