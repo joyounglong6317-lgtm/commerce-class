@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사무실 공간 배치 실습 프로그램</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <!-- Babel (안정적인 버전으로 고정하여 에러 방지) -->
+    <script src="https://unpkg.com/@babel/standalone@7.23.9/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- 배치도 이미지/PDF 다운로드용 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <style>
+        /* 드래그 시 텍스트 선택 방지 */
+        .noselect {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        /* 인쇄 최적화 스타일 */
+        @media print {
+            body { 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+            }
+            body * { visibility: hidden; }
+            #printable-area, #printable-area * { visibility: visible; }
+            #printable-area { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; transform: scale(1) !important; transform-origin: top left !important; }
+            .no-print { display: none !important; }
+            .canvas-bg { border: 1px solid #000 !important; box-shadow: none !important; background-image: none !important; }
+        }
+        /* 커스텀 스크롤바 */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        
+        /* 툴팁 효과 */
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 250px;
+            background-color: rgba(31, 41, 55, 0.95);
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 12px;
+            position: absolute;
+            z-index: 100;
+            bottom: 120%;
+            left: 0;
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            pointer-events: none;
+        }
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 overflow-hidden text-sm sm:text-base">
+    <div id="root"></div>
+
+    <!-- data-type="module" 속성을 추가하여 최신 Babel의 모듈 import 관련 충돌 해결 -->
+    <script type="text/babel" data-type="module">
+        const { useState, useEffect, useRef } = React;
+
+        // 대폭 확장된 가구 및 시설물 라이브러리 (누락 없음, 4인용 쇼파 및 액자 추가)
+        const FURNITURE_LIBRARY = [
+            // [사무 공간]
+            { category: '사무 공간', type: 'desk_normal', name: '일반 책상 (120x60)', w: 120, h: 60, color: '#e0c097', icon: 'monitor' },
+            { category: '사무 공간', type: 'desk_wide', name: '와이드 책상 (160x70)', w: 160, h: 70, color: '#e0c097', icon: 'monitor' },
+            { category: '사무 공간', type: 'desk_l_shape', name: 'L자형 책상', w: 160, h: 140, color: '#d7ccc8', icon: 'corner-down-right' },
+            { category: '사무 공간', type: 'desk_large', name: '임원용 책상 (180x80)', w: 180, h: 80, color: '#8d6e63', icon: 'monitor' },
+            { category: '사무 공간', type: 'desk_standing', name: '스탠딩 데스크', w: 100, h: 60, color: '#d7ccc8', icon: 'arrow-up-from-line' },
+            { category: '사무 공간', type: 'chair_office', name: '사무용 회전의자', w: 45, h: 45, color: '#333333', icon: 'armchair' },
+            { category: '사무 공간', type: 'chair_mesh', name: '메쉬 의자', w: 45, h: 45, color: '#455a64', icon: 'armchair' },
+            { category: '사무 공간', type: 'drawer', name: '이동식 서랍', w: 40, h: 50, color: '#cfd8dc', icon: 'inbox' },
+            { category: '사무 공간', type: 'partition_h', name: '파티션(가벽)', w: 150, h: 10, color: '#78909c', icon: 'minus' },
+            { category: '사무 공간', type: 'partition_glass', name: '유리 파티션', w: 120, h: 10, color: '#bbdefb', icon: 'minus' },
+            { category: '사무 공간', type: 'partition_glass_l', name: '대형 유리가벽', w: 200, h: 10, color: '#e3f2fd', icon: 'minus' },
+            { category: '사무 공간', type: 'footrest', name: '발받침대', w: 30, h: 20, color: '#9e9e9e', icon: 'footprints' },
+
+            // [회의 및 미팅]
+            { category: '회의/미팅', type: 'table_meeting_4', name: '4인 회의테이블', w: 180, h: 90, color: '#f5f5f5', icon: 'users' },
+            { category: '회의/미팅', type: 'table_meeting_6', name: '6인 회의테이블', w: 240, h: 100, color: '#f5f5f5', icon: 'users' },
+            { category: '회의/미팅', type: 'table_meeting_8', name: '8인 회의테이블', w: 280, h: 120, color: '#eeeeee', icon: 'users' },
+            { category: '회의/미팅', type: 'table_meeting_12', name: '12인 회의테이블', w: 400, h: 140, color: '#e0e0e0', icon: 'users' },
+            { category: '회의/미팅', type: 'table_u_shape', name: 'U자형 테이블', w: 300, h: 200, color: '#eeeeee', icon: 'spline' },
+            { category: '회의/미팅', type: 'table_round_s', name: '소형 원형테이블', w: 80, h: 80, color: '#ffffff', icon: 'circle' },
+            { category: '회의/미팅', type: 'table_round_l', name: '대형 원형테이블', w: 120, h: 120, color: '#ffffff', icon: 'circle' },
+            { category: '회의/미팅', type: 'chair_meeting', name: '일반 회의의자', w: 40, h: 40, color: '#555555', icon: 'armchair' }, 
+            { category: '회의/미팅', type: 'chair_folding', name: '접이식 의자', w: 40, h: 40, color: '#757575', icon: 'armchair' }, 
+            { category: '회의/미팅', type: 'whiteboard', name: '화이트보드', w: 150, h: 15, color: '#ffffff', icon: 'presentation' },
+            { category: '회의/미팅', type: 'smartboard', name: '스마트보드', w: 180, h: 20, color: '#424242', icon: 'monitor-play' },
+            { category: '회의/미팅', type: 'tv_display', name: '대형 TV', w: 150, h: 15, color: '#212121', icon: 'tv' },
+            { category: '회의/미팅', type: 'podium', name: '강연대', w: 60, h: 50, color: '#6d4c41', icon: 'mic' },
+
+            // [수납 및 보관]
+            { category: '수납/보관', type: 'cabinet_s', name: '개인 사물함', w: 60, h: 40, color: '#8d6e63', icon: 'archive' },
+            { category: '수납/보관', type: 'cabinet_l', name: '대형 캐비닛', w: 100, h: 45, color: '#6d4c41', icon: 'box' },
+            { category: '수납/보관', type: 'bookshelf', name: '책꽂이', w: 100, h: 30, color: '#5d4037', icon: 'library' },
+            { category: '수납/보관', type: 'bookshelf_moving', name: '이동식 책장', w: 90, h: 40, color: '#795548', icon: 'library' },
+            { category: '수납/보관', type: 'glass_cabinet', name: '유리 장식장', w: 80, h: 40, color: '#cfd8dc', icon: 'layout-grid' },
+            { category: '수납/보관', type: 'safe', name: '금고', w: 50, h: 50, color: '#37474f', icon: 'lock' },
+            { category: '수납/보관', type: 'wardrobe', name: '옷장/행거', w: 90, h: 60, color: '#8d6e63', icon: 'shirt' },
+            { category: '수납/보관', type: 'umbrella_stand', name: '우산꽂이', w: 30, h: 30, color: '#9e9e9e', icon: 'umbrella' },
+
+            // [사무 기기]
+            { category: '사무 기기', type: 'laptop', name: '노트북', w: 35, h: 25, color: '#555555', icon: 'laptop' },
+            { category: '사무 기기', type: 'desktop', name: '데스크탑 (PC)', w: 60, h: 25, color: '#424242', icon: 'monitor' },
+            { category: '사무 기기', type: 'monitor_large', name: '대형 모니터', w: 80, h: 20, color: '#212121', icon: 'monitor' },
+            { category: '사무 기기', type: 'dual_monitor', name: '듀얼 모니터', w: 110, h: 25, color: '#424242', icon: 'monitor' },
+            { category: '사무 기기', type: 'phone', name: '전화기', w: 20, h: 15, color: '#eceff1', icon: 'phone' },
+            { category: '사무 기기', type: 'printer', name: '소형 프린터', w: 50, h: 50, color: '#eceff1', icon: 'printer' },
+            { category: '사무 기기', type: 'copier', name: '대형 복합기', w: 80, h: 60, color: '#cfd8dc', icon: 'printer' },
+            { category: '사무 기기', type: 'scanner', name: '스캐너', w: 50, h: 40, color: '#eeeeee', icon: 'scan' },
+            { category: '사무 기기', type: 'shredder', name: '문서 파쇄기', w: 40, h: 40, color: '#9e9e9e', icon: 'trash-2' },
+            { category: '사무 기기', type: 'projector', name: '빔 프로젝터', w: 30, h: 30, color: '#ffffff', icon: 'projector' },
+            { category: '사무 기기', type: 'server', name: '서버 랙', w: 60, h: 80, color: '#212121', icon: 'server' },
+            { category: '사무 기기', type: 'laminator', name: '코팅기/제본기', w: 45, h: 30, color: '#bdbdbd', icon: 'layers' },
+
+            // [개인/소형 비품] - 새로 추가됨!
+            { category: '개인/소형 비품', type: 'desk_organizer', name: '펜꽂이/정리함', w: 15, h: 10, color: '#bcaaa4', icon: 'pencil' },
+            { category: '개인/소형 비품', type: 'desk_calendar', name: '탁상 달력', w: 15, h: 10, color: '#ffffff', icon: 'calendar' },
+            { category: '개인/소형 비품', type: 'mini_fan', name: '탁상용 선풍기', w: 15, h: 15, color: '#e0e0e0', icon: 'fan' },
+            { category: '개인/소형 비품', type: 'mini_humidifier', name: '탁상 가습기', w: 15, h: 15, color: '#e3f2fd', icon: 'droplet' },
+            { category: '개인/소형 비품', type: 'tumbler', name: '텀블러/머그컵', w: 10, h: 10, color: '#ffcc80', icon: 'coffee' },
+            { category: '개인/소형 비품', type: 'personal_trash', name: '개인 휴지통', w: 20, h: 20, color: '#cfd8dc', icon: 'trash-2' },
+            { category: '개인/소형 비품', type: 'file_tray', name: '서류 트레이', w: 25, h: 35, color: '#eceff1', icon: 'layers' },
+            { category: '개인/소형 비품', type: 'power_strip', name: '멀티탭', w: 30, h: 10, color: '#ffffff', icon: 'plug' },
+            { category: '개인/소형 비품', type: 'slippers', name: '실내화', w: 20, h: 20, color: '#aed581', icon: 'footprints' },
+            { category: '개인/소형 비품', type: 'cushion', name: '의자 방석', w: 35, h: 35, color: '#f48fb1', icon: 'square' },
+            { category: '개인/소형 비품', type: 'desk_mat', name: '데스크 매트', w: 80, h: 40, color: '#37474f', icon: 'square' },
+
+            // [탕비/휴게실]
+            { category: '탕비/휴게실', type: 'sofa_1', name: '1인용 소파', w: 80, h: 70, color: '#ffb74d', icon: 'sofa' },
+            { category: '탕비/휴게실', type: 'sofa_3', name: '3인용 소파', w: 180, h: 70, color: '#ffa726', icon: 'sofa' },
+            { category: '탕비/휴게실', type: 'sofa_4', name: '4인용 소파', w: 240, h: 70, color: '#f57c00', icon: 'sofa' }, // 추가됨
+            { category: '탕비/휴게실', type: 'beanbag', name: '빈백 소파', w: 80, h: 80, color: '#ef5350', icon: 'circle' },
+            { category: '탕비/휴게실', type: 'massage_chair', name: '안마의자', w: 90, h: 120, color: '#5c6bc0', icon: 'armchair' },
+            { category: '탕비/휴게실', type: 'chair_stool', name: '스툴/간이의자', w: 35, h: 35, color: '#ffcc80', icon: 'circle' },
+            { category: '탕비/휴게실', type: 'bar_table', name: '바(Bar) 테이블', w: 150, h: 50, color: '#8d6e63', icon: 'minus' },
+            { category: '탕비/휴게실', type: 'bar_chair', name: '바 의자', w: 35, h: 35, color: '#5d4037', icon: 'armchair' },
+            { category: '탕비/휴게실', type: 'dining_table', name: '식탁 (4인)', w: 140, h: 80, color: '#f5f5f5', icon: 'utensils' },
+            { category: '탕비/휴게실', type: 'water_purifier', name: '정수기', w: 40, h: 40, color: '#e3f2fd', icon: 'droplet' },
+            { category: '탕비/휴게실', type: 'ice_maker', name: '제빙기', w: 50, h: 60, color: '#bbdefb', icon: 'snowflake' },
+            { category: '탕비/휴게실', type: 'refrigerator', name: '냉장고', w: 60, h: 60, color: '#f5f5f5', icon: 'refrigerator' }, 
+            { category: '탕비/휴게실', type: 'coffee_machine', name: '커피머신', w: 30, h: 30, color: '#4e342e', icon: 'coffee' },
+            { category: '탕비/휴게실', type: 'microwave', name: '전자레인지', w: 50, h: 35, color: '#eeeeee', icon: 'microwave' }, 
+            { category: '탕비/휴게실', type: 'sink', name: '싱크대', w: 120, h: 60, color: '#b0bec5', icon: 'waves' },
+            { category: '탕비/휴게실', type: 'snack_bar', name: '간식 매대', w: 100, h: 40, color: '#ffe082', icon: 'shopping-basket' },
+            { category: '탕비/휴게실', type: 'vending_machine', name: '음료 자판기', w: 80, h: 80, color: '#ffcc80', icon: 'cup-soda' },
+            { category: '탕비/휴게실', type: 'trash_can', name: '분리수거함', w: 90, h: 40, color: '#90a4ae', icon: 'trash' },
+            { category: '탕비/휴게실', type: 'pingpong', name: '탁구대', w: 274, h: 152, color: '#1565c0', icon: 'activity' },
+
+            // [건축/인테리어]
+            { category: '건축/인테리어', type: 'door_single', name: '외여닫이문', w: 90, h: 15, color: '#5d4037', icon: 'door-open' },
+            { category: '건축/인테리어', type: 'door_double', name: '쌍여닫이문', w: 180, h: 15, color: '#5d4037', icon: 'door-open' },
+            { category: '건축/인테리어', type: 'door_sliding', name: '슬라이딩 도어', w: 180, h: 15, color: '#795548', icon: 'arrow-left-right' },
+            { category: '건축/인테리어', type: 'door_lock', name: '도어락', w: 15, h: 5, color: '#424242', icon: 'lock' }, // 도어락 추가됨!
+            { category: '건축/인테리어', type: 'window', name: '창문', w: 120, h: 15, color: '#bbdefb', icon: 'layout-panel-top' },
+            { category: '건축/인테리어', type: 'blind', name: '블라인드', w: 120, h: 10, color: '#e0e0e0', icon: 'blinds' },
+            { category: '건축/인테리어', type: 'picture_frame', name: '액자', w: 60, h: 10, color: '#8d6e63', icon: 'image' }, // 추가됨
+            { category: '건축/인테리어', type: 'pillar', name: '기둥', w: 60, h: 60, color: '#bdbdbd', icon: 'columns' },
+            { category: '건축/인테리어', type: 'plant_s', name: '소형 화분', w: 30, h: 30, color: '#81c784', icon: 'flower' },
+            { category: '건축/인테리어', type: 'plant_l', name: '대형 화분', w: 50, h: 50, color: '#4caf50', icon: 'flower-2' },
+            { category: '건축/인테리어', type: 'air_conditioner', name: '스탠드 에어컨', w: 50, h: 50, color: '#ffffff', icon: 'wind' },
+            { category: '건축/인테리어', type: 'air_purifier', name: '공기청정기', w: 40, h: 40, color: '#f0f4f8', icon: 'fan' },
+            { category: '건축/인테리어', type: 'radiator', name: '라디에이터', w: 80, h: 20, color: '#cfd8dc', icon: 'thermometer' },
+            { category: '건축/인테리어', type: 'fire_extinguisher', name: '소화기', w: 20, h: 20, color: '#e53935', icon: 'flame' },
+            { category: '건축/인테리어', type: 'coat_hanger', name: '옷걸이 스탠드', w: 40, h: 40, color: '#795548', icon: 'user' },
+            { category: '건축/인테리어', type: 'carpet_s', name: '소형 카펫', w: 150, h: 100, color: '#eceff1', icon: 'square' },
+            { category: '건축/인테리어', type: 'carpet_l', name: '대형 카펫', w: 300, h: 200, color: '#eceff1', icon: 'square' },
+
+            // [화장실/위생]
+            { category: '화장실/위생', type: 'toilet_f', name: '여성 변기', w: 45, h: 65, color: '#f8bbd0', icon: 'user' },
+            { category: '화장실/위생', type: 'toilet_m', name: '남성 양변기', w: 45, h: 65, color: '#bbdefb', icon: 'user' },
+            { category: '화장실/위생', type: 'urinal_m', name: '남성 소변기', w: 40, h: 35, color: '#e3f2fd', icon: 'droplet' },
+            { category: '화장실/위생', type: 'bathroom_sink', name: '세면대', w: 70, h: 50, color: '#ffffff', icon: 'waves' },
+            { category: '화장실/위생', type: 'bathroom_mirror', name: '화장실 거울', w: 70, h: 10, color: '#e0f7fa', icon: 'square' },
+            { category: '화장실/위생', type: 'toilet_partition', name: '화장실 칸막이', w: 10, h: 120, color: '#cfd8dc', icon: 'minus' }
+        ];
+
+        // 학생이 고를 수 있는 선택형 시나리오 (난이도별)
+        const SCENARIOS = [
+            {
+                id: 'basic',
+                level: '초급',
+                color: 'emerald',
+                title: '스타트업 사무실 (5인 이하)',
+                mission: '대표 1인, 팀원 4인이 함께 쓰는 소규모 사무실입니다. 개인 책상 5개, 4인용 회의테이블 1개, 수납장(캐비닛) 1개 이상을 반드시 배치하고, 사람이 지나다닐 통로 폭을 충분히 확보하세요.'
+            },
+            {
+                id: 'intermediate',
+                level: '중급',
+                color: 'blue',
+                title: '중소기업 사무실 (10~15인)',
+                mission: '본부장실(책상1, 4인테이블1), 6명/12명 회의실 각 1개, 직원 11명 자리, 탕비실 및 행정비품을 배치하시오.'
+            },
+            {
+                id: 'advanced',
+                level: '고급',
+                color: 'purple',
+                title: '복합 업무공간 (20인 이상)',
+                mission: '임원실 2개(각 대형책상+응접 소파), 12인 대회의실 1개, 4인 소회의실 2개, 직원 20명 이상의 좌석, 응접(라운지) 공간, 탕비실, 수납/보관 공간을 모두 배치하고 동선(통행로)을 고려하세요.'
+            },
+            {
+                id: 'custom',
+                level: '자유',
+                color: 'gray',
+                title: '자유 설계 (선생님이 알려준 조건대로)',
+                mission: ''
+            }
+        ];
+
+        function App() {
+            // 메인 상태 (가구 리스트) 및 참조
+            const [items, setItems] = useState([]);
+            const itemsRef = useRef([]);
+
+            // Undo / Redo 상태 관리
+            const [history, setHistory] = useState([[]]);
+            const [historyIndex, setHistoryIndex] = useState(0);
+
+            // 줌(확대/축소) 상태 관리
+            const [zoom, setZoom] = useState(1);
+            const zoomRef = useRef(1);
+
+            // 반응형 레이아웃 토글 상태 (태블릿/모바일용)
+            const [showLeftPanel, setShowLeftPanel] = useState(false);
+            const [showRightPanel, setShowRightPanel] = useState(false);
+            
+            // 전체화면 상태
+            const [isFullscreen, setIsFullscreen] = useState(false);
+
+            // 기타 UI 상태
+            const [mission, setMission] = useState("본부장실(책상1, 4인테이블1), 6명/12명 회의실 각 1개, 직원 11명 자리, 탕비실 및 행정비품을 배치하시오.");
+            const [isTeacherMode, setIsTeacherMode] = useState(false);
+            // 다중 선택을 지원하기 위해 배열로 관리 (1개만 선택 시 기존 동작과 동일)
+            const [selectedIds, setSelectedIds] = useState([]);
+            const [multiSelectMode, setMultiSelectMode] = useState(false);
+            const selectedId = selectedIds.length === 1 ? selectedIds[0] : null;
+            
+            const [snapMode, setSnapMode] = useState(true);
+            const snapModeRef = useRef(snapMode);
+            
+            const [searchQuery, setSearchQuery] = useState("");
+            const [collapsedCats, setCollapsedCats] = useState({});
+            
+            // 자동 저장 상태 메시지용
+            const [saveMessage, setSaveMessage] = useState("");
+
+            // 선택형 시나리오 & 학습지 다운로드 관련 상태
+            const [studentName, setStudentName] = useState("");
+            const [selectedScenarioId, setSelectedScenarioId] = useState(null);
+            const [showScenarioModal, setShowScenarioModal] = useState(true);
+            const [isExporting, setIsExporting] = useState(false);
+            const [showResourceMenu, setShowResourceMenu] = useState(false);
+            
+            const SNAP_SIZE = 10;
+            const mainContainerRef = useRef(null);
+            // 드래그 종료 직후 배경 클릭으로 선택이 풀리는 것을 막기 위한 가드
+            const justDraggedRef = useRef(false);
+
+            // 초기 렌더링 시 화면 크기에 따라 패널 열기
+            useEffect(() => {
+                if (window.innerWidth >= 1024) {
+                    setShowLeftPanel(true);
+                    setShowRightPanel(true);
+                }
+                const handleResize = () => {
+                    if (window.innerWidth >= 1024) {
+                        setShowLeftPanel(true);
+                        setShowRightPanel(true);
+                    }
+                };
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+            }, []);
+
+            // 아이템 선택 시 모바일/태블릿에서는 속성창 자동 열기
+            useEffect(() => {
+                if (selectedIds.length > 0 && window.innerWidth < 1024) {
+                    setShowRightPanel(true);
+                }
+            }, [selectedIds]);
+
+            // 상태 변경 반영을 위한 Effect
+            useEffect(() => { snapModeRef.current = snapMode; }, [snapMode]);
+            useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+
+            // 안전한 아이콘 컴포넌트
+            const Icon = ({ name, className, style }) => {
+                const spanRef = useRef(null);
+                useEffect(() => {
+                    const renderIcon = () => {
+                        if (spanRef.current && window.lucide) {
+                            try {
+                                spanRef.current.innerHTML = `<i data-lucide="${name}" class="${className || ''}"></i>`;
+                                window.lucide.createIcons({ root: spanRef.current });
+                            } catch (error) {
+                                console.warn("아이콘 렌더링 에러:", name, error);
+                                spanRef.current.innerHTML = `<i data-lucide="box" class="${className || ''}"></i>`;
+                                window.lucide.createIcons({ root: spanRef.current });
+                            }
+                        }
+                    };
+                    renderIcon();
+                    const timeoutId = setTimeout(renderIcon, 500);
+                    return () => clearTimeout(timeoutId);
+                }, [name, className]);
+                return <span ref={spanRef} style={style} className="inline-flex items-center justify-center pointer-events-none"></span>;
+            };
+
+            // 전체화면 토글 함수
+            const toggleFullscreen = () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.warn(`전체화면 전환 에러: ${err.message}`);
+                    });
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
+            };
+
+            // 전체화면 이벤트 감지
+            useEffect(() => {
+                const handleFullscreenChange = () => {
+                    setIsFullscreen(!!document.fullscreenElement);
+                };
+                document.addEventListener('fullscreenchange', handleFullscreenChange);
+                return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            }, []);
+
+            // 캔버스 마우스 휠 확대/축소 이벤트 추가
+            useEffect(() => {
+                const mainEl = mainContainerRef.current;
+                if (!mainEl) return;
+                const handleWheel = (e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        setZoom(prev => {
+                            const newZoom = prev - e.deltaY * 0.002;
+                            return Math.min(Math.max(0.3, newZoom), 3); // 30% ~ 300%
+                        });
+                    }
+                };
+                mainEl.addEventListener('wheel', handleWheel, { passive: false });
+                return () => mainEl.removeEventListener('wheel', handleWheel);
+            }, []);
+
+            // 히스토리 기록 함수 (자동 저장 포함)
+            const commitHistory = (newItems) => {
+                const newHistory = history.slice(0, historyIndex + 1);
+                newHistory.push(newItems);
+                setHistory(newHistory);
+                setHistoryIndex(newHistory.length - 1);
+                setItems(newItems);
+                itemsRef.current = newItems;
+                
+                localStorage.setItem('office_design_save', JSON.stringify(newItems));
+                setSaveMessage("자동 저장됨");
+                setTimeout(() => setSaveMessage(""), 2000);
+            };
+
+            // 실행 취소
+            const undo = () => {
+                if (historyIndex > 0) {
+                    const prevItems = history[historyIndex - 1];
+                    setHistoryIndex(historyIndex - 1);
+                    setItems(prevItems);
+                    itemsRef.current = prevItems;
+                    setSelectedIds([]);
+                    localStorage.setItem('office_design_save', JSON.stringify(prevItems));
+                }
+            };
+
+            // 다시 실행
+            const redo = () => {
+                if (historyIndex < history.length - 1) {
+                    const nextItems = history[historyIndex + 1];
+                    setHistoryIndex(historyIndex + 1);
+                    setItems(nextItems);
+                    itemsRef.current = nextItems;
+                    setSelectedIds([]);
+                    localStorage.setItem('office_design_save', JSON.stringify(nextItems));
+                }
+            };
+
+            // UI를 통한 미세 이동 제어 함수 (태블릿 터치용, 다중 선택 시 그룹 전체 이동)
+            const moveItemUI = (dir) => {
+                if (selectedIds.length === 0) return;
+                const amount = snapModeRef.current ? SNAP_SIZE : 1;
+                const idsSet = new Set(selectedIds);
+                
+                setItems(prev => {
+                    const newItems = prev.map(i => {
+                        if (!idsSet.has(i.id)) return i;
+                        let nx = i.x, ny = i.y;
+                        if (dir === 'up') ny -= amount;
+                        if (dir === 'down') ny += amount;
+                        if (dir === 'left') nx -= amount;
+                        if (dir === 'right') nx += amount;
+                        return { ...i, x: nx, y: ny };
+                    });
+                    itemsRef.current = newItems; 
+                    commitHistory(newItems);
+                    return newItems;
+                });
+            };
+
+            // 단축키 설정 (Tab(전체화면), Delete, Undo, Redo, 화살표)
+            useEffect(() => {
+                let isArrowKeyPressed = false;
+
+                const handleKeyDown = (e) => {
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+                    // Tab키를 이용한 전체화면 토글
+                    if (e.key === 'Tab') {
+                        e.preventDefault(); 
+                        toggleFullscreen();
+                        return;
+                    }
+
+                    // Delete 삭제 (다중 선택 시 그룹 전체 삭제)
+                    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.length > 0) {
+                        const idsSet = new Set(selectedIds);
+                        const newItems = itemsRef.current.filter(i => !idsSet.has(i.id));
+                        commitHistory(newItems);
+                        setSelectedIds([]);
+                        return;
+                    }
+
+                    // Undo (Ctrl+Z) / Redo (Ctrl+Y or Ctrl+Shift+Z)
+                    if (e.ctrlKey || e.metaKey) {
+                        if (e.key.toLowerCase() === 'z') {
+                            e.preventDefault();
+                            if (e.shiftKey) redo();
+                            else undo();
+                            return;
+                        }
+                        if (e.key.toLowerCase() === 'y') {
+                            e.preventDefault();
+                            redo();
+                            return;
+                        }
+                    }
+
+                    // 화살표 키 가구 이동 (Shift 누르면 10px씩, 다중 선택 시 그룹 전체 이동)
+                    if (selectedIds.length > 0 && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                        e.preventDefault(); // 스크롤 방지
+                        isArrowKeyPressed = true;
+                        const amount = e.shiftKey ? 10 : 1;
+                        const idsSet = new Set(selectedIds);
+                        
+                        setItems(prev => {
+                            const newItems = prev.map(i => {
+                                if (!idsSet.has(i.id)) return i;
+                                let nx = i.x, ny = i.y;
+                                if (e.key === 'ArrowUp') ny -= amount;
+                                if (e.key === 'ArrowDown') ny += amount;
+                                if (e.key === 'ArrowLeft') nx -= amount;
+                                if (e.key === 'ArrowRight') nx += amount;
+                                return { ...i, x: nx, y: ny };
+                            });
+                            itemsRef.current = newItems; 
+                            return newItems;
+                        });
+                    }
+                };
+
+                const handleKeyUp = (e) => {
+                    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                        if (isArrowKeyPressed) {
+                            commitHistory([...itemsRef.current]);
+                            isArrowKeyPressed = false;
+                        }
+                    }
+                };
+
+                window.addEventListener('keydown', handleKeyDown);
+                window.addEventListener('keyup', handleKeyUp);
+                return () => {
+                    window.removeEventListener('keydown', handleKeyDown);
+                    window.removeEventListener('keyup', handleKeyUp);
+                };
+            }, [selectedIds, history, historyIndex]);
+
+            // 초기 로컬 스토리지 데이터 불러오기
+            useEffect(() => {
+                const saved = localStorage.getItem('office_design_save');
+                if (saved) {
+                    try { 
+                        const parsed = JSON.parse(saved);
+                        if (Array.isArray(parsed)) {
+                            setItems(parsed);
+                            itemsRef.current = parsed;
+                            setHistory([[], parsed]);
+                            setHistoryIndex(1);
+                        } else {
+                            localStorage.removeItem('office_design_save');
+                        }
+                    } catch (e) {
+                        localStorage.removeItem('office_design_save');
+                    }
+                }
+            }, []);
+
+            const saveDesign = () => {
+                localStorage.setItem('office_design_save', JSON.stringify(items));
+                setSaveMessage("수동 저장 완료");
+                setTimeout(() => setSaveMessage(""), 2000);
+            };
+
+            const clearDesign = () => {
+                if (window.confirm('정말 모든 배치를 초기화하시겠습니까?')) {
+                    commitHistory([]);
+                    setSelectedIds([]);
+                    localStorage.removeItem('office_design_save');
+                    setSaveMessage("초기화 됨");
+                    setTimeout(() => setSaveMessage(""), 2000);
+                }
+            };
+
+            // 파일명 생성 (시나리오 + 이름 + 날짜)
+            const buildFileName = (ext) => {
+                const scenario = SCENARIOS.find(s => s.id === selectedScenarioId);
+                const scenarioLabel = scenario ? scenario.level : '자유';
+                const name = studentName.trim() ? studentName.trim().replace(/\s+/g, '_') : '학생';
+                const d = new Date();
+                const dateStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+                return `사무실배치_${scenarioLabel}_${name}_${dateStr}.${ext}`;
+            };
+
+            // 배치도 캔버스를 이미지로 캡처
+            const captureDesign = () => {
+                const target = document.getElementById('printable-area');
+                return window.html2canvas(target, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+            };
+
+            // 이미지(PNG)로 다운로드 - 학습지 제출용
+            const downloadImage = () => {
+                if (!window.html2canvas) { alert('이미지 저장 기능을 불러오는 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+                setIsExporting(true);
+                captureDesign().then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = buildFileName('png');
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    setIsExporting(false);
+                }).catch(() => {
+                    alert('이미지 저장에 실패했습니다. 다시 시도해주세요.');
+                    setIsExporting(false);
+                });
+            };
+
+            // PDF로 다운로드 - 학습지 제출/인쇄용
+            const downloadPDF = () => {
+                if (!window.html2canvas || !window.jspdf) { alert('PDF 저장 기능을 불러오는 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+                setIsExporting(true);
+                captureDesign().then(canvas => {
+                    const { jsPDF } = window.jspdf;
+                    const imgData = canvas.toDataURL('image/png');
+                    const orientation = canvas.width >= canvas.height ? 'l' : 'p';
+                    const pdf = new jsPDF({ orientation, unit: 'px', format: [canvas.width, canvas.height] });
+                    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+                    pdf.save(buildFileName('pdf'));
+                    setIsExporting(false);
+                }).catch(() => {
+                    alert('PDF 저장에 실패했습니다. 다시 시도해주세요.');
+                    setIsExporting(false);
+                });
+            };
+
+            // 가구 추가
+            const addItem = (f) => {
+                // 추가 시 줌 배율에 상관없이 중앙 즈음에 배치, 모바일에서는 추가 후 패널을 닫아 시야 확보
+                addItemAt(f, 450 - (f.w/2), 350 - (f.h/2));
+                if (window.innerWidth < 1024) {
+                    setShowLeftPanel(false);
+                }
+            };
+
+            const addItemAt = (f, x, y) => {
+                const maxZ = itemsRef.current.length > 0 ? Math.max(...itemsRef.current.map(i => i.zIndex || 0)) : 0;
+                let finalX = x;
+                let finalY = y;
+                
+                if (snapModeRef.current) {
+                    finalX = Math.round(finalX / SNAP_SIZE) * SNAP_SIZE;
+                    finalY = Math.round(finalY / SNAP_SIZE) * SNAP_SIZE;
+                }
+
+                const newId = 'item_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+                const newItem = { ...f, id: newId, x: finalX, y: finalY, rotate: 0, zIndex: maxZ + 1 };
+                
+                setTimeout(() => setSelectedIds([newId]), 50);
+                commitHistory([...itemsRef.current, newItem]);
+            };
+
+            // 선택된 아이템 속성 업데이트 (개별 속성 수정은 1개 선택 시에만 적용)
+            const updateSelectedItem = (updates) => {
+                if (selectedIds.length !== 1) return;
+                const id = selectedIds[0];
+                const newItems = itemsRef.current.map(item => item.id === id ? { ...item, ...updates } : item);
+                commitHistory(newItems);
+            };
+
+            // 맨 앞으로 / 맨 뒤로 보내기 (다중 선택 시 그룹 내 상대 순서를 유지하며 함께 이동)
+            const bringToFront = () => {
+                if (selectedIds.length === 0) return;
+                const idsSet = new Set(selectedIds);
+                const maxZ = Math.max(...itemsRef.current.map(i => i.zIndex || 0), 0);
+                const groupSorted = itemsRef.current.filter(i => idsSet.has(i.id)).sort((a,b) => (a.zIndex||0) - (b.zIndex||0));
+                const zMap = {};
+                groupSorted.forEach((it, idx) => { zMap[it.id] = maxZ + 1 + idx; });
+                const newItems = itemsRef.current.map(i => idsSet.has(i.id) ? { ...i, zIndex: zMap[i.id] } : i);
+                commitHistory(newItems);
+            };
+
+            const sendToBack = () => {
+                if (selectedIds.length === 0) return;
+                const idsSet = new Set(selectedIds);
+                const minZ = Math.min(...itemsRef.current.map(i => i.zIndex || 0), 0);
+                const groupSorted = itemsRef.current.filter(i => idsSet.has(i.id)).sort((a,b) => (a.zIndex||0) - (b.zIndex||0));
+                const zMap = {};
+                groupSorted.forEach((it, idx) => { zMap[it.id] = minZ - groupSorted.length + idx; });
+                const newItems = itemsRef.current.map(i => idsSet.has(i.id) ? { ...i, zIndex: zMap[i.id] } : i);
+                commitHistory(newItems);
+            };
+
+            // 아이템 복제 (다중 선택 시 그룹 전체 복제)
+            const duplicateSelectedItem = () => {
+                if (selectedIds.length === 0) return;
+                const idsSet = new Set(selectedIds);
+                const itemsToCopy = itemsRef.current.filter(i => idsSet.has(i.id));
+                if (itemsToCopy.length === 0) return;
+
+                let maxZ = Math.max(...itemsRef.current.map(i => i.zIndex || 0), 0);
+                const newItemsList = itemsToCopy.map(itemToCopy => {
+                    maxZ += 1;
+                    const newId = 'item_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+                    let dupX = itemToCopy.x + 20;
+                    let dupY = itemToCopy.y + 20;
+                    if (snapModeRef.current) {
+                        dupX = Math.round(dupX / SNAP_SIZE) * SNAP_SIZE;
+                        dupY = Math.round(dupY / SNAP_SIZE) * SNAP_SIZE;
+                    }
+                    return { ...itemToCopy, id: newId, x: dupX, y: dupY, zIndex: maxZ };
+                });
+
+                const newIds = newItemsList.map(i => i.id);
+                setTimeout(() => setSelectedIds(newIds), 50);
+                commitHistory([...itemsRef.current, ...newItemsList]);
+            };
+
+            // 마우스 드래그 앤 드롭 로직 (줌 비율 보정 적용 / 다중 선택 그룹 이동 지원)
+            const handleMouseDown = (e, item) => {
+                e.stopPropagation();
+
+                // Shift/Ctrl + 클릭: 드래그 없이 다중 선택 목록에 추가/제거
+                if (e.shiftKey || e.ctrlKey || e.metaKey) {
+                    setSelectedIds(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
+                    return;
+                }
+
+                // 다중 선택 모드 ON: 클릭으로 선택 목록에 추가/제거만 함 (드래그 X)
+                if (multiSelectMode) {
+                    setSelectedIds(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
+                    return;
+                }
+
+                // 이미 여러 개가 선택된 상태에서 그 중 하나를 드래그하면 그룹 전체 이동
+                const isGroupDrag = selectedIds.length > 1 && selectedIds.includes(item.id);
+                if (!isGroupDrag) {
+                    setSelectedIds([item.id]);
+                }
+                const dragIds = isGroupDrag ? selectedIds : [item.id];
+                const dragIdsSet = new Set(dragIds);
+
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const initialPositions = {};
+                itemsRef.current.forEach(i => { if (dragIdsSet.has(i.id)) initialPositions[i.id] = { x: i.x, y: i.y }; });
+                let finalItems = itemsRef.current;
+                let moved = false;
+
+                const move = (moveEvent) => {
+                    moved = true;
+                    // 확대/축소 비율에 맞춰 마우스 이동 거리 보정
+                    let deltaX = (moveEvent.clientX - startX) / zoomRef.current;
+                    let deltaY = (moveEvent.clientY - startY) / zoomRef.current;
+
+                    setItems(prev => {
+                        const next = prev.map(i => {
+                            if (!dragIdsSet.has(i.id)) return i;
+                            const init = initialPositions[i.id];
+                            let newX = init.x + deltaX;
+                            let newY = init.y + deltaY;
+                            if (snapModeRef.current) {
+                                newX = Math.round(newX / SNAP_SIZE) * SNAP_SIZE;
+                                newY = Math.round(newY / SNAP_SIZE) * SNAP_SIZE;
+                            }
+                            return {...i, x: newX, y: newY};
+                        });
+                        finalItems = next;
+                        itemsRef.current = next;
+                        return next;
+                    });
+                };
+
+                const stop = () => {
+                    window.removeEventListener('mousemove', move);
+                    window.removeEventListener('mouseup', stop);
+                    if (moved) {
+                        commitHistory(finalItems);
+                        justDraggedRef.current = true;
+                        setTimeout(() => { justDraggedRef.current = false; }, 0);
+                    }
+                };
+
+                window.addEventListener('mousemove', move);
+                window.addEventListener('mouseup', stop);
+            };
+
+            // 터치 드래그 앤 드롭 로직 (줌 비율 보정 적용 / 다중 선택 그룹 이동 지원)
+            const handleTouchStart = (e, item) => {
+                e.stopPropagation();
+
+                // 다중 선택 모드 ON: 탭으로 선택 목록에 추가/제거만 함 (드래그 X)
+                if (multiSelectMode) {
+                    setSelectedIds(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
+                    return;
+                }
+
+                const isGroupDrag = selectedIds.length > 1 && selectedIds.includes(item.id);
+                if (!isGroupDrag) {
+                    setSelectedIds([item.id]);
+                }
+                const dragIds = isGroupDrag ? selectedIds : [item.id];
+                const dragIdsSet = new Set(dragIds);
+
+                const touch = e.touches[0];
+                const startX = touch.clientX;
+                const startY = touch.clientY;
+                const initialPositions = {};
+                itemsRef.current.forEach(i => { if (dragIdsSet.has(i.id)) initialPositions[i.id] = { x: i.x, y: i.y }; });
+                let finalItems = itemsRef.current;
+                let moved = false;
+
+                const move = (moveEvent) => {
+                    if(moveEvent.cancelable) {
+                        moveEvent.preventDefault();
+                    }
+                    moved = true;
+                    const touchMove = moveEvent.touches[0];
+                    // 확대/축소 비율에 맞춰 이동 거리 보정
+                    let deltaX = (touchMove.clientX - startX) / zoomRef.current;
+                    let deltaY = (touchMove.clientY - startY) / zoomRef.current;
+
+                    setItems(prev => {
+                        const next = prev.map(i => {
+                            if (!dragIdsSet.has(i.id)) return i;
+                            const init = initialPositions[i.id];
+                            let newX = init.x + deltaX;
+                            let newY = init.y + deltaY;
+                            if (snapModeRef.current) {
+                                newX = Math.round(newX / SNAP_SIZE) * SNAP_SIZE;
+                                newY = Math.round(newY / SNAP_SIZE) * SNAP_SIZE;
+                            }
+                            return {...i, x: newX, y: newY};
+                        });
+                        finalItems = next;
+                        itemsRef.current = next;
+                        return next;
+                    });
+                };
+
+                const stop = () => {
+                    window.removeEventListener('touchmove', move);
+                    window.removeEventListener('touchend', stop);
+                    if (moved) {
+                        commitHistory(finalItems);
+                        justDraggedRef.current = true;
+                        setTimeout(() => { justDraggedRef.current = false; }, 0);
+                    }
+                };
+
+                window.addEventListener('touchmove', move, { passive: false });
+                window.addEventListener('touchend', stop);
+            };
+
+            // 라이브러리 검색 및 카테고리 필터링
+            const filteredLibrary = FURNITURE_LIBRARY.filter(item => 
+                item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                item.category.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            
+            const categoriesToRender = [...new Set(filteredLibrary.map(item => item.category))];
+            
+            const toggleCategory = (category) => {
+                setCollapsedCats(prev => ({ ...prev, [category]: !prev[category] }));
+            };
+
+            const selectedItemData = items.find(i => i.id === selectedId);
+
+            return (
+                <div className="flex flex-col h-screen noselect">
+
+                    {/* 시나리오 선택 모달 */}
+                    {showScenarioModal && (
+                        <div className="fixed inset-0 z-50 bg-gray-900/70 backdrop-blur-sm flex items-center justify-center p-4 no-print">
+                            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8">
+                                <div className="text-center mb-6">
+                                    <Icon name="layout-dashboard" className="w-10 h-10 text-blue-600 mx-auto mb-2" />
+                                    <h2 className="text-xl sm:text-2xl font-bold text-gray-800">사무실 공간 배치 실습</h2>
+                                    <p className="text-sm text-gray-500 mt-1">시나리오를 하나 선택하고 실습을 시작하세요.</p>
+                                </div>
+
+                                <div className="mb-5">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">이름 (선택 입력)</label>
+                                    <input
+                                        type="text"
+                                        value={studentName}
+                                        onChange={(e) => setStudentName(e.target.value)}
+                                        placeholder="예: 3학년 2반 홍길동"
+                                        className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    />
+                                    <p className="text-[11px] text-gray-400 mt-1">학습지(이미지/PDF) 다운로드 파일명에 사용됩니다.</p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    {SCENARIOS.map(sc => (
+                                        <button
+                                            key={sc.id}
+                                            onClick={() => {
+                                                setSelectedScenarioId(sc.id);
+                                                if (sc.mission) setMission(sc.mission);
+                                                setShowScenarioModal(false);
+                                            }}
+                                            className={`w-full text-left p-4 border-2 rounded-xl hover:border-${sc.color}-400 hover:bg-${sc.color}-50 transition group`}
+                                        >
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full text-white bg-${sc.color}-500`}>{sc.level}</span>
+                                                <Icon name="chevron-right" className={`w-4 h-4 text-gray-300 group-hover:text-${sc.color}-500`} />
+                                            </div>
+                                            <p className="font-bold text-gray-800 text-sm sm:text-base mb-1">{sc.title}</p>
+                                            {sc.mission && <p className="text-xs text-gray-500 leading-relaxed">{sc.mission}</p>}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="text-center mt-5">
+                                    <button
+                                        onClick={() => { setIsTeacherMode(true); setSelectedScenarioId('custom'); setShowScenarioModal(false); }}
+                                        className="text-xs text-gray-400 hover:text-gray-600 underline"
+                                    >
+                                        교사 모드로 바로 시작 (직접 조건 입력)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 배치도 저장 중 안내 오버레이 */}
+                    {isExporting && (
+                        <div className="fixed inset-0 z-50 bg-gray-900/50 flex items-center justify-center no-print">
+                            <div className="bg-white rounded-xl px-6 py-4 shadow-xl flex items-center gap-3">
+                                <Icon name="loader" className="w-5 h-5 text-blue-600 animate-spin" />
+                                <span className="text-sm font-semibold text-gray-700">학습지 파일을 만드는 중입니다...</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 상단 헤더 */}
+                    <header className="bg-white border-b px-4 sm:px-6 py-3 flex justify-between items-center shadow-sm z-30 no-print">
+                        <div className="flex items-center space-x-2 sm:space-x-4">
+                            <Icon name="layout-dashboard" className="text-blue-600 hidden sm:block" />
+                            <h1 className="text-lg sm:text-xl font-bold text-gray-800 truncate max-w-[150px] sm:max-w-none">사무실 공간 배치 실습</h1>
+                            
+                            <label className="flex items-center space-x-1.5 sm:space-x-2 sm:ml-6 text-xs sm:text-sm bg-gray-100 px-2 sm:px-3 py-1.5 rounded-full cursor-pointer hover:bg-gray-200">
+                                <input 
+                                    type="checkbox" 
+                                    checked={isTeacherMode} 
+                                    onChange={(e) => setIsTeacherMode(e.target.checked)}
+                                    className="form-checkbox text-blue-600 w-3.5 h-3.5 sm:w-4 sm:h-4"
+                                />
+                                <span className="font-semibold text-gray-700 whitespace-nowrap">교사 모드</span>
+                            </label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                            {/* 중앙 Undo / Redo 및 상태 메시지 */}
+                            <div className="hidden sm:flex space-x-1 items-center mr-2">
+                                {saveMessage && (
+                                    <span className="text-xs font-semibold text-green-600 mr-2 transition-opacity duration-300">
+                                        <Icon name="check-circle" className="w-3 h-3 inline mr-1" />{saveMessage}
+                                    </span>
+                                )}
+                                <button 
+                                    onClick={undo} 
+                                    disabled={historyIndex === 0}
+                                    className={`flex items-center p-1.5 sm:p-2 rounded transition ${historyIndex === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
+                                    title="실행 취소 (Ctrl+Z)"
+                                >
+                                    <Icon name="undo-2" className="w-4 h-4 sm:w-5 sm:h-5" />
+                                </button>
+                                <button 
+                                    onClick={redo} 
+                                    disabled={historyIndex === history.length - 1}
+                                    className={`flex items-center p-1.5 sm:p-2 rounded transition ${historyIndex === history.length - 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
+                                    title="다시 실행 (Ctrl+Y)"
+                                >
+                                    <Icon name="redo-2" className="w-4 h-4 sm:w-5 sm:h-5" />
+                                </button>
+                            </div>
+
+                            <div className="flex space-x-1 sm:space-x-2">
+                                {/* 전체 화면 토글 버튼 */}
+                                <button onClick={toggleFullscreen} className="flex items-center space-x-1 bg-gray-100 text-gray-700 border border-gray-200 px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm hover:bg-gray-200 transition" title="전체화면 (단축키: Tab)">
+                                    <Icon name={isFullscreen ? "minimize" : "maximize"} className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                    <span className="hidden lg:inline">{isFullscreen ? "기본 화면" : "전체 화면"}</span>
+                                </button>
+                                
+                                <button onClick={saveDesign} className="flex items-center space-x-1 bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm hover:bg-indigo-100 transition" title="임시저장">
+                                    <Icon name="save" className="w-3.5 h-3.5 sm:w-4 sm:h-4" /><span className="hidden sm:inline">저장</span>
+                                </button>
+                                <button onClick={clearDesign} className="flex items-center space-x-1 bg-red-50 text-red-700 border border-red-200 px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm hover:bg-red-100 transition" title="초기화">
+                                    <Icon name="trash-2" className="w-3.5 h-3.5 sm:w-4 sm:h-4" /><span className="hidden sm:inline">초기화</span>
+                                </button>
+                                <button onClick={() => window.print()} className="flex items-center space-x-1 bg-gray-600 text-white px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm hover:bg-gray-700 transition shadow-sm" title="인쇄">
+                                    <Icon name="printer" className="w-3.5 h-3.5 sm:w-4 sm:h-4" /><span className="hidden lg:inline">인쇄</span>
+                                </button>
+                                <button onClick={downloadImage} className="flex items-center space-x-1 bg-green-600 text-white px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm hover:bg-green-700 transition shadow-sm" title="학습지 다운로드 (이미지)">
+                                    <Icon name="image" className="w-3.5 h-3.5 sm:w-4 sm:h-4" /><span className="hidden md:inline">이미지 저장</span>
+                                </button>
+                                <button onClick={downloadPDF} className="flex items-center space-x-1 bg-emerald-700 text-white px-2 sm:px-4 py-1.5 rounded text-xs sm:text-sm hover:bg-emerald-800 transition shadow-sm" title="학습지 다운로드 (PDF)">
+                                    <Icon name="file-down" className="w-3.5 h-3.5 sm:w-4 sm:h-4" /><span className="hidden md:inline">PDF 저장</span>
+                                </button>
+
+                                <div className="relative">
+                                    <button onClick={() => setShowResourceMenu(v => !v)} className="flex items-center space-x-1 bg-purple-600 text-white px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm hover:bg-purple-700 transition shadow-sm" title="평가지·학습지 자료 다운로드">
+                                        <Icon name="download" className="w-3.5 h-3.5 sm:w-4 sm:h-4" /><span className="hidden md:inline">평가·학습지</span>
+                                    </button>
+                                    {showResourceMenu && (
+                                        <React.Fragment>
+                                            <div className="fixed inset-0 z-30" onClick={() => setShowResourceMenu(false)}></div>
+                                            <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border z-40 overflow-hidden">
+                                                <div className="px-4 py-2.5 bg-purple-50 border-b text-xs font-bold text-purple-700">수행평가 관련 자료 다운로드</div>
+                                                <a href="./office-layout-worksheet.html" download onClick={() => setShowResourceMenu(false)} className="flex items-center gap-2.5 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-b transition">
+                                                    <Icon name="file-text" className="w-4 h-4 text-blue-500 shrink-0" /> 실습 학습지 양식
+                                                </a>
+                                                <a href="./office-layout-scoring.html" download onClick={() => setShowResourceMenu(false)} className="flex items-center gap-2.5 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-b transition">
+                                                    <Icon name="clipboard-check" className="w-4 h-4 text-emerald-500 shrink-0" /> 교사용 종합 채점 시스템
+                                                </a>
+                                                <a href="./office-layout-poster.html" download onClick={() => setShowResourceMenu(false)} className="flex items-center gap-2.5 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition">
+                                                    <Icon name="megaphone" className="w-4 h-4 text-amber-500 shrink-0" /> 게시판 안내문 (A3/A4)
+                                                </a>
+                                            </div>
+                                        </React.Fragment>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* 미션 (조건) 영역 */}
+                    <div className="bg-blue-50 border-b border-blue-200 shadow-inner p-3 sm:p-4 no-print flex-shrink-0 z-20">
+                        <div className="max-w-6xl mx-auto flex gap-3 sm:gap-4">
+                            <div className="mt-1 flex-shrink-0 bg-blue-600 text-white p-1.5 rounded-lg shadow-sm h-min hidden sm:block">
+                                <Icon name="clipboard-list" className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1">
+                                <div className="flex items-center flex-wrap gap-2 mb-1">
+                                    <h3 className="font-bold text-blue-900 text-sm sm:text-base">실습 조건 (미션)</h3>
+                                    {selectedScenarioId && (() => {
+                                        const sc = SCENARIOS.find(s => s.id === selectedScenarioId);
+                                        return sc ? (
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full text-white bg-${sc.color}-500`}>{sc.level} 시나리오</span>
+                                        ) : null;
+                                    })()}
+                                    <button onClick={() => setShowScenarioModal(true)} className="text-[11px] text-blue-500 hover:text-blue-700 hover:underline no-print ml-auto flex items-center gap-1">
+                                        <Icon name="refresh-cw" className="w-3 h-3" />시나리오 다시 선택
+                                    </button>
+                                </div>
+                                {studentName && (
+                                    <p className="text-[11px] text-gray-500 mb-1.5 no-print flex items-center gap-1">
+                                        <Icon name="user" className="w-3 h-3" />{studentName}
+                                    </p>
+                                )}
+                                {isTeacherMode ? (
+                                    <textarea 
+                                        value={mission} 
+                                        onChange={(e) => setMission(e.target.value)}
+                                        className="w-full p-2 sm:p-3 border border-blue-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[60px] sm:min-h-[80px] text-sm"
+                                        placeholder="학생들에게 제시할 조건을 입력하세요."
+                                    />
+                                ) : (
+                                    <div className="bg-white p-2 sm:p-3 rounded-lg border border-blue-200 shadow-sm text-gray-800 whitespace-pre-wrap text-sm">
+                                        {mission || "설정된 조건이 없습니다."}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 메인 작업 영역 - 반응형 대응 relative */}
+                    <div className="flex flex-1 overflow-hidden relative">
+                        
+                        {/* 모바일/태블릿용 패널 뒷배경 오버레이 */}
+                        {(showLeftPanel || showRightPanel) && window.innerWidth < 1024 && (
+                            <div 
+                                className="absolute inset-0 bg-gray-900/40 z-30 lg:hidden backdrop-blur-sm transition-opacity" 
+                                onClick={() => {setShowLeftPanel(false); setShowRightPanel(false);}}
+                            ></div>
+                        )}
+
+                        {/* 좌측: 라이브러리 패널 (Drawer/고정 하이브리드) */}
+                        <aside className={`absolute lg:relative w-[280px] sm:w-[320px] bg-white border-r flex flex-col shadow-2xl lg:shadow-sm z-40 lg:z-10 h-full transition-transform duration-300 ease-in-out left-0 no-print ${showLeftPanel ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+                            <div className="p-3 border-b bg-gray-50 flex items-center justify-between">
+                                <span className="font-semibold text-gray-700 flex items-center"><Icon name="library" className="w-4 h-4 mr-2"/>가구 라이브러리</span>
+                                {/* 모바일용 닫기 버튼 */}
+                                <button onClick={() => setShowLeftPanel(false)} className="lg:hidden p-1 text-gray-500 hover:bg-gray-200 rounded">
+                                    <Icon name="x" className="w-5 h-5"/>
+                                </button>
+                            </div>
+                            
+                            <div className="p-3 border-b border-gray-100 bg-white">
+                                <div className="relative">
+                                    <Icon name="search" className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                                    <input 
+                                        type="text" 
+                                        placeholder="가구 이름 또는 카테고리 검색..." 
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full pl-9 pr-3 py-2 bg-gray-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg text-sm transition"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
+                                {categoriesToRender.length === 0 ? (
+                                    <div className="text-center text-gray-400 text-sm mt-10">검색 결과가 없습니다.</div>
+                                ) : (
+                                    categoriesToRender.map(category => (
+                                        <div key={category} className="border border-gray-100 rounded-lg overflow-hidden">
+                                            <button 
+                                                onClick={() => toggleCategory(category)}
+                                                className="w-full bg-gray-50 p-2 sm:p-2.5 flex items-center justify-between hover:bg-gray-100 transition"
+                                            >
+                                                <h3 className="text-[11px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">{category}</h3>
+                                                <Icon name={collapsedCats[category] ? "chevron-down" : "chevron-up"} className="w-4 h-4 text-gray-400" />
+                                            </button>
+                                            
+                                            {!collapsedCats[category] && (
+                                                <div className="p-2 sm:p-3 bg-white grid grid-cols-2 gap-2 sm:gap-3">
+                                                    {filteredLibrary.filter(item => item.category === category).map((item, idx) => (
+                                                        <button 
+                                                            key={idx} 
+                                                            onClick={() => addItem(item)}
+                                                            className="flex flex-col items-center justify-center p-2 sm:p-3 border rounded-lg bg-gray-50 hover:bg-blue-50 hover:border-blue-300 transition group"
+                                                        >
+                                                            <div className="w-8 h-8 sm:w-10 sm:h-10 mb-2 rounded flex items-center justify-center shadow-sm" style={{backgroundColor: item.color}}>
+                                                                <Icon name={item.icon} className="w-4 h-4 sm:w-5 sm:h-5 text-black/50" />
+                                                            </div>
+                                                            <span className="text-[10px] sm:text-xs text-gray-600 text-center font-medium group-hover:text-blue-700 break-keep">{item.name}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </aside>
+
+                        {/* 중앙: 작업 캔버스 */}
+                        <main className="flex-1 bg-gray-200 relative overflow-auto p-4 sm:p-8 flex items-start justify-center" id="canvas-container" ref={mainContainerRef}>
+                            
+                            {/* 모바일/태블릿용 라이브러리 열기 플로팅 버튼 */}
+                            <button 
+                                onClick={() => setShowLeftPanel(true)} 
+                                className="lg:hidden fixed top-24 left-3 z-20 bg-white p-2.5 rounded-full shadow-lg border text-blue-600 hover:bg-blue-50 transition no-print"
+                                title="가구 라이브러리 열기"
+                            >
+                                <Icon name="library" className="w-5 h-5 sm:w-6 sm:h-6" />
+                            </button>
+
+                            {/* 모바일/태블릿용 속성창 열기 플로팅 버튼 */}
+                            <button 
+                                onClick={() => setShowRightPanel(true)} 
+                                className={`lg:hidden fixed top-24 right-3 z-20 bg-white p-2.5 rounded-full shadow-lg border transition no-print ${selectedIds.length > 0 ? 'text-blue-600 ring-2 ring-blue-400' : 'text-gray-500'}`}
+                                title="선택 가구 설정 열기"
+                            >
+                                <Icon name="settings" className="w-5 h-5 sm:w-6 sm:h-6" />
+                            </button>
+
+                            {/* 확대 축소에 대응하는 컨테이너 래퍼 */}
+                            <div 
+                                className="relative transition-all duration-200 mt-10 sm:mt-0"
+                                style={{ width: `${900 * zoom}px`, height: `${700 * zoom}px`, minWidth: `${900 * zoom}px`, minHeight: `${700 * zoom}px` }}
+                            >
+                                <div 
+                                    id="printable-area" 
+                                    className="canvas-bg bg-white absolute shadow-md origin-top-left"
+                                    onClick={() => { if (justDraggedRef.current) return; setSelectedIds([]); }}
+                                    style={{ 
+                                        width: '900px', 
+                                        height: '700px', 
+                                        backgroundImage: snapMode ? 'radial-gradient(#e5e7eb 1px, transparent 1px)' : 'none', 
+                                        backgroundSize: `${SNAP_SIZE}px ${SNAP_SIZE}px`,
+                                        transform: `scale(${zoom})`
+                                    }}
+                                >
+                                    {items.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            onMouseDown={(e) => handleMouseDown(e, item)}
+                                            onTouchStart={(e) => handleTouchStart(e, item)}
+                                            onClick={(e) => {
+                                                e.stopPropagation(); // 배경의 onClick 차단
+                                            }}
+                                            className={`absolute flex flex-col items-center justify-center border shadow-sm cursor-move hover:ring-2 hover:ring-blue-300 transition-shadow ${selectedIds.includes(item.id) ? (selectedIds.length > 1 ? 'ring-2 ring-indigo-500 z-50' : 'ring-2 ring-blue-600 z-50') : ''}`}
+                                            style={{
+                                                width: `${item.w}px`,
+                                                height: `${item.h}px`,
+                                                left: `${item.x}px`,
+                                                top: `${item.y}px`,
+                                                backgroundColor: item.color,
+                                                transform: `rotate(${item.rotate || 0}deg)`,
+                                                zIndex: item.zIndex || 1,
+                                                overflow: 'hidden',
+                                                touchAction: 'none'
+                                            }}
+                                        >
+                                            <div className="flex flex-col items-center justify-center w-full h-full pointer-events-none p-0.5">
+                                                <Icon 
+                                                    name={item.icon || 'box'} 
+                                                    className="text-black/40 shrink-0" 
+                                                    style={{
+                                                        width: Math.max(12, Math.min(item.w, item.h) * 0.4), 
+                                                        height: Math.max(12, Math.min(item.w, item.h) * 0.4)
+                                                    }} 
+                                                />
+                                                {item.w >= 35 && item.h >= 25 && (
+                                                    <span 
+                                                        className="text-black/80 font-semibold text-center w-full overflow-hidden text-ellipsis whitespace-nowrap mt-0.5 px-0.5"
+                                                        style={{ fontSize: Math.max(9, Math.min(11, item.w / 5)) + 'px' }}
+                                                    >
+                                                        {item.name}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            {/* 하단 툴바 및 단축키 안내 */}
+                            <div className="fixed bottom-4 left-4 lg:left-[340px] flex space-x-2 no-print items-center z-20">
+                                <button 
+                                    onClick={() => setSnapMode(!snapMode)}
+                                    className={`px-3 py-2 rounded-lg text-sm font-medium shadow-md transition flex items-center ${snapMode ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}
+                                >
+                                    <Icon name="grid" className="w-4 h-4 sm:mr-2" />
+                                    <span className="hidden sm:inline">격자 맞춤 {snapMode ? 'ON' : 'OFF'}</span>
+                                </button>
+
+                                <button 
+                                    onClick={() => setMultiSelectMode(!multiSelectMode)}
+                                    className={`px-3 py-2 rounded-lg text-sm font-medium shadow-md transition flex items-center ${multiSelectMode ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 border'}`}
+                                    title="여러 가구를 골라 한 번에 이동하고 싶을 때 켜세요"
+                                >
+                                    <Icon name="layers" className="w-4 h-4 sm:mr-2" />
+                                    <span className="hidden sm:inline">다중 선택 {multiSelectMode ? 'ON' : 'OFF'}</span>
+                                </button>
+                                {selectedIds.length > 1 && (
+                                    <span className="hidden sm:inline-flex items-center text-xs font-bold text-indigo-700 bg-indigo-100 px-2 py-1 rounded-full">
+                                        {selectedIds.length}개 선택됨
+                                    </span>
+                                )}
+                                
+                                <div className="relative tooltip cursor-help flex items-center justify-center w-10 h-10 bg-white rounded-full shadow-md text-gray-500 hover:text-blue-600 transition border">
+                                    <Icon name="keyboard" className="w-5 h-5" />
+                                    <div className="tooltip-text">
+                                        <h4 className="font-bold text-blue-300 mb-2 border-b border-gray-600 pb-1">유용한 단축키 안내</h4>
+                                        <ul className="space-y-1.5 text-xs sm:text-sm">
+                                            <li><span className="bg-gray-700 px-1.5 py-0.5 rounded text-gray-200">Tab</span> : 전체 화면 전환</li>
+                                            <li><span className="bg-gray-700 px-1.5 py-0.5 rounded text-gray-200">Ctrl+휠</span> : 캔버스 확대/축소</li>
+                                            <li><span className="bg-gray-700 px-1.5 py-0.5 rounded text-gray-200">Delete</span> : 선택한 가구 삭제</li>
+                                            <li><span className="bg-gray-700 px-1.5 py-0.5 rounded text-gray-200">Ctrl+Z/Y</span> : 실행 취소/다시 실행</li>
+                                            <li><span className="bg-gray-700 px-1.5 py-0.5 rounded text-gray-200">방향키</span> : 미세 이동 (Shift 누르면 10px)</li>
+                                            <li><span className="bg-gray-700 px-1.5 py-0.5 rounded text-gray-200">Shift+클릭</span> : 여러 가구 선택/해제</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                {/* 모바일 전용 모바일 화면 Undo/Redo */}
+                                <div className="sm:hidden flex space-x-1 ml-2 bg-white rounded-lg shadow-md border px-1 py-1">
+                                    <button onClick={undo} disabled={historyIndex === 0} className={`p-2 rounded ${historyIndex === 0 ? 'text-gray-300' : 'text-gray-700'}`}>
+                                        <Icon name="undo-2" className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={redo} disabled={historyIndex === history.length - 1} className={`p-2 rounded ${historyIndex === history.length - 1 ? 'text-gray-300' : 'text-gray-700'}`}>
+                                        <Icon name="redo-2" className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* 우측 하단 줌 컨트롤 패널 */}
+                            <div className="fixed bottom-4 right-4 lg:right-[300px] flex space-x-1 sm:space-x-2 no-print items-center z-20 bg-white rounded-lg shadow-md border px-1 sm:px-2 py-1.5">
+                                <button onClick={() => setZoom(z => Math.max(0.3, z - 0.1))} className="p-1 sm:p-1.5 hover:bg-gray-100 rounded text-gray-500 transition" title="축소">
+                                    <Icon name="zoom-out" className="w-4 h-4" />
+                                </button>
+                                <span className="w-10 sm:w-12 text-center text-xs sm:text-sm font-semibold text-gray-700">
+                                    {Math.round(zoom * 100)}%
+                                </span>
+                                <button onClick={() => setZoom(z => Math.min(3, z + 0.1))} className="p-1 sm:p-1.5 hover:bg-gray-100 rounded text-gray-500 transition" title="확대">
+                                    <Icon name="zoom-in" className="w-4 h-4" />
+                                </button>
+                                <div className="hidden sm:block w-px h-4 bg-gray-300 mx-1"></div>
+                                <button onClick={() => setZoom(1)} className="hidden sm:block px-2 py-1 hover:bg-gray-100 rounded text-xs font-medium text-blue-600 transition" title="원래 크기로">
+                                    100%
+                                </button>
+                            </div>
+                        </main>
+
+                        {/* 우측: 속성 패널 (Drawer/고정 하이브리드) */}
+                        <aside className={`absolute lg:relative w-[280px] sm:w-[300px] bg-white border-l flex flex-col shadow-2xl lg:shadow-sm z-40 lg:z-10 h-full transition-transform duration-300 ease-in-out right-0 no-print ${showRightPanel ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}`}>
+                            <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
+                                <span className="font-semibold text-gray-700 flex items-center"><Icon name="settings" className="w-4 h-4 mr-2"/>가구 속성 설정</span>
+                                <button onClick={() => setShowRightPanel(false)} className="lg:hidden p-1 text-gray-500 hover:bg-gray-200 rounded">
+                                    <Icon name="x" className="w-5 h-5"/>
+                                </button>
+                            </div>
+                            
+                            {selectedItemData ? (
+                                <div className="p-4 sm:p-5 space-y-5 sm:space-y-6 overflow-y-auto">
+                                    <div className="flex items-center space-x-3 pb-4 border-b">
+                                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded flex items-center justify-center shadow-sm" style={{backgroundColor: selectedItemData.color}}>
+                                            <Icon name={selectedItemData.icon || 'box'} className="w-5 h-5 sm:w-6 sm:h-6 text-black/50" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs sm:text-sm text-gray-500 font-medium">{selectedItemData.category}</p>
+                                            <p className="text-sm sm:text-base font-bold text-gray-800 break-all">{selectedItemData.name}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">너비 (W)</label>
+                                                <div className="flex items-center">
+                                                    <input type="number" value={selectedItemData.w} onChange={(e) => updateSelectedItem({w: Number(e.target.value)})} className="w-full border rounded p-1.5 sm:p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">깊이 (H)</label>
+                                                <div className="flex items-center">
+                                                    <input type="number" value={selectedItemData.h} onChange={(e) => updateSelectedItem({h: Number(e.target.value)})} className="w-full border rounded p-1.5 sm:p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">회전 각도</label>
+                                            <div className="flex items-center space-x-2">
+                                                <input type="number" value={selectedItemData.rotate || 0} onChange={(e) => updateSelectedItem({rotate: Number(e.target.value)})} className="w-full border rounded p-1.5 sm:p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                                                <span className="text-sm text-gray-500">도</span>
+                                            </div>
+                                            <div className="grid grid-cols-4 gap-1 sm:gap-2 mt-2">
+                                                {[0, 90, 180, 270].map(deg => (
+                                                    <button key={deg} onClick={() => updateSelectedItem({rotate: deg})} className="py-1 bg-gray-100 hover:bg-gray-200 border rounded text-xs font-medium">
+                                                        {deg}°
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">색상 변경</label>
+                                            <input type="color" value={selectedItemData.color} onChange={(e) => updateSelectedItem({color: e.target.value})} className="w-full h-8 sm:h-10 border rounded cursor-pointer p-0.5" />
+                                        </div>
+                                        
+                                        <div className="pt-2">
+                                            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">레이어(겹침) 순서</label>
+                                            <div className="flex space-x-2">
+                                                <button onClick={bringToFront} className="flex-1 py-1.5 bg-gray-100 hover:bg-gray-200 border rounded text-xs font-medium flex justify-center items-center">
+                                                    <Icon name="bring-to-front" className="w-3.5 h-3.5 mr-1" /> 맨 앞으로
+                                                </button>
+                                                <button onClick={sendToBack} className="flex-1 py-1.5 bg-gray-100 hover:bg-gray-200 border rounded text-xs font-medium flex justify-center items-center">
+                                                    <Icon name="send-to-back" className="w-3.5 h-3.5 mr-1" /> 맨 뒤로
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* 터치 환경(태블릿/모바일)을 위한 미세 이동 십자 패드 추가 */}
+                                        <div className="pt-4 pb-2 border-t border-b">
+                                            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 text-center text-blue-600">위치 미세조정 패드 (터치용)</label>
+                                            <div className="grid grid-cols-3 gap-1.5 w-28 sm:w-32 mx-auto">
+                                                <div />
+                                                <button onClick={() => moveItemUI('up')} className="bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded p-2 flex justify-center items-center shadow-sm border border-gray-200"><Icon name="chevron-up" className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600"/></button>
+                                                <div />
+                                                <button onClick={() => moveItemUI('left')} className="bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded p-2 flex justify-center items-center shadow-sm border border-gray-200"><Icon name="chevron-left" className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600"/></button>
+                                                <button onClick={() => moveItemUI('down')} className="bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded p-2 flex justify-center items-center shadow-sm border border-gray-200"><Icon name="chevron-down" className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600"/></button>
+                                                <button onClick={() => moveItemUI('right')} className="bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded p-2 flex justify-center items-center shadow-sm border border-gray-200"><Icon name="chevron-right" className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600"/></button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2 space-y-2">
+                                        <button 
+                                            onClick={duplicateSelectedItem}
+                                            className="w-full py-2 bg-white text-blue-600 font-semibold rounded border border-blue-200 hover:bg-blue-50 transition flex justify-center items-center text-sm"
+                                        >
+                                            <Icon name="copy" className="w-4 h-4 mr-2" /> 이 가구 복제하기
+                                        </button>
+                                        <button 
+                                            onClick={() => { 
+                                                const newItems = itemsRef.current.filter(i => i.id !== selectedId);
+                                                commitHistory(newItems); 
+                                                setSelectedIds([]); 
+                                                if (window.innerWidth < 1024) setShowRightPanel(false); // 모바일은 삭제 후 창 닫기
+                                            }}
+                                            className="w-full py-2 bg-red-50 text-red-600 font-semibold rounded border border-red-200 hover:bg-red-100 transition flex justify-center items-center text-sm"
+                                        >
+                                            <Icon name="trash-2" className="w-4 h-4 mr-2" /> 삭제하기
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : selectedIds.length > 1 ? (
+                                <div className="p-4 sm:p-5 space-y-5 sm:space-y-6 overflow-y-auto">
+                                    <div className="flex items-center space-x-3 pb-4 border-b">
+                                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded flex items-center justify-center shadow-sm bg-indigo-100">
+                                            <Icon name="layers" className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs sm:text-sm text-gray-500 font-medium">그룹 선택됨</p>
+                                            <p className="text-sm sm:text-base font-bold text-gray-800">가구 {selectedIds.length}개 선택</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-xs text-indigo-700 leading-relaxed">
+                                        선택된 가구 중 <b>아무거나 하나를 드래그</b>하면 {selectedIds.length}개가 한 번에 함께 이동해요.
+                                    </div>
+
+                                    <div className="pt-2">
+                                        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">레이어(겹침) 순서</label>
+                                        <div className="flex space-x-2">
+                                            <button onClick={bringToFront} className="flex-1 py-1.5 bg-gray-100 hover:bg-gray-200 border rounded text-xs font-medium flex justify-center items-center">
+                                                <Icon name="bring-to-front" className="w-3.5 h-3.5 mr-1" /> 맨 앞으로
+                                            </button>
+                                            <button onClick={sendToBack} className="flex-1 py-1.5 bg-gray-100 hover:bg-gray-200 border rounded text-xs font-medium flex justify-center items-center">
+                                                <Icon name="send-to-back" className="w-3.5 h-3.5 mr-1" /> 맨 뒤로
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2 pb-2 border-t border-b">
+                                        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 mt-3 text-center text-indigo-600">그룹 위치 미세조정 패드</label>
+                                        <div className="grid grid-cols-3 gap-1.5 w-28 sm:w-32 mx-auto">
+                                            <div />
+                                            <button onClick={() => moveItemUI('up')} className="bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded p-2 flex justify-center items-center shadow-sm border border-gray-200"><Icon name="chevron-up" className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600"/></button>
+                                            <div />
+                                            <button onClick={() => moveItemUI('left')} className="bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded p-2 flex justify-center items-center shadow-sm border border-gray-200"><Icon name="chevron-left" className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600"/></button>
+                                            <button onClick={() => moveItemUI('down')} className="bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded p-2 flex justify-center items-center shadow-sm border border-gray-200"><Icon name="chevron-down" className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600"/></button>
+                                            <button onClick={() => moveItemUI('right')} className="bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded p-2 flex justify-center items-center shadow-sm border border-gray-200"><Icon name="chevron-right" className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600"/></button>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2 space-y-2">
+                                        <button 
+                                            onClick={duplicateSelectedItem}
+                                            className="w-full py-2 bg-white text-blue-600 font-semibold rounded border border-blue-200 hover:bg-blue-50 transition flex justify-center items-center text-sm"
+                                        >
+                                            <Icon name="copy" className="w-4 h-4 mr-2" /> 그룹 복제하기
+                                        </button>
+                                        <button 
+                                            onClick={() => { 
+                                                const idsSet = new Set(selectedIds);
+                                                const newItems = itemsRef.current.filter(i => !idsSet.has(i.id));
+                                                commitHistory(newItems); 
+                                                setSelectedIds([]); 
+                                                if (window.innerWidth < 1024) setShowRightPanel(false);
+                                            }}
+                                            className="w-full py-2 bg-red-50 text-red-600 font-semibold rounded border border-red-200 hover:bg-red-100 transition flex justify-center items-center text-sm"
+                                        >
+                                            <Icon name="trash-2" className="w-4 h-4 mr-2" /> 그룹 삭제하기
+                                        </button>
+                                        <button 
+                                            onClick={() => setSelectedIds([])}
+                                            className="w-full py-2 bg-gray-50 text-gray-600 font-semibold rounded border border-gray-200 hover:bg-gray-100 transition flex justify-center items-center text-sm"
+                                        >
+                                            <Icon name="x" className="w-4 h-4 mr-2" /> 선택 해제
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-gray-400 p-6 text-center space-y-4">
+                                    <Icon name="mouse-pointer-click" className="w-10 h-10 sm:w-12 sm:h-12 text-gray-200" />
+                                    <p className="text-xs sm:text-sm leading-relaxed">캔버스에서 가구를 선택하시면<br/>크기, 회전, 위치를 설정할 수 있습니다.<br/><br/>여러 개를 <b>함께 옮기고</b> 싶다면 상단의<br/><b>'다중 선택'</b> 버튼을 켜고 가구들을<br/>차례로 탭/클릭한 뒤 하나를 드래그하세요.</p>
+                                </div>
+                            )}
+                        </aside>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
