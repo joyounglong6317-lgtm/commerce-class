@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>경제 골든벨</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<style>
+    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+    .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .toast-msg { background-color: #334155; color: white; padding: 12px 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); font-weight: bold; animation: toastIn 0.3s ease-out, toastOut 0.3s ease-in 2.7s forwards; }
+    @keyframes toastIn { from { opacity:0; transform: translateY(-20px);} to {opacity:1; transform: translateY(0);} }
+    @keyframes toastOut { from { opacity:1; } to {opacity:0; transform: translateY(-10px);} }
+    .hidden { display: none !important; }
+</style>
+</head>
+<body class="min-h-screen">
+<div id="toast-container"></div>
+
+<div id="configScreen" class="hidden min-h-screen flex items-center justify-center p-6">
+    <div class="max-w-lg w-full bg-white rounded-2xl shadow-xl p-8 border-t-8 border-rose-400">
+        <h2 class="text-xl font-black text-slate-800 mb-3"><i class="fas fa-triangle-exclamation text-rose-500 mr-2"></i>Firebase 설정이 필요합니다</h2>
+        <p class="text-slate-600 leading-relaxed">이 파일 상단의 <code class="bg-slate-100 px-2 py-1 rounded font-mono text-sm">firebaseConfig</code> 값을 본인의 Firebase 프로젝트 설정으로 교체한 뒤 다시 열어주세요.</p>
+    </div>
+</div>
+
+<div id="loadingScreen" class="min-h-screen flex items-center justify-center">
+    <i class="fas fa-circle-notch fa-spin text-4xl text-indigo-400"></i>
+</div>
+
+<div id="appRoot" class="hidden min-h-screen flex flex-col items-center justify-center p-4 sm:p-6">
+
+    <div id="authScreen" class="hidden max-w-md w-full">
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden p-8 sm:p-10 animate-fade-in">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"><i class="fas fa-bell text-white text-2xl"></i></div>
+                <h1 class="text-2xl font-black text-slate-800">경제 골든벨</h1>
+                <p class="text-slate-400 font-medium mt-1">전국상업경진대회 경제 기출문제</p>
+            </div>
+            <p id="authMsg" class="hidden mb-4 text-sm font-bold text-center p-3 rounded-xl"></p>
+
+            <form id="loginForm" class="space-y-4">
+                <input type="text" id="loginUserid" required placeholder="아이디" class="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none font-medium">
+                <input type="password" id="loginPassword" required placeholder="비밀번호" class="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none font-medium">
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-md mt-2 text-lg">로그인</button>
+            </form>
+
+            <form id="signupForm" class="hidden space-y-4">
+                <input type="text" id="signupUserid" required placeholder="아이디" class="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none font-medium">
+                <input type="password" id="signupPassword" required placeholder="비밀번호" class="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none font-medium">
+                <input type="text" id="signupName" required placeholder="이름" class="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none font-medium">
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-md mt-4 text-lg">회원가입 요청</button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <button type="button" id="toggleFormBtn" class="text-indigo-600 font-bold hover:text-indigo-800 transition-colors">계정이 없으신가요? 회원가입</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pendingScreen" class="hidden max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden p-10 text-center animate-fade-in border-t-8 border-amber-400">
+        <div class="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6"><i class="fas fa-hourglass-half text-4xl text-amber-500 animate-pulse"></i></div>
+        <h2 class="text-2xl font-black text-slate-800 mb-3">승인 대기 중입니다</h2>
+        <p class="text-slate-500 mb-8 font-medium leading-relaxed">선생님의 가입 승인이 완료된 후<br>기출문제를 풀 수 있습니다.</p>
+        <button id="pendingLogoutBtn" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-900 transition-all shadow-md">로그아웃</button>
+    </div>
+
+    <div id="adminScreen" class="hidden max-w-6xl w-full py-6">
+        <div class="flex flex-col sm:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-md mb-6 gap-4 border-l-8 border-indigo-600">
+            <div>
+                <h1 class="text-2xl font-black text-slate-800 tracking-tight"><i class="fas fa-user-shield text-indigo-600 mr-2"></i>경제골든벨 관리자 대시보드</h1>
+                <p class="text-slate-500 mt-1 font-medium">학생 가입 승인, 성적, 추가 문제(DB)를 관리합니다.</p>
+            </div>
+            <button id="adminLogoutBtn" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md"><i class="fas fa-sign-out-alt mr-2"></i>로그아웃</button>
+        </div>
+
+        <div class="flex space-x-2 border-b border-slate-300 mb-6 px-2">
+            <button onclick="switchAdminTab('users')" id="tabBtn-users" class="py-3 px-6 font-bold text-indigo-600 border-b-2 border-indigo-600 transition-colors text-lg">학생 / 성적 관리</button>
+            <button onclick="switchAdminTab('questions')" id="tabBtn-questions" class="py-3 px-6 font-bold text-slate-400 hover:text-slate-800 transition-colors text-lg">추가 문제 등록 / 관리</button>
+        </div>
+
+        <div id="tabContent-users" class="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
+            <div class="bg-white rounded-2xl shadow-md p-6 overflow-hidden flex flex-col h-[600px] border border-slate-200">
+                <h2 class="text-xl font-black mb-4 border-b border-slate-100 pb-3 text-slate-800 flex items-center"><div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center mr-3"><i class="fas fa-users-cog"></i></div>학생 가입 승인</h2>
+                <div id="userListBox" class="overflow-y-auto flex-grow pr-2"></div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-md p-6 overflow-hidden flex flex-col h-[600px] border border-slate-200">
+                <h2 class="text-xl font-black mb-4 border-b border-slate-100 pb-3 text-slate-800 flex items-center"><div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center mr-3"><i class="fas fa-chart-line"></i></div>모의고사 성적 현황</h2>
+                <div id="scoreListBox" class="overflow-y-auto flex-grow pr-2"></div>
+            </div>
+        </div>
+
+        <div id="tabContent-questions" class="hidden animate-fade-in">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white rounded-2xl shadow-md p-6 lg:col-span-1 h-fit border border-slate-200">
+                    <h2 class="text-xl font-black mb-4 border-b border-slate-100 pb-3 text-slate-800 flex items-center"><div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center mr-3"><i class="fas fa-plus"></i></div>새 문제 등록</h2>
+                    <p class="text-xs text-slate-400 mb-4 leading-relaxed">※ 기본 내장 문제(126문항)는 수정할 수 없고, 여기서 등록한 문제만 관리할 수 있습니다.</p>
+                    <form id="addQForm" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-black text-slate-500 mb-1 uppercase tracking-wider">문제 유형</label>
+                            <select id="q_type" onchange="toggleQTypeFields()" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm font-bold">
+                                <option value="mcq">객관식 (4지선다 / O,X)</option>
+                                <option value="short">단답형 (키워드)</option>
+                            </select>
+                        </div>
+                        <div><label class="block text-xs font-black text-slate-500 mb-1 uppercase tracking-wider">카테고리</label><input type="text" id="q_category" required placeholder="예: 2026년 기출" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm font-bold"></div>
+                        <div><label class="block text-xs font-black text-slate-500 mb-1 uppercase tracking-wider">문제 내용</label><textarea id="q_question" required rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium leading-relaxed"></textarea></div>
+
+                        <div id="mcq_fields" class="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <label class="block text-xs font-black text-slate-500 mb-1 uppercase tracking-wider">보기 및 정답 설정</label>
+                            <div class="flex items-center gap-2"><input type="radio" name="q_answer_idx" value="0" checked class="w-4 h-4 cursor-pointer"><input type="text" id="q_opt1" placeholder="보기 1 (정답 체크)" class="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium"></div>
+                            <div class="flex items-center gap-2"><input type="radio" name="q_answer_idx" value="1" class="w-4 h-4 cursor-pointer"><input type="text" id="q_opt2" placeholder="보기 2" class="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium"></div>
+                            <div class="flex items-center gap-2"><input type="radio" name="q_answer_idx" value="2" class="w-4 h-4 cursor-pointer"><input type="text" id="q_opt3" placeholder="보기 3" class="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium"></div>
+                            <div class="flex items-center gap-2"><input type="radio" name="q_answer_idx" value="3" class="w-4 h-4 cursor-pointer"><input type="text" id="q_opt4" placeholder="보기 4" class="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium"></div>
+                        </div>
+                        <div id="short_fields" class="hidden">
+                            <label class="block text-xs font-black text-slate-500 mb-1 uppercase tracking-wider">정답 키워드 (쉼표로 여러 개 허용)</label>
+                            <input type="text" id="q_accepted" placeholder="예: 소비자, consumer" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium">
+                        </div>
+
+                        <div><label class="block text-xs font-black text-slate-500 mb-1 uppercase tracking-wider">해설 (선택)</label><textarea id="q_explanation" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium leading-relaxed"></textarea></div>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-lg py-3 rounded-xl transition-all shadow-md mt-2"><i class="fas fa-save mr-2"></i> 문제 등록하기</button>
+                    </form>
+                </div>
+                <div class="bg-white rounded-2xl shadow-md p-6 lg:col-span-2 flex flex-col h-[800px] border border-slate-200">
+                    <h2 class="text-xl font-black mb-4 border-b border-slate-100 pb-3 flex justify-between items-center text-slate-800">
+                        <span class="flex items-center"><div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center mr-3"><i class="fas fa-database"></i></div>추가 등록 문제 목록</span>
+                        <span id="customQCount" class="text-sm font-black text-white bg-slate-800 px-4 py-1.5 rounded-full shadow-sm"></span>
+                    </h2>
+                    <div id="customQListBox" class="overflow-y-auto flex-grow pr-2 space-y-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="startScreen" class="hidden max-w-xl w-full mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-slate-100">
+        <div class="p-8 sm:p-10">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h1 class="text-2xl font-black text-slate-800">경제 골든벨 모의고사</h1>
+                    <p id="welcomeMsg" class="text-slate-400 font-medium mt-1"></p>
+                </div>
+                <button id="startLogoutBtn" class="text-slate-400 hover:text-rose-500 transition-colors" title="로그아웃"><i class="fas fa-sign-out-alt text-xl"></i></button>
+            </div>
+            <div class="space-y-3">
+                <button onclick="startQuiz(20, '20문항 퀵 테스트')" class="w-full group bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 text-slate-700 hover:text-blue-700 font-bold py-4 px-6 rounded-2xl transition-all flex justify-between items-center"><span>20문항 퀵 테스트</span><i class="fas fa-arrow-right"></i></button>
+                <button onclick="startQuiz(40, '40문항 실전 모의고사')" class="w-full group bg-white border-2 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 font-bold py-4 px-6 rounded-2xl transition-all flex justify-between items-center"><span>40문항 실전 모의고사</span><i class="fas fa-arrow-right"></i></button>
+                <button onclick="startQuiz('ALL', '전체 문항 마스터')" class="w-full bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-black text-white font-bold py-5 px-6 rounded-2xl transition-all shadow-xl flex justify-center items-center text-lg mt-2"><span>전체 문항 마스터</span></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="playingScreen" class="hidden max-w-2xl w-full mx-auto">
+        <div class="bg-white rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-slate-100">
+            <div class="p-6 sm:p-8">
+                <div class="flex justify-between items-center mb-4">
+                    <span id="qCategory" class="text-xs font-bold text-slate-400"></span>
+                    <span class="text-sm font-black text-slate-500"><span id="qCurrentIndex"></span> / <span id="qTotalCount"></span></span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2 mb-6 overflow-hidden"><div id="qProgressBar" class="bg-indigo-500 h-2 rounded-full transition-all duration-500" style="width:0%"></div></div>
+                <p id="qText" class="text-xl font-bold text-slate-800 mb-6 whitespace-pre-wrap leading-relaxed"></p>
+                <div id="qOptions" class="space-y-3"></div>
+                <div id="qExplanationBox" class="hidden mt-6 p-5 bg-slate-50 rounded-2xl border border-slate-200">
+                    <strong class="text-indigo-600 block mb-2"><i class="fas fa-chalkboard-teacher mr-1"></i>해설</strong>
+                    <p id="qExplanation" class="text-slate-700 leading-relaxed"></p>
+                </div>
+                <div class="mt-6">
+                    <button id="btnCheckAnswer" onclick="checkAnswer()" disabled class="w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all bg-slate-100 text-slate-400 cursor-not-allowed">정답 확인하기</button>
+                    <button id="btnNext" onclick="nextQuestion()" class="hidden w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xl py-4.5 px-6 rounded-2xl transition-all shadow-lg">다음 문제</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="resultScreen" class="hidden max-w-3xl w-full mx-auto">
+        <div class="bg-white rounded-3xl shadow-2xl overflow-hidden animate-fade-in p-8 sm:p-10 flex flex-col text-center" style="max-height:90vh;">
+            <div class="mb-8 flex-shrink-0">
+                <div class="inline-block p-4 rounded-full bg-yellow-50 mb-4"><i class="fas fa-trophy text-5xl text-yellow-400"></i></div>
+                <h2 class="text-4xl font-black text-slate-800 mb-3">모의고사 리포트</h2>
+                <p id="resultFeedback" class="text-slate-600 font-bold text-lg mt-1"></p>
+            </div>
+            <div class="flex justify-center items-center mb-10 flex-shrink-0">
+                <div class="relative w-56 h-56 flex items-center justify-center rounded-full border-[12px] border-slate-100 bg-white shadow-inner">
+                    <svg class="absolute inset-0 w-full h-full transform -rotate-90"><circle cx="100" cy="100" r="88" fill="none" stroke="currentColor" stroke-width="12" class="text-slate-100"/><circle id="resultCircle" cx="100" cy="100" r="88" fill="none" stroke="currentColor" stroke-width="12" stroke-dasharray="0 553" stroke-linecap="round" class="transition-all duration-1000 ease-out"/></svg>
+                    <div class="text-center z-10 flex flex-col items-center">
+                        <div class="flex items-baseline"><span id="resultPercentage" class="text-6xl font-black text-slate-800"></span><span class="text-2xl text-slate-400 font-black ml-1">%</span></div>
+                        <div id="resultScoreText" class="text-base font-bold text-slate-500 mt-2 bg-slate-100 px-4 py-1.5 rounded-xl border border-slate-200"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-50 rounded-2xl p-6 sm:p-8 text-left mb-8 overflow-y-auto flex-grow border border-slate-200 shadow-inner">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="font-black text-xl text-slate-800 flex items-center"><i class="fas fa-book-reader mr-3 text-indigo-500 text-2xl"></i>스마트 오답 노트</h3>
+                    <span id="wrongCount" class="text-sm font-bold text-slate-400"></span>
+                </div>
+                <div id="wrongAnswersList" class="space-y-8 mt-4"></div>
+            </div>
+            <button onclick="location.reload()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-5 px-6 rounded-2xl transition-all shadow-xl text-xl flex-shrink-0"><i class="fas fa-home mr-2"></i> 메인 화면으로</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/* =====================================================================
+   Firebase 설정 - 본인의 Firebase 프로젝트 값으로 반드시 교체하세요!
+   Firebase 콘솔 > 프로젝트 설정 > 일반 > 내 앱 에서 확인할 수 있습니다.
+===================================================================== */
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
+
+const COL_USERS = 'golden_bell_users';
+const COL_SCORES = 'golden_bell_scores';
+const COL_CUSTOM_Q = 'golden_bell_custom_questions';
+const SESSION_KEY = 'golden_bell_userid';
+const ADMIN_DEFAULT_PW = '1234';
+
+let db = null;
+try {
+    if (firebaseConfig.apiKey === 'YOUR_API_KEY') {
+        document.getElementById('loadingScreen').classList.add('hidden');
+        document.getElementById('configScreen').classList.remove('hidden');
+    } else {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+    }
+} catch (e) {
+    console.error(e);
+}
+
+// ---------------------------------------------------------------------
+// 내장 기출문제 DB (126문항) - 기존 PHP 서버의 자동 병합 DB를 그대로 반영
+// ---------------------------------------------------------------------
+const DEFAULT_QUESTIONS = [{"id": "q_22_01", "type": "mcq", "category": "2022년 기출", "question": "속담 중 '같은 값이면 다홍치마'는 여러 상품의 가격이 동일하다면 그 중에서 가장 품질이 좋은 것을 선택한다는 뜻으로 해석할 수 있다. 이와 관련된 경제 활동의 원칙은?", "options": ["신경제원칙", "최소 비용의 원칙", "최대 효과의 원칙", "수요와 공급의 원칙"], "answer": "최대 효과의 원칙", "explanation": "동일한 비용으로 최대의 효과를 얻고자 하는 '최대 효과의 원칙'입니다."}, {"id": "q_22_02", "type": "mcq", "category": "2022년 기출", "question": "매매에 대한 위탁을 받아 자기 명의로 매매하고 일정한 수수료를 받는 상인으로 증권 회사가 대표적인 예인 보조 상인은?", "options": ["대리상", "중개인", "운송 주선인", "위탁 매매인"], "answer": "위탁 매매인", "explanation": "자기 명의로 타인의 계산 하에 매매를 하는 자를 위탁매매인이라고 합니다."}, {"id": "q_22_03", "type": "mcq", "category": "2022년 기출", "question": "해운사가 2050년 탄소 중립 목표를 달성하기 위해 온실가스 배출량을 감축하겠다는 기사와 관련 있는 국제 환경 협약은?", "options": ["빈 협약", "바젤 협약", "파리 협정", "람사르 협약"], "answer": "파리 협정", "explanation": "온실가스 감축과 탄소 중립 목표는 2015년 채택된 파리 협정(Paris Agreement)과 관련이 있습니다."}, {"id": "q_22_04", "type": "mcq", "category": "2022년 기출", "question": "대금 결제 수단 중 하나인 '자기앞수표'의 지급인으로 옳은 것은?", "options": ["발행 은행", "당좌 예금주", "가계 당좌 예금주", "정기 적금 예금주"], "answer": "발행 은행", "explanation": "자기앞수표는 발행 은행이 스스로 지급인이 되어 발행하는 수표입니다."}, {"id": "q_22_05", "type": "mcq", "category": "2022년 기출", "question": "용선자가 선주로부터 선박만 빌리는 용선 계약을 체결한 후 선박 운항에 필요한 제반 비용을 모두 부담하는 해상 운송 형태는?", "options": ["나용선", "기간 용선", "항해 용선", "정기선 운송"], "answer": "나용선", "explanation": "선박 그 자체(Bareboat)만 빌리고 나머지는 용선자가 책임지는 것을 나용선(Bareboat Charter)이라고 합니다."}, {"id": "q_22_06", "type": "mcq", "category": "2022년 기출", "question": "김치 제조 업체가 소규모 배추 재배 농가 100여 곳으로부터 배추를 매입하여 모두 소비하는 유통 경로 유형은?", "options": ["소량 생산 - 소량 소비", "소량 생산 - 대량 소비", "대량 생산 - 소량 소비", "대량 생산 - 대량 소비"], "answer": "소량 생산 - 대량 소비", "explanation": "여러 농가에서 소량 생산된 농산물이 거대한 제조 업체에서 대량으로 소비되는 형태입니다."}, {"id": "q_22_07", "type": "mcq", "category": "2022년 기출", "question": "방문 판매 절차 6단계로 가장 적절한 것은?", "options": ["접근 → 고객발굴 → 반대질문처리 → 상품제안 → 사후관리 → 판매종결", "고객발굴 → 접근 → 반대질문처리 → 상품제안 → 판매종결 → 사후관리", "고객발굴 → 접근 → 상품제안 → 반대질문처리 → 판매종결 → 사후관리", "접근 → 상품제안 → 고객발굴 → 반대질문처리 → 사후관리 → 판매종결"], "answer": "고객발굴 → 접근 → 상품제안 → 반대질문처리 → 판매종결 → 사후관리", "explanation": "방문판매는 가망고객 발굴 → 접근 → 상품 제안 → 반대 극복 → 종결 → 사후관리 순으로 진행됩니다."}, {"id": "q_22_08", "type": "mcq", "category": "2022년 기출", "question": "A국으로부터 상품을 수입하여 원형 그대로 B국에 수출하는 간접 무역으로 매매 차익을 얻는 무역의 형태는?", "options": ["구상 무역", "중계 무역", "중개 무역", "녹다운 수출"], "answer": "중계 무역", "explanation": "수입한 물품을 가공하지 않고 원상태 그대로 제3국에 수출하여 차익을 취하는 것은 중계(Intermediate) 무역입니다."}, {"id": "q_22_09", "type": "mcq", "category": "2022년 기출", "question": "환어음을 발행하여 대금을 결제하는 후급 방식이며, 수입업자가 환어음의 지급인이 되는 무역 대금 결제 방식은?", "options": ["D/A", "D/P", "Sight L/C", "Usance L/C"], "answer": "D/A", "explanation": "D/A(인수인도조건)는 환어음을 인수함과 동시에 선적서류를 넘겨받고 일정 기간 뒤에 결제하는 외상 방식입니다."}, {"id": "q_22_10", "type": "mcq", "category": "2022년 기출", "question": "2인 이상의 무한책임사원으로 구성되며, 지분 양도 시 전사원의 동의가 필요한 상법상 회사 형태는?", "options": ["합명회사", "합자회사", "주식회사", "유한회사"], "answer": "합명회사", "explanation": "합명회사는 무한책임사원으로만 구성된 전형적인 인적회사입니다."}, {"id": "q_22_11", "type": "mcq", "category": "2022년 기출", "question": "기업이 생산하는 재화나 서비스를 소비하는 개인이나 집단 조직을 일컫는 과업 환경 요인은?", "options": ["공급자", "소비자", "경쟁기업", "유통업자"], "answer": "소비자", "explanation": "생산된 재화나 서비스를 구매하여 사용하는 주체는 소비자입니다."}, {"id": "q_22_12", "type": "mcq", "category": "2022년 기출", "question": "기업의 경영은 공정한 규칙 속에서 이루어져야 하며, 사회가 제정해 놓은 법을 준수하는 기업의 사회적 책임은?", "options": ["법적 책임", "윤리적 책임", "자선적 책임", "경제적 책임"], "answer": "법적 책임", "explanation": "법령을 준수하며 기업 활동을 영위하는 것은 기업의 '법적 책임'에 해당합니다."}, {"id": "q_22_13", "type": "mcq", "category": "2022년 기출", "question": "BCG 매트릭스에서 시장 점유율과 성장률이 모두 낮은 사양 산업에 해당하는 사업으로 유지 또는 철수를 결정해야 하는 유형은?", "options": ["개(Dog) 사업", "별(Star) 사업", "현금젖소(Cash cow) 사업", "물음표(Question mark) 사업"], "answer": "개(Dog) 사업", "explanation": "성장률과 점유율이 모두 낮아 쇠퇴기에 접어든 사업은 Dog(개)로 분류됩니다."}, {"id": "q_22_14", "type": "mcq", "category": "2022년 기출", "question": "조직을 능률적으로 관리하기 위해 관리자 한 사람이 직접 지휘 및 감독할 수 있는 직원의 수는 정해져 있다는 조직화의 원칙은?", "options": ["권한 위임의 원칙", "권한과 책임의 원칙", "명령 일원화의 원칙", "감독 범위 적정화의 원칙"], "answer": "감독 범위 적정화의 원칙", "explanation": "한 명의 상사가 효과적으로 지휘할 수 있는 부하의 수는 제한적이라는 원칙(통제 범위의 원칙)입니다."}, {"id": "q_22_15", "type": "mcq", "category": "2022년 기출", "question": "리더는 구성원을 직접 만나 의견을 듣고 피드백하는 과정을 통해 조직을 지휘한다는 지휘의 원칙은?", "options": ["직접 감독의 원칙", "목적 조화의 원칙", "감독 기술의 원칙", "명령 통일성의 원칙"], "answer": "직접 감독의 원칙", "explanation": "리더가 구성원과 직접 소통하며 감독하는 것을 직접 감독의 원칙이라 합니다."}, {"id": "q_22_16", "type": "mcq", "category": "2022년 기출", "question": "직무 태도는 '동기 요인'과 '위생 요인'에 따라 결정된다고 주장한 학자는?", "options": ["브룸(Vroom)", "알더퍼(Alderfer)", "매슬로우(Maslow)", "허즈버그(Herzberg)"], "answer": "허즈버그(Herzberg)", "explanation": "허즈버그의 2요인 이론(동기-위생 이론)입니다."}, {"id": "q_22_17", "type": "mcq", "category": "2022년 기출", "question": "기업 내 생산, 물류, 재무, 회계, 영업 등 경영 활동 프로세스를 통합적으로 연계하여 관리하는 전사적 통합 시스템은?", "options": ["ULS", "SCM", "ERP", "CRM"], "answer": "ERP", "explanation": "ERP(Enterprise Resource Planning)는 전사적 자원 관리 시스템을 뜻합니다."}, {"id": "q_22_18", "type": "mcq", "category": "2022년 기출", "question": "기업이 만기에 원금을 상환하기로 약속하는 채무 증권을 발행하고 이자를 지급하는 장기 자본 조달 방법은?", "options": ["사채 발행", "보통주 발행", "우선주 발행", "기업 어음 발행"], "answer": "사채 발행", "explanation": "기업이 장기 자금을 조달하기 위해 일반 대중을 상대로 발행하는 채무증권을 사채(회사채)라고 합니다."}, {"id": "q_22_19", "type": "mcq", "category": "2022년 기출", "question": "비상장 주식이 거래되는 한국의 장외 시장(K-OTC)의 특징으로 옳은 것은?", "options": ["시간외 시장이 있다.", "코스닥 지수가 산출된다.", "종합 주가 지수가 산출된다.", "기준가는 전일 거래량 가중 평균 주가이다."], "answer": "기준가는 전일 거래량 가중 평균 주가이다.", "explanation": "K-OTC 시장의 매매 기준가는 전일의 가중평균주가를 사용합니다."}, {"id": "q_22_20", "type": "mcq", "category": "2022년 기출", "question": "기초 자산을 미래의 일정 시점 또는 기간 동안 특정 행사 가격으로 매입하거나 매각할 수 있는 권리를 매매하는 파생 금융 상품은?", "options": ["선도", "선물", "옵션", "스와프"], "answer": "옵션", "explanation": "특정 가격에 살 수 있는 권리(Call)나 팔 수 있는 권리(Put)를 거래하는 것은 옵션(Option)입니다."}, {"id": "q_22_21", "type": "mcq", "category": "2022년 기출", "question": "주가 지수가 일정 수준 이상으로 급락하는 경우 증권 시장 전체의 매매 거래를 일시적으로 중단하는 제도는?", "options": ["사이드카", "서킷 브레이커", "단일가 매매 임의 연장", "변동성 완화 장치"], "answer": "서킷 브레이커", "explanation": "주식 시장의 붕괴를 막기 위해 매매를 일시 정지하는 제도를 서킷 브레이커라고 합니다."}, {"id": "q_22_22", "type": "mcq", "category": "2022년 기출", "question": "근로자가 업무상 발생한 부상, 질병 등의 사고로 입은 재해를 보상하는 사회 보험은?", "options": ["건강 보험", "고용 보험", "국민 연금", "산재 보험"], "answer": "산재 보험", "explanation": "산업 재해로부터 근로자를 보호하고 보상하는 제도는 산재(산업재해보상) 보험입니다."}, {"id": "q_21_01", "type": "mcq", "category": "2021년 기출", "question": "경제 활동의 주체에 대한 설명으로 옳지 않은 것은?", "options": ["정부: 공공복리를 위한 소비 활동 주도", "기업: 재화나 용역의 생산 활동 주도", "가계: 생산 경제의 주체로서 이윤의 극대화 추구", "외국: 다른 국가의 국민 경제"], "answer": "가계: 생산 경제의 주체로서 이윤의 극대화 추구", "explanation": "가계는 '소비' 경제의 주체이며, 이윤 극대화를 추구하는 생산의 주체는 '기업'입니다."}, {"id": "q_21_02", "type": "mcq", "category": "2021년 기출", "question": "물품의 인도와 동시에 현금 결제가 이루어지는 대금 결제 조건은?", "options": ["D/A", "D/P", "T/T", "COD"], "answer": "COD", "explanation": "COD(Cash On Delivery)는 물품 배달(인도) 시 현금을 지급하는 방식입니다."}, {"id": "q_21_03", "type": "mcq", "category": "2021년 기출", "question": "한국은행이 채권을 사고 팔아 시중에 유통되는 화폐의 양이나 금리 수준에 영향을 주는 통화신용정책 수단은?", "options": ["기준금리", "여수신 제도", "지급준비율", "공개시장운영"], "answer": "공개시장운영", "explanation": "중앙은행이 증권시장에 직접 개입해 국공채 등을 매매함으로써 통화량을 조절하는 정책입니다."}, {"id": "q_21_04", "type": "mcq", "category": "2021년 기출", "question": "은행의 업무 중 기업으로부터 매출채권을 매입하여 자금을 빌려주는 것으로 옳은 것은?", "options": ["팩터링", "PB영업", "신용대출", "방카슈랑스"], "answer": "팩터링", "explanation": "금융기관이 기업의 외상매출금(매출채권)을 양도받아 자금을 융통해주는 금융 기법을 팩터링이라 합니다."}, {"id": "q_21_05", "type": "mcq", "category": "2021년 기출", "question": "증권 회사가 유가증권 거래와 관련하여 고객에게 금전을 융자하거나 유가증권을 대부하는 업무는?", "options": ["신용 공여 업무", "위탁 매매 업무", "자기 매매 업무", "중개 대리 업무"], "answer": "신용 공여 업무", "explanation": "고객에게 증권 매매 대금을 대출해주거나 주식을 빌려주는 것을 신용 공여 업무라고 합니다."}, {"id": "q_20_01", "type": "mcq", "category": "2020년 기출", "question": "경제활동의 원칙 중 동일한 효과를 얻기 위하여 비용과 희생을 최소화하려는 원칙으로 옳은 것은?", "options": ["동일 효과의 원칙", "최대 효과의 원칙", "최대 잉여의 원칙", "최소 비용의 원칙"], "answer": "최소 비용의 원칙", "explanation": "투입되는 비용을 최소화하는 것을 '최소 비용의 원칙'이라고 합니다."}, {"id": "q_20_02", "type": "mcq", "category": "2020년 기출", "question": "매매의 조건 중 목재나 냉동수산물과 같이 시장에서 판매하기에 적격인 품질을 표준품으로 하는 품질 조건으로 옳은 것은?", "options": ["TQ(Tale quale)", "FAQ(fair average quality)", "USQ(usual standard quality)", "GMQ(good merchantable quality)"], "answer": "GMQ(good merchantable quality)", "explanation": "판매적격품질조건(GMQ)은 원목, 냉동어류 등에 주로 사용되는 품질 결정 방법입니다."}, {"id": "q_20_03", "type": "mcq", "category": "2020년 기출", "question": "차량에 부착된 단말기를 이용하여 실시간으로 차량이나 화물의 위치를 추적 관리하여 운행, 화물 관리를 돕는 시스템은?", "options": ["CVO", "GPS", "ITS", "RFID"], "answer": "CVO", "explanation": "CVO(Commercial Vehicle Operations)는 화물차량 운행 관리 시스템을 뜻합니다."}, {"id": "q_20_04", "type": "mcq", "category": "2020년 기출", "question": "금융 기관들이 일시적인 자금 과부족을 조절하기 위하여 초단기로 자금을 차입하거나 대여하는 시장은?", "options": ["콜시장", "CD 시장", "기업 어음 시장", "환매 조건부 매매 시장"], "answer": "콜시장", "explanation": "금융기관 상호 간의 1일~30일 이내 초단기 자금 거래 시장을 콜(Call) 시장이라고 합니다."}, {"id": "q_19_01", "type": "mcq", "category": "2019년 기출", "question": "운송 주선인은 화물주(화주)가 원하는 목적지에 정확하게 전달하기 위해 운송인과 타인 명의로 운송 계약을 체결한다.", "options": ["O", "X"], "answer": "X", "explanation": "운송 주선인은 '자기 명의'로 타인의 계산 하에 운송 계약을 체결합니다."}, {"id": "q_19_02", "type": "mcq", "category": "2019년 기출", "question": "BOT는 플랜트 수출 등에서 투자 회사가 건설·운영·관리를 한 뒤 현지 기업이나 정부에 매각·양도하는 방식이다.", "options": ["O", "X"], "answer": "O", "explanation": "BOT (Build-Operate-Transfer)의 정확한 개념입니다."}, {"id": "q_19_03", "type": "mcq", "category": "2019년 기출", "question": "기업이 세금 축소, 주가 조작 등을 목적으로 일정 시점의 재무 상태나 경영 성과를 왜곡하여 사실과 다르게 나타내는 것을 분식회계라고 한다.", "options": ["O", "X"], "answer": "O", "explanation": "고의적으로 장부를 조작하여 재무 상태를 왜곡하는 것을 분식회계라고 합니다."}, {"id": "q_19_04", "type": "mcq", "category": "2019년 기출", "question": "가수금은 거래처 또는 종업원으로부터 일시적으로 현금을 수취하고 후에 이를 다시 반환하거나 해당 기관에 납부할 때까지 기록하기 위하여 사용하는 계정이다.", "options": ["O", "X"], "answer": "X", "explanation": "이는 예수금에 대한 설명입니다. 가수금은 현금을 수취하였으나 내역이 불확실할 때 임시로 기록하는 계정입니다."}, {"id": "q_19_05", "type": "mcq", "category": "2019년 기출", "question": "결산일 현재 운송 중에 있는 상품을 적송품이라 한다.", "options": ["O", "X"], "answer": "X", "explanation": "운송 중인 상품은 미착상품이며, 위탁판매를 위해 수탁자에게 보낸 상품을 적송품이라 합니다."}, {"id": "q_19_06", "type": "mcq", "category": "2019년 기출", "question": "경상수지 중 임금, 이자, 배당금 등 소득에 대한 수취액과 지급액의 차액을 본원 소득 수지라고 한다.", "options": ["O", "X"], "answer": "O", "explanation": "국제수지표의 본원 소득 수지는 임금, 투자소득 등의 차액을 나타냅니다."}, {"id": "q_18_01", "type": "mcq", "category": "2018년 기출", "question": "수익의 이연이란 당기에 현금의 수입으로 발생한 금액을 당기의 수익으로 처리하였으나 그 금액 중 차기 이후에 속한 수익이 있을 경우에는 당기의 수익에서 차감하는 것이다.", "options": ["O", "X"], "answer": "X", "explanation": "선수수익에 대한 올바른 설명이나, 설명에 명시된 부분에 오류가 있습니다."}, {"id": "q_18_02", "type": "mcq", "category": "2018년 기출", "question": "사용 목적이 제한되어 있는 예금은 결산일로부터 만기가 1년 이내에 도래하더라도 단기 예금으로 처리하지 않는다.", "options": ["O", "X"], "answer": "X", "explanation": "사용 목적이 제한된 특정 현금과 예금은 만기에 관계없이 투자자산 등으로 분류됩니다."}, {"id": "q_18_03", "type": "mcq", "category": "2018년 기출", "question": "최대 효과의 원칙은 같은 효과를 얻기 위하여 가능한 한 비용 또는 희생을 최소화하려는 원칙을 말한다.", "options": ["O", "X"], "answer": "X", "explanation": "이는 '최소 비용의 원칙'에 대한 설명입니다."}, {"id": "q_18_04", "type": "mcq", "category": "2018년 기출", "question": "정률법은 초기에는 많은 금액을 상각하고, 내용 연수가 경과할수록 감가상각비를 적게 계상하는 방법이다.", "options": ["O", "X"], "answer": "O", "explanation": "정률법은 장부금액에 일정한 상각률을 곱하여 상각하므로 초기 상각액이 가장 큽니다."}, {"id": "q_18_05", "type": "mcq", "category": "2018년 기출", "question": "무형자산에 대한 감가상각방법은 간접법에 의한다.", "options": ["O", "X"], "answer": "X", "explanation": "무형자산은 주로 직접법으로 상각합니다."}, {"id": "q_18_06", "type": "mcq", "category": "2018년 기출", "question": "사채의 조기 상환에서 매입 상환의 경우 사채 상환 손실만 발생한다.", "options": ["O", "X"], "answer": "X", "explanation": "장부금액과 상환금액의 차이에 따라 사채상환이익도 발생할 수 있습니다."}, {"id": "q_18_07", "type": "mcq", "category": "2018년 기출", "question": "기업의 내부 이해 관계자인 경영자에게 유용한 회계 정보를 제공하는 것을 목적으로 하는 내부 보고 목적의 회계를 관리 회계라 한다.", "options": ["O", "X"], "answer": "O", "explanation": "관리회계의 정확한 정의입니다."}, {"id": "q_18_08", "type": "mcq", "category": "2018년 기출", "question": "일반기업회계기준에서 재고자산감모손실은 원가성 유무에 관계없이 영업외비용으로 처리한다.", "options": ["O", "X"], "answer": "X", "explanation": "원가성이 있는 감모손실은 매출원가에 가산하고, 원가성이 없는 경우에만 영업외비용으로 처리합니다."}, {"id": "q_18_09", "type": "mcq", "category": "2018년 기출", "question": "다음 중 재무상태표에 표시될 수 없는 계정 과목은?", "options": ["가수금", "임차료", "미수이자", "선수임대료"], "answer": "임차료", "explanation": "임차료는 손익계산서의 비용 계정이며 재무상태표에 표시되지 않습니다."}, {"id": "q_18_10", "type": "mcq", "category": "2018년 기출", "question": "다음 중 법정 적립금에 속하는 것은?", "options": ["별도 적립금", "이익준비금", "결손 보전 적립금", "사업확장 적립금"], "answer": "이익준비금", "explanation": "이익준비금은 상법에 의해 강제로 적립해야 하는 대표적인 법정 적립금입니다."}, {"id": "q_18_11", "type": "mcq", "category": "2018년 기출", "question": "기업이 제공하는 회계 정보가 정보 이용자의 의사 결정과 관련한 정보로 제공되어야 한다는 의미는?", "options": ["투명성", "신뢰성", "완전성", "목적 적합성"], "answer": "목적 적합성", "explanation": "회계정보가 정보이용자의 의사결정에 차이를 유발할 수 있는 능력을 목적 적합성이라고 합니다."}, {"id": "q_18_12", "type": "mcq", "category": "2018년 기출", "question": "정해진 단위 기간마다 이자를 주기적으로 지급하는 방식의 채권은?", "options": ["복리채", "이표채", "보증채", "할인채"], "answer": "이표채", "explanation": "채권 본체에 이자표가 붙어 있어 이자지급일마다 이를 떼어 이자를 지급받는 채권입니다."}, {"id": "q_18_13", "type": "mcq", "category": "2018년 기출", "question": "해상 및 내륙 수로 운송을 포함한 모든 운송 방식을 위한 규칙에 속하는 것은?", "options": ["FCA", "CFR", "FAS", "CIF"], "answer": "FCA", "explanation": "FCA, CPT, CIP 등은 운송 방식에 관계없이 사용될 수 있는 인코텀즈 규칙입니다."}, {"id": "s_19_01", "type": "short", "category": "2019년 기출", "question": "경제지표를 평가하는 데 있어 기준시점과 비교시점의 상대적인 수치에 따라 그 결과에 큰 차이가 날 수 있음을 보여주는 현상은?\n(○○효과)", "acceptedAnswers": ["기저효과", "기저 효과"], "explanation": "비교 대상이 되는 기준시점의 수치가 너무 낮거나 높아서 현재의 지표가 왜곡되어 보이는 현상을 기저효과라 합니다."}, {"id": "s_19_02", "type": "short", "category": "2019년 기출", "question": "특정 지역의 집값을 잡기 위해 규제를 강화하면 다른 지역으로 수요가 몰려 집값이 오르는 것처럼, 한 문제를 해결하면 또 단른 문제가 생기는 현상은?\n(○○효과)", "acceptedAnswers": ["풍선효과", "풍선 효과"], "explanation": "풍선의 한쪽을 누르면 다른 쪽이 부풀어 오르는 것에 빗대어 풍선효과라고 부릅니다."}, {"id": "s_19_03", "type": "short", "category": "2019년 기출", "question": "금리를 낮추고 시장에 현금이 흘러넘쳐도 기업 투자와 가계 소비가 늘지 않아 경기가 살아나지 않는 경제 상태를 가리키는 용어는?", "acceptedAnswers": ["유동성함정", "유동성 함정"], "explanation": "케인즈가 제시한 개념으로, 통화량을 늘려도 사람들이 돈을 가지고만 있어 경제에 영향을 주지 못하는 상태입니다."}, {"id": "s_19_04", "type": "short", "category": "2019년 기출", "question": "가난 구제, 빈민층 교육 등 공익적 사업을 이윤을 추구하는 기업 형태로 운영하는 자본으로 핫머니와 반대되는 자금은?", "acceptedAnswers": ["쿨머니", "쿨 머니"], "explanation": "단기 투기 자본인 핫머니(Hot Money)와 대비하여, 장기적이고 사회적 책임을 다하는 건강한 자본을 쿨머니라고 합니다."}, {"id": "s_18_01", "type": "short", "category": "2018년 기출", "question": "일상 소비 생활에서 구매하는 상품과 용역의 가격 변동을 조사하여 화폐의 구매력 변동을 측정하는 대표적인 물가 지수는?", "acceptedAnswers": ["소비자물가지수", "소비자 물가 지수", "CPI"], "explanation": "통계청에서 매월 작성하며, 도시 가계가 소비하는 재화와 서비스 가격 변동을 나타내는 지수입니다."}, {"id": "s_18_02", "type": "short", "category": "2018년 기출", "question": "당일 영업시간 중 금융기관의 일시적인 결제 부족자금을 무이자로 지원하기 위한 한국은행의 여수신제도는?", "acceptedAnswers": ["일중당좌대출", "일중 당좌 대출"], "explanation": "금융기관의 일시적 자금 부족으로 인한 결제 지연을 막기 위한 한국은행의 당좌대출 지원 제도입니다."}, {"id": "s_18_03", "type": "short", "category": "2018년 기출", "question": "경매 중 입찰 최저 가격을 정하고 그 이상의 가격으로 점차 높여가며 가장 높은 가격을 제시한 사람에게 낙찰하는 방식은?", "acceptedAnswers": ["적상법", "적상", "적상경매"], "explanation": "가격이 점점 올라가는 경매 방식을 적상법이라 하며, 반대로 가격이 내려가는 것은 하향식(더치) 경매입니다."}, {"id": "s_18_04", "type": "short", "category": "2018년 기출", "question": "소상공인 육성과 전통 시장 및 상점가 지원, 상권 활성화를 위해 2014년에 설립된 준정부 기관의 명칭은?", "acceptedAnswers": ["소상공인시장진흥공단", "소상공인 시장 진흥 공단"], "explanation": "소상공인진흥원과 시장경영진흥원이 통합되어 설립된 위탁집행형 준정부기관입니다."}, {"id": "s_18_05", "type": "short", "category": "2018년 기출", "question": "무역 인코텀즈 조건 중, 매도인이 지정 목적지에서 수입통관까지 이행하며 모든 비용과 위험(관세 포함)을 부담하는 조건의 우리말 명칭은?", "acceptedAnswers": ["관세지급인도조건", "관세 지급 인도 조건", "관세지급 반입인도조건", "관세지급(반입)인도조건"], "explanation": "DDP (Delivered Duty Paid)의 한국어 공식 명칭은 관세지급인도조건입니다."}, {"id": "s_18_06", "type": "short", "category": "2018년 기출", "question": "회계 처리에서 오류 가능성을 최소화하고 기업 간 비교를 위해 보편타당하다고 인정되는 '일반적으로 인정된 회계원칙'의 영문 약어는?", "acceptedAnswers": ["GAAP", "gaap"], "explanation": "GAAP (Generally Accepted Accounting Principles)입니다."}, {"id": "s_18_07", "type": "short", "category": "2018년 기출", "question": "산업 재산권이나 소프트웨어 등 무형 자산의 사용권을 빌려주고 받은 대가로 발생하는 수익을 기입하는 회계 계정과목은?", "acceptedAnswers": ["로열티수익", "로열티 수익"], "explanation": "특허권, 라이선스 등을 대여해주고 받는 수수료를 로열티 수익으로 처리합니다."}, {"id": "s_18_08", "type": "short", "category": "2018년 기출", "question": "고객이 구매하려는 상품보다 가격이 더 비싸거나 상위 등급의 모델을 구매하도록 유도하는 판매 촉진 마케팅 전략은?", "acceptedAnswers": ["업셀링", "업 셀링", "upselling"], "explanation": "기존 고객의 객단가를 높이는 상향 판매 전략을 업셀링이라 합니다."}, {"id": "s_18_09", "type": "short", "category": "2018년 기출", "question": "부동산, 매출채권 등 유동성은 떨어지나 재산 가치가 높은 자산을 담보로 하여 발행하는 증권의 명칭은?\n(영문 약어 3글자)", "acceptedAnswers": ["ABS", "abs"], "explanation": "자산유동화증권(Asset-Backed Securities)을 뜻합니다."}, {"id": "s_18_10", "type": "short", "category": "2018년 기출", "question": "보험의 목적물이 현실적으로 완전히 전멸하지는 않았으나, 손해 정도가 심하거나 수선비가 시가보다 더 클 때 보험금을 전액 청구하는 것을 뜻하는 해상손해 용어는?", "acceptedAnswers": ["추정전손", "추정 전손"], "explanation": "가치가 사실상 상실되어 전손으로 '추정'하여 처리하는 것을 추정전손이라 합니다."}, {"id": "q_25_01", "type": "mcq", "category": "2025년 기출", "question": "다음 설명에 해당하는 경제 활동의 주체로 옳은 것은?\n[민간 경제를 구성하며, 생산 경제의 주체로서 이윤의 극대화를 추구한다. 생산 요소를 제공받은 대가로 임금, 지대, 이자 등을 지급한다.]", "options": ["기업", "가계", "정부", "외국"], "answer": "기업", "explanation": "생산 경제의 주체로서 이윤 극대화를 추구하는 민간 경제 주체는 기업입니다."}, {"id": "q_25_02", "type": "mcq", "category": "2025년 기출", "question": "최근 1년간 우유 가격이 10% 상승할 때마다 우유와 동일한 효용을 가진 두유 판매량은 평균 8% 증가한 것으로 나타났다. 다음 사례에 나타난 재화의 관계로 옳은 것은?", "options": ["대체재", "보완재", "독립재", "결합재"], "answer": "대체재", "explanation": "한 재화의 가격 상승이 다른 재화의 수요 증가로 이어지는 관계는 대체재입니다."}, {"id": "q_25_03", "type": "mcq", "category": "2025년 기출", "question": "○○기업은 마스크팩용 포장재에 관한 산업 재산권을 취득했다고 28일 공시했다. 회사 측은 '기존 포장재의 토출부에 대한 고객들의 불만을 해결하기 위하여 토출부를 새롭게 개선하였다. 이를 통해 화장수 잔여량을 모두 사용할 수 있다'고 발표했다. 다음 기사에 나타난 산업 재산권으로 옳은 것은?", "options": ["특허권", "상표권", "디자인권", "실용신안권"], "answer": "실용신안권", "explanation": "기존 제품의 형상, 구조, 조립 등에 대한 실용적인 고안을 보호하는 권리는 실용신안권입니다."}, {"id": "q_25_04", "type": "mcq", "category": "2025년 기출", "question": "인천시는 인천항만공사, 한국수자원공사와 함께 지난해 인천항과 경인항의 물동량 증가에 기여한 포워더를 대상으로 총 26억 원의 인센티브를 지원한다고 밝혔다. 다음 기사에 나타난 보조상인에 대한 설명으로 옳은 것은?", "options": ["경업금지 의무가 있다.", "자기 명의로 거래를 주선한다.", "거래 쌍방으로부터 수수료를 받는다.", "특정 상인을 위해 계속적으로 대리한다."], "answer": "자기 명의로 거래를 주선한다.", "explanation": "포워더(운송주선인)는 자기 명의로 타인의 계산 하에 운송의 주선을 영업으로 하는 자입니다."}, {"id": "q_25_05", "type": "mcq", "category": "2025년 기출", "question": "클라크(C. Clark)의 산업 구조 분류 중 3차 산업에 대한 사례로 옳은 것은?", "options": ["반도체 공장 건설", "비닐하우스 활용 딸기 재배", "중소 기업을 위한 창업 자금 대출", "지역 난방을 위한 가스 배관 제조"], "answer": "중소 기업을 위한 창업 자금 대출", "explanation": "금융업, 서비스업 등은 3차 산업에 해당합니다. 농업은 1차, 건설 및 제조업은 2차 산업입니다."}, {"id": "q_25_06", "type": "mcq", "category": "2025년 기출", "question": "노동 가능 인구 중에서 취업자 수가 차지하는 비율을 말한다. 다음 내용에 해당하는 경제 지표로 옳은 것은?", "options": ["고용률", "취업률", "실업률", "경제 활동 참가율"], "answer": "고용률", "explanation": "15세 이상 생산가능인구 중 취업자가 차지하는 비율을 고용률이라고 합니다."}, {"id": "q_25_07", "type": "mcq", "category": "2025년 기출", "question": "국경을 초월해 이동하는 물새를 국제 자원으로 규정하여 가입국의 습지와 습지 자원을 보호하기 위한 정책 이행을 의무화하는 국제 환경 협약은?", "options": ["바젤 협약", "람사르 협약", "사막화 방지 협약", "생물 다양성 협약"], "answer": "람사르 협약", "explanation": "물새 서식지로서 국제적으로 중요한 습지에 관한 협약은 람사르 협약입니다."}, {"id": "q_25_08", "type": "mcq", "category": "2025년 기출", "question": "○○기업은 최근 일어난 산불 화재 피해지역에 3,000만 원 상당의 식료품과 의약품을 포함한 구호 물품을 기부하였다. 다음 사례에 해당하는 기업의 사회적 책임으로 옳은 것은?", "options": ["법률적 책임", "윤리적 책임", "자선적 책임", "경제적 책임"], "answer": "자선적 책임", "explanation": "사회 공헌 및 기부 활동은 자선적 책임에 해당합니다."}, {"id": "q_25_09", "type": "mcq", "category": "2025년 기출", "question": "한 사람의 상사로부터 지시와 명령을 받는다는 원칙은?", "options": ["전문화의 원칙", "책임과 권한의 원칙", "명령 일원화의 원칙", "감독 범위 적정화 원칙"], "answer": "명령 일원화의 원칙", "explanation": "조직 내의 모든 구성원은 오직 한 명의 상사로부터만 지시를 받아야 한다는 원칙입니다."}, {"id": "q_25_10", "type": "mcq", "category": "2025년 기출", "question": "A씨는 감귤을 매입하여 소매상에게 판매하고 있는데, 매입 상품을 고민하던 중 유명하다고 알려진 '제주 감귤'로 품질을 결정하였다. 다음 사례에 해당하는 품질 조건의 종류로 옳은 것은?", "options": ["현품", "통명", "표준품", "명세서"], "answer": "통명", "explanation": "널리 알려진 상표, 브랜드, 산지 명칭 등으로 품질을 결정하는 방법을 통명(Trade Mark) 거래라고 합니다."}, {"id": "q_25_11", "type": "mcq", "category": "2025년 기출", "question": "○○기업은 새로운 시스템을 도입하여 물품 관리, 재고 파악, 출입 통제 등 다양한 분야에서 활용하고 있다. 이 시스템은 전파를 이용하여 먼 거리에서 정보를 인식하는 기술로 바코드와 달리 비접촉식으로 정보 인식이 가능한 단방향 시스템이다. 다음 사례에 해당하는 물류 정보화 기술로 옳은 것은?", "options": ["EDI", "GPS", "RFID", "NFC"], "answer": "RFID", "explanation": "무선 주파수를 이용하여 원거리에서 비접촉식으로 정보를 인식하는 기술은 RFID입니다."}, {"id": "q_25_12", "type": "mcq", "category": "2025년 기출", "question": "최고의 품질 수준을 달성할 수 있도록 데이터에 기반을 두는 기법으로 제품 100만 개당 불량품 목표를 평균 3~4개 이하로 두는 경영 혁신 기법은?", "options": ["6 시그마", "벤치 마킹", "아웃 소싱", "리스트럭처링"], "answer": "6 시그마", "explanation": "품질 혁신과 고객 만족을 달성하기 위해 100만 개당 3.4개의 불량률을 목표로 하는 기법은 6시그마입니다."}, {"id": "q_25_13", "type": "mcq", "category": "2025년 기출", "question": "A기업은 제품 생산의 효율성을 위해 화물을 일정한 표준의 중량 또는 용적으로 단위화하여 기계적인 힘에 의해 일관적으로 운송하는 새로운 물류 정보 시스템을 도입하였다. 다음 사례에 해당하는 A기업의 물류 정보 시스템의 종류로 옳은 것은?", "options": ["ULS", "TMS", "POS", "CVO"], "answer": "ULS", "explanation": "화물을 표준화, 단위화하여 일관 운송하는 시스템을 ULS(Unit Load System)라고 합니다."}, {"id": "q_25_14", "type": "mcq", "category": "2025년 기출", "question": "시장에 신제품을 출시할 때 고가로 출시한 후 점차적으로 가격을 낮추는 전략으로, 브랜드 충성도가 높거나 경쟁 제품과의 차별점이 확실할 때 사용하는 판매 가격 정책은?", "options": ["저가격 정책", "스키밍 정책", "단수 가격 정책", "침투 가격 정책"], "answer": "스키밍 정책", "explanation": "초기 고가 전략(Market Skimming Pricing)은 신제품 출시 초기에 높은 가격을 책정하여 이익을 극대화하는 전략입니다."}, {"id": "q_25_15", "type": "mcq", "category": "2025년 기출", "question": "한국은행은 30일 환매조건부채권(RP) 매입을 통해 시중에 탄력적으로 유동성을 공급하겠다고 밝혔다. 다음 기사에 나타난 한국은행의 금융 정책으로 옳은 것은?", "options": ["기준금리 조절", "여수신 제도", "지급 준비 제도", "공개 시장 운영"], "answer": "공개 시장 운영", "explanation": "중앙은행이 금융시장에서 국공채 등을 매매하여 통화량을 조절하는 정책을 공개시장운영이라고 합니다."}, {"id": "q_25_16", "type": "mcq", "category": "2025년 기출", "question": "비상장 주식이 거래되는 시장으로 한국금융투자협회가 일정한 요건을 충족하는 비상장 주식을 등록 또는 지정하는 증권 시장으로 옳은 것은?", "options": ["코스닥 시장", "코넥스 시장", "K-OTC 시장", "유가 증권 시장"], "answer": "K-OTC 시장", "explanation": "K-OTC(장외주식시장)는 한국금융투자협회가 운영하는 비상장 주식 거래 시장입니다."}, {"id": "q_25_17", "type": "mcq", "category": "2025년 기출", "question": "자국 통화의 대미 달러 환율을 제3국의 대미 달러 환율로 나누어 산출하는 환율은?", "options": ["기준 환율", "재정 환율", "대고객 환율", "은행 간 환율"], "answer": "재정 환율", "explanation": "자국 통화와 기준 통화(달러)의 환율을 기준으로 다른 통화와의 환율을 간접적으로 계산한 것을 재정 환율이라고 합니다."}, {"id": "q_25_18", "type": "mcq", "category": "2025년 기출", "question": "현재 시점에서 환율과 거래량을 계약하고, 미래의 결제 시점까지 외환의 인수, 인도 및 결제가 유보된다. 현재 시점에서 미래 환율을 미리 확정시켜 환 위험 관리가 가능한 외환 거래의 종류는?", "options": ["송금환", "추심환", "선물환", "현물환"], "answer": "선물환", "explanation": "미래의 일정 시점에 미리 약정한 환율로 외환을 매매하기로 하는 거래를 선물환 거래라고 합니다."}, {"id": "q_25_19", "type": "mcq", "category": "2025년 기출", "question": "기업 경영에 영향을 주는 공중과 기업 사이의 관계를 파악하고 호의적인 관계 구축하여 기업의 이미지를 높인다. 이를 통해 소비자가 자사의 제품, 서비스를 구매하도록 간접적으로 유도하는 촉진 활동은?", "options": ["광고", "PR", "판매 촉진", "인적 판매"], "answer": "PR", "explanation": "공중과의 호의적인 관계(Public Relations)를 통해 기업 이미지를 제고하는 활동입니다."}, {"id": "q_25_20", "type": "mcq", "category": "2025년 기출", "question": "고객이 희망하는 상품과 상호보완이 가능한 상품을 추가로 구매하도록 유도하는 상품 배치 방법은?", "options": ["업셀링", "번들링", "다운셀링", "크로스셀링"], "answer": "크로스셀링", "explanation": "연관된 상품을 추가로 구매하도록 유도하는 교차 판매(Cross-selling) 전략입니다."}, {"id": "q_25_21", "type": "mcq", "category": "2025년 기출", "question": "기업이 직면한 외부 환경 중 기회와 위협이 되는 요소들을 기업 내부의 강점과 약점에 대응시켜 효율적인 전략을 수립하는 분석 기법은?", "options": ["3C 분석", "STP 전략", "SWOT 분석", "마케팅 믹스(4P's) 전략"], "answer": "SWOT 분석", "explanation": "강점(Strength), 약점(Weakness), 기회(Opportunity), 위협(Threat)을 분석하는 기법입니다."}, {"id": "q_25_22", "type": "mcq", "category": "2025년 기출", "question": "미국의 ○○기업은 개인 고객들을 대상으로 클라우드 서비스 형태의 구독 모델로 전환하여 주가가 30% 상승하는 쾌거를 이뤄냈다. 클라우드 서비스 모델은 고객들이 ○○기업의 홈페이지를 통해 구독, 결제하여 사용하는 방식이다. 다음 사례에 나타난 전자상거래의 유형으로 옳은 것은?", "options": ["B2B", "B2C", "B2G", "C2C"], "answer": "B2C", "explanation": "기업(Business)이 일반 소비자(Consumer)를 대상으로 하는 전자상거래 유형입니다."}, {"id": "q_25_23", "type": "mcq", "category": "2025년 기출", "question": "○○기업은 상품 수출을 위해 A국가에서 수입한 물품을 보세 구역에서 국내로 반입하지 않고 원형 그대로 재수출하여 수익을 내고 있다. 이는 수입대금과 수출대금의 차액을 목적으로 하는 무역 방식이다. 다음 사례에 해당하는 간접 무역의 종류로 옳은 것은?", "options": ["중개 무역", "통과 무역", "중계 무역", "스위치 무역"], "answer": "중계 무역", "explanation": "수입한 물품을 가공하지 않고 원형 그대로 제3국에 수출하여 차익을 취하는 무역 방식입니다."}, {"id": "q_25_24", "type": "mcq", "category": "2025년 기출", "question": "수출업자와 수입업자가 수출입 물품의 대금을 그에 상응하는 수입 또는 수출로 상쇄하는 무역 거래로 하나의 계약서에 수출입 연계 내용을 작성하는 연계 무역의 종류는?", "options": ["대응 구매", "삼각 무역", "제품 환매", "구상 무역"], "answer": "구상 무역", "explanation": "하나의 계약서로 수출입을 연계하여 대금을 상쇄하는 무역 방식을 구상무역(Compensation Trade)이라고 합니다."}, {"id": "q_25_25", "type": "mcq", "category": "2025년 기출", "question": "손흥민 선수는 토트넘에서 주급 약 3억 4천만 원을 받고 있으며, 2026년 여름까지 계약이 연장되어 팀에 머물 예정이다. 다음 기사에 나타난 경상 수지의 종류로 옳은 것은?", "options": ["상품 수지", "서비스 수지", "이전 소득 수지", "본원 소득 수지"], "answer": "본원 소득 수지", "explanation": "내국인이 해외에서 벌어들인 급여, 임금 등은 본원소득수지에 해당합니다."}, {"id": "q_25_26", "type": "mcq", "category": "2025년 기출", "question": "수출업자가 수입국 내 지정된 목적지까지 물품 도착 후 양하하고 수출업자가 수출 통관 및 수입 통관 업무를 수행하는 인코텀스 2020의 가격 조건은?", "options": ["DAT", "DAP", "DDP", "DPU"], "answer": "DDP", "explanation": "관세지급인도조건(Delivered Duty Paid)으로 매도인이 수입통관까지 책임집니다."}, {"id": "q_25_27", "type": "mcq", "category": "2025년 기출", "question": "대리: 이번에 수출할 우리 회사의 스마트폰 완제품에 대해 미국이 관세를 25%나 올렸습니다. / 부장: 그렇다면 미국 현지에 있는 우리 공장 조립 라인 4개를 스마트폰 조립 라인으로 변경하고, 조립 전 부품의 형태로 수출하세요. 현지에서 조립하면 될 겁니다. 다음 대화에 나타난 수출 방식으로 옳은 것은?", "options": ["기술 수출", "OEM 수출", "플랜트 수출", "녹다운 방식 수출"], "answer": "녹다운 방식 수출", "explanation": "완제품이 아닌 부품이나 반제품 형태로 수출하여 현지에서 조립, 판매하는 방식을 녹다운(Knock-down) 방식이라고 합니다."}, {"id": "q_25_28", "type": "mcq", "category": "2025년 기출", "question": "시장 성장률은 낮으나, 현재 시장 점유율은 높아 수익이 안정적인 제품으로 현재 상태를 유지하면서 확보한 수익을 다른 분야에 투자하는 BCG매트릭스 분석 전략 단계는?", "options": ["Dog", "Star", "Cash Cow", "Question mark"], "answer": "Cash Cow", "explanation": "시장 성장률은 낮지만 점유율이 높아 안정적인 현금 창출원 역할을 하는 사업을 자금젖소(Cash Cow)라고 합니다."}, {"id": "q_25_29", "type": "mcq", "category": "2025년 기출", "question": "전문가 그룹을 대상으로 여러 차례 질문지를 돌려 그들의 답변을 정리하고, 그 결과를 전문가에게 알려 주는 과정을 반복하여 의견을 수렴하는 수요예측 방법은?", "options": ["델파이법", "시장 조사법", "패널 동의법", "판매원 의견 종합법"], "answer": "델파이법", "explanation": "전문가들의 의견을 익명으로 반복 수렴하여 합의를 도출하는 기법을 델파이법이라고 합니다."}, {"id": "q_25_30", "type": "mcq", "category": "2025년 기출", "question": "비계량적 평가 방법 중 하나로 기업 내의 각 직무를 상대적인 숙련, 노력, 책임, 작업 조건 등 요소를 기준으로 종합적으로 판단하여 전체적인 순위를 매기는 직무평가 방법은?", "options": ["분류법", "서열법", "점수법", "요소비교법"], "answer": "서열법", "explanation": "직무 간의 상대적 가치를 비교하여 순위를 매기는 가장 단순한 비계량적 직무평가 방법입니다."}, {"id": "q_25_31", "type": "mcq", "category": "2025년 기출", "question": "환율과 국제 수지를 감시하고, 국제 금융 체계를 감독하는 것을 위임받은 국제협력 기구이며, 회원국의 요청이 있을 때는 기술 및 금융 지원을 직접 제공하는 기능을 하는 국제협력 기구는?", "options": ["IMF", "WTO", "ISO", "OECD"], "answer": "IMF", "explanation": "국제통화기금(IMF)은 국제 금융 체계를 감독하고 회원국에 자금을 지원하는 역할을 합니다."}, {"id": "q_25_32", "type": "mcq", "category": "2025년 기출", "question": "A기업은 개발도상국인 ○○국의 댐 건설 사업 입찰에 성공하였다. 이번 ○○국 댐 건설 사업은 완공이 끝나고 정상적으로 가동되는 상태에서 ○○국에게 소유권을 이전하는 일괄 수주 계약 방식이다. 다음 사례에 해당하는 계약 방식으로 옳은 것은?", "options": ["라이선싱", "턴키 계약", "계약 생산", "관리 계약"], "answer": "턴키 계약", "explanation": "설계, 시공, 시운전까지 완료하여 열쇠(Key)만 돌리면(Turn) 가동할 수 있는 상태로 인도하는 방식입니다."}, {"id": "q_25_33", "type": "mcq", "category": "2025년 기출", "question": "아시아·태평양 지역의 경제 성장과 번영을 목표로 무역 투자 자유화, 기업활동 원활화, 경제 기술 협력 등 다양한 활동을 추진하며 1989년에 설립됨. 의사결정은 전원 합의 방식을 따르며, 비구속적 이행을 원칙으로 회원국의 자발적 참여를 중시하는 지역별 경제 통합체는?", "options": ["EU", "APEC", "NAFTA", "ASEAN"], "answer": "APEC", "explanation": "아시아태평양경제협력체(APEC)에 대한 설명입니다."}, {"id": "q_25_34", "type": "mcq", "category": "2025년 기출", "question": "원금에 대한 이자의 비율을 계산할 때, 물가 변동을 고려하여 물가 상승률을 뺀 금리를 말한다. 다음 내용에 해당하는 금리의 종류로 옳은 것은?", "options": ["고정 금리", "변동 금리", "명목 금리", "실질 금리"], "answer": "실질 금리", "explanation": "명목 금리에서 물가 상승률을 차감하여 실질적인 구매력을 나타내는 금리입니다."}, {"id": "q_25_35", "type": "mcq", "category": "2025년 기출", "question": "대가를 치르지 않고 일방적으로 주어지는 소득을 말한다. 반대급부 없이 주는 용돈이나 정부에서 지급하는 생계 보조금 등이 해당하는 소득의 종류는?", "options": ["이전 소득", "재산 소득", "사업 소득", "근로 소득"], "answer": "이전 소득", "explanation": "생산 활동에 직접 참여하지 않고 무상으로 얻는 소득을 이전 소득이라고 합니다."}, {"id": "q_25_36", "type": "mcq", "category": "2025년 기출", "question": "개인에게 당해 연도 귀속되는 각종 소득을 합해서 계산한다. 소득이 많을수록 높은 세율의 세금을 납부 해야 하는 누진세를 적용하는 세금은?", "options": ["취득세", "상속세", "증여세", "종합소득세"], "answer": "종합소득세", "explanation": "개인의 1년간 종합 소득에 대해 누진세율을 적용하여 부과하는 세금입니다."}, {"id": "q_25_37", "type": "mcq", "category": "2025년 기출", "question": "운영 주체는 법원이다. 자신의 모든 재산으로 채무를 변제할 수 없는 지급 불능 상태에 있는 채무자가 신청하는 신용 회복 제도로 옳은 것은?", "options": ["프리워크아웃", "개인 워크아웃", "개인 회생 제도", "개인 파산 제도"], "answer": "개인 파산 제도", "explanation": "법원을 통해 채무자의 모든 재산으로도 채무를 갚을 수 없는 지급 불능 상태일 때 남은 채무를 면책받는 제도입니다."}, {"id": "q_25_38", "type": "mcq", "category": "2025년 기출", "question": "은행의 한정적인 자금을 효율적으로 운영하여 국민 경제의 건전한 발전에 기여도가 높은 방향으로 운영되어야 한다는 여신 운용의 기본 원칙은?", "options": ["안정성의 원칙", "수익성의 원칙", "공공성의 원칙", "성장성의 원칙"], "answer": "공공성의 원칙", "explanation": "은행 자금은 국민 경제 발전에 부합하는 방향으로 운용되어야 한다는 원칙입니다."}, {"id": "q_25_39", "type": "mcq", "category": "2025년 기출", "question": "자기 재산을 전문가에게 맡겨서 관리 또는 재산 증식을 하게 하여 그 결과를 자신 또는 별도로 정한자에게 귀속시키는 은행의 업무는?", "options": ["여신 업무", "신탁 업무", "수신 업무", "신용 카드 업무"], "answer": "신탁 업무", "explanation": "위탁자가 재산권을 수탁자에게 이전하여 관리, 운용하게 하는 업무입니다."}, {"id": "q_25_40", "type": "mcq", "category": "2025년 기출", "question": "계약자의 청약에 대한 보험자의 승낙만으로 이루어지는 보험계약의 특징은?", "options": ["유상 계약", "쌍무 계약", "낙성 계약", "부합 계약"], "answer": "낙성 계약", "explanation": "당사자 간의 의사표시 합치만으로 성립하는 계약을 낙성 계약이라고 합니다."}, {"id": "s_24_p01", "type": "short", "category": "2024년 공개문항", "question": "생산자가 제공하는 상품과 서비스를 구입하거나 사용하는 사람을 무엇이라고 할까요?", "acceptedAnswers": ["소비자"], "explanation": "경제 활동에서 상품과 서비스를 소비하는 주체입니다."}, {"id": "s_24_p02", "type": "short", "category": "2024년 공개문항", "question": "‘주식회사의 외부 감사에 관한 법률’이 적용되는 대상 기업 중 한국 채택 국제 회계 기준에 따라 회계를 처리하지 않아도 되는 비상장 법인이 적용해야 하는 회계 처리 기준을 무엇이라고 하는가?", "acceptedAnswers": ["일반기업회계기준", "일반 기업 회계 기준"], "explanation": "비상장 법인이 주로 적용하는 회계 기준입니다."}, {"id": "s_24_p03", "type": "short", "category": "2024년 공개문항", "question": "‘지렛대’라는 의미에서 파생된 말로, 상대적으로 낮은 비용으로 자금을 끌어와 수익성이 높은 곳에 투자하여 이윤을 남기는 것을 무엇이라고 하는가?", "acceptedAnswers": ["레버리지", "leverage", "레버리지효과", "레버리지 효과"], "explanation": "타인 자본을 지렛대 삼아 자기 자본 이익률을 높이는 효과입니다."}, {"id": "s_24_p04", "type": "short", "category": "2024년 공개문항", "question": "‘창조적 파괴’라는 용어로 혁신을 새로운 상품 개발, 새로운 생산 방식, 새로운 시장 개척 등을 나타내며 기업가 정신의 개념을 최초로 도입한 학자는 누구인가?", "acceptedAnswers": ["슘페터"], "explanation": "혁신과 창조적 파괴를 강조한 경제학자는 슘페터입니다."}, {"id": "s_24_p191", "type": "short", "category": "2024년 공개문항", "question": "한 나라의 경제 주체가 일정 기간 동안 생산 활동에 참여하여 벌어들인 소득의 합계로서 국내 총생산에 국외 순수취 요소 소득을 합한 것을 무엇이라고 할까요?", "acceptedAnswers": ["국민총소득", "GNI", "국민 총소득"], "explanation": "GNI(Gross National Income)에 대한 설명입니다."}, {"id": "s_24_p192", "type": "short", "category": "2024년 공개문항", "question": "한 나라의 통화 1단위를 다른 나라 통화와 교환할 때 적용되는 양국 통화 간의 교환 비율을 무엇이라고 할까요?", "acceptedAnswers": ["환율"], "explanation": "서로 다른 통화 간의 교환 비율을 의미합니다."}, {"id": "s_24_p193", "type": "short", "category": "2024년 공개문항", "question": "한국 거래소에서 코스닥 시장 상장 요건을 충족시키지 못하는 벤처 기업과 중소기업이 상장할 수 있도록 2013년 개장한 중소기업 전용 주식 시장을 무엇이라고 할까요?", "acceptedAnswers": ["코넥스시장", "코넥스 시장", "코넥스"], "explanation": "중소기업 중심의 자본 시장은 코넥스(KONEX)입니다."}, {"id": "s_24_p194", "type": "short", "category": "2024년 공개문항", "question": "한국은행이 통화량을 조절하기 위해서 금융 기관과 일반인을 대상으로 발행하는 채권으로 3개월마다 금융통화위원회에서 발행 한도를 결정하는 특수채를 무엇이라고 할까요?", "acceptedAnswers": ["통화안정증권", "통화 안정 증권", "통안채"], "explanation": "한국은행이 발행하는 통화안정증권입니다."}, {"id": "q_23_30", "type": "mcq", "category": "2023년 기출", "question": "다음 설명에 해당하는 세금에 대한 내용으로 옳은 것은?\n[상품의 거래나 서비스의 제공 과정에서 거래 단계별로 얻어지는 부가 가치에 대하여 부과하는 세금이다.]", "options": ["직접세이다.", "개인 사업자는 예정 신고 의무가 없다.", "매입세액에서 매출세액을 차감하여 산출한다.", "간접세이며, 매출세액에서 매입세액을 차감하여 산출한다."], "answer": "간접세이며, 매출세액에서 매입세액을 차감하여 산출한다.", "explanation": "부가가치세는 간접세이며, 납부세액 = 매출세액 - 매입세액으로 계산합니다."}, {"id": "q_23_33", "type": "mcq", "category": "2023년 기출", "question": "다음 설명에 해당하는 금융 상품으로 옳은 것은?\n[은행이 정기 예금 증서에 양도성을 부여하여 무기명 할인식으로 발행한 정기 예금 증서이다.]", "options": ["CB", "CP", "CD", "RP"], "answer": "CD", "explanation": "양도성 예금증서는 CD(Certificate of Deposit)입니다."}, {"id": "q_23_34", "type": "mcq", "category": "2023년 기출", "question": "다음은 예금자 보호 제도에 대한 설명이다. 빈칸에 들어갈 금액으로 옳은 것은?\n[금융회사가 예금을 지급할 수 없게 되었을 때 금융회사를 대신하여 예금보험공사가 예금을 돌려주는 제도이다. 1인당 보호 금액은 최고 (    ) 까지이다.]", "options": ["3,000만 원", "5,000만 원", "7,000만 원", "9,000만 원"], "answer": "5,000만 원", "explanation": "예금자보호법에 의해 원금과 이자를 합하여 1인당 최고 5,000만 원까지 보호됩니다."}, {"id": "q_24_31", "type": "mcq", "category": "2024년 기출", "question": "다음 설명에 해당하는 지급수단으로 옳은 것은?\n[카드회사가 먼저 상품 대금을 지급하고 일정 기간 후 회원으로부터 상품 대금을 회수하는 결제 수단이다.]", "options": ["신용카드", "체크카드", "직불카드", "선불카드"], "answer": "신용카드", "explanation": "신용 기반으로 대금 결제를 유예받는 수단은 신용카드입니다."}, {"id": "q_24_35", "type": "mcq", "category": "2024년 기출", "question": "다음 설명에 해당하는 이자 지급 방법에 따른 채권의 종류로 옳은 것은?\n[채권발행 시 원금에서 만기일까지의 이자를 미리 공제하고, 만기에 원금에 해당하는 금액만 지급하는 형태의 채권이다.]", "options": ["보증채", "할인채", "이표채", "복리채"], "answer": "할인채", "explanation": "이자를 선공제하고 발행하는 채권은 할인채입니다."}, {"id": "q_8th_25", "type": "mcq", "category": "제8회 예선 기출", "question": "사채의 할증 발행시 발행비용은 별도의 사채발행비 계정으로 처리한다.", "options": ["O", "X"], "answer": "X", "explanation": "사채발행비용은 사채의 발행가액에서 직접 차감하여 처리합니다."}, {"id": "q_8th_26", "type": "mcq", "category": "제8회 예선 기출", "question": "상업 어음을 어음 만기일 이전에 타인에게 양도하거나 금융 기관에서 할인 받을 때 매출채권의 소멸로 회계 처리하는 경우를 차입거래라고 한다.", "options": ["O", "X"], "answer": "X", "explanation": "매출채권의 소멸로 회계 처리하는 경우는 '매각거래'에 해당합니다."}, {"id": "q_8th_27", "type": "mcq", "category": "제8회 예선 기출", "question": "대체재는 경쟁재 관계에 있는 두 재화를 따로 소비할 때의 효용보다 함께 소비할 때의 효용이 적은 경우의 재화를 말한다.", "options": ["O", "X"], "answer": "X", "explanation": "따로 소비할 때보다 함께 소비할 때 효용이 커지는 재화는 '보완재'이며, 한 재화의 가격 상승이 다른 재화의 수요를 증가시키는 것이 '대체재'입니다."}, {"id": "q_8th_33", "type": "mcq", "category": "제8회 예선 기출", "question": "어음이 부도가 나면 배서인은 피배서인에게 어음 대금을 지급할 의무가 생기므로 배서가 많은 어음일수록 신용도가 높은 것으로 본다.", "options": ["O", "X"], "answer": "O", "explanation": "배서인이 많을수록 부도시 상환을 청구할 수 있는 대상이 많아지므로 상대적으로 신용도가 높다고 봅니다."}, {"id": "q_8th_34", "type": "mcq", "category": "제8회 예선 기출", "question": "의사 결정 기관으로 사원 총회가 있으며, 출자에 비례하여 지분을 소유할 수 있으며, 정관으로 사원의 지분 양도를 제한할 수 있는 기업은 유한회사이다.", "options": ["O", "X"], "answer": "O", "explanation": "유한회사에 대한 올바른 설명입니다. 사원총회를 두며 지분 양도가 제한적입니다."}, {"id": "q_8th_35", "type": "mcq", "category": "제8회 예선 기출", "question": "이동 평균법은 상품 매입 시점마다 인수액과 잔여 수량의 원가를 합산하여 평균 단가를 산출하여 기록하는 방법이다.", "options": ["O", "X"], "answer": "O", "explanation": "매입 시점마다 새로운 단가를 산출하는 이동평균법의 정확한 정의입니다."}, {"id": "q_9th_35", "type": "mcq", "category": "제9회 예선 기출", "question": "장기간에 걸친 주가상승이나 강세장을 뜻하는 것을 불마켓(Bull market)이라고 한다. 반대로 주가를 비롯한 자산 가격이 하락하고 있거나 하락할 것으로 예상되는 약세장을 베어마켓(Bear market)이라고 한다.", "options": ["O", "X"], "answer": "O", "explanation": "주식시장에서 상승장은 황소(Bull)에, 하락장은 곰(Bear)에 비유하여 표현합니다."}, {"id": "q_9th_38", "type": "mcq", "category": "제9회 예선 기출", "question": "SWOT분석은 기업이 처한 환경과 조직 자체를 분석하여 경영 전략을 수립하는 방법이다. 여기서 기업 외부의 환경이 자사에 유리한 쪽으로 작용하고 이를 활용할 수 있는 장점을 자사가 보유한 경우 사용할 수 있는 전략은 W-T전략이다.", "options": ["O", "X"], "answer": "X", "explanation": "외부의 기회(O)를 자사의 강점(S)으로 활용하는 전략은 'S-O 전략'입니다. W-T는 약점과 위협을 최소화하는 방어 전략입니다."}, {"id": "q_9th_39", "type": "mcq", "category": "제9회 예선 기출", "question": "전속적 유통경로란 일정 시장을 몇 개의 선택된 유통업체에 제한하여 판매시키는 전략이다. 제품의 독특함, 희소성, 선택성 등의 이미지를 부여하고자 할 때 좋으며 보통 편의품을 유통시킬 때 사용한다.", "options": ["O", "X"], "answer": "X", "explanation": "희소성 이미지 부여는 '전문품(Specialty goods)' 유통에 주로 사용됩니다. 편의품은 개방적 유통경로를 씁니다."}];
+
+let customQuestions = [];
+let dbQuestions = [];
+let currentUser = null;
+let quizState = { questions: [], currentIndex: 0, score: 0, selectedOption: null, isAnswerChecked: false, userAnswers: [], mode: '' };
+
+function showToast(msg) {
+    const container = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className = 'toast-msg';
+    el.innerText = msg;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+}
+
+async function hashPassword(pw) {
+    const enc = new TextEncoder().encode('golden_bell_salt_' + pw);
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function escapeHtml(str) {
+    if (str === undefined || str === null) return '';
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function showScreen(id) {
+    ['authScreen','pendingScreen','adminScreen','startScreen','playingScreen','resultScreen'].forEach(s => {
+        document.getElementById(s).classList.toggle('hidden', s !== id);
+    });
+}
+
+async function init() {
+    if (!db) return;
+    await ensureAdminExists();
+
+    const savedId = localStorage.getItem(SESSION_KEY);
+    if (savedId) {
+        const doc = await db.collection(COL_USERS).doc(savedId).get();
+        if (doc.exists) {
+            currentUser = { userid: savedId, ...doc.data() };
+        } else {
+            localStorage.removeItem(SESSION_KEY);
+        }
+    }
+
+    document.getElementById('loadingScreen').classList.add('hidden');
+    document.getElementById('appRoot').classList.remove('hidden');
+    renderForCurrentUser();
+}
+
+async function ensureAdminExists() {
+    const ref = db.collection(COL_USERS).doc('admin');
+    const doc = await ref.get();
+    if (!doc.exists) {
+        const hashed = await hashPassword(ADMIN_DEFAULT_PW);
+        await ref.set({ password: hashed, name: '관리자(교사)', role: 'admin', approved: true });
+    }
+    // 참고: 원본 PHP에 있던 "세션마다 admin 비밀번호를 0000으로 강제 초기화"하는 버그는
+    // 이 버전에서 제거했습니다. admin 비밀번호는 최초 1회만 생성되고 이후 그대로 유지됩니다.
+}
+
+async function renderForCurrentUser() {
+    if (!currentUser) { showScreen('authScreen'); return; }
+    if (currentUser.role === 'admin') {
+        showScreen('adminScreen');
+        loadAdminUsers();
+        loadAdminScores();
+        loadAdminQuestions();
+        return;
+    }
+    if (!currentUser.approved) { showScreen('pendingScreen'); return; }
+    const snap = await db.collection(COL_CUSTOM_Q).get();
+    customQuestions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    dbQuestions = DEFAULT_QUESTIONS.concat(customQuestions);
+    document.getElementById('welcomeMsg').innerText = `${currentUser.name}님, 환영합니다!`;
+    showScreen('startScreen');
+}
+
+// ---------------------------------------------------------------------
+// 로그인 / 회원가입
+// ---------------------------------------------------------------------
+document.getElementById('toggleFormBtn').addEventListener('click', () => {
+    const l = document.getElementById('loginForm');
+    const s = document.getElementById('signupForm');
+    const btn = document.getElementById('toggleFormBtn');
+    const isLoginHidden = l.classList.contains('hidden');
+    l.classList.toggle('hidden');
+    s.classList.toggle('hidden');
+    btn.innerText = isLoginHidden ? '이미 계정이 있으신가요? 로그인' : '계정이 없으신가요? 회원가입';
+});
+
+function showAuthMsg(msg, ok) {
+    const el = document.getElementById('authMsg');
+    el.innerText = msg;
+    el.classList.remove('hidden');
+    el.className = 'mb-4 text-sm font-bold text-center p-3 rounded-xl ' + (ok ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700');
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const userid = document.getElementById('loginUserid').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!userid || !password) return;
+    const doc = await db.collection(COL_USERS).doc(userid).get();
+    if (!doc.exists) { showAuthMsg('아이디 또는 비밀번호가 일치하지 않습니다.', false); return; }
+    const hashed = await hashPassword(password);
+    if (doc.data().password !== hashed) { showAuthMsg('아이디 또는 비밀번호가 일치하지 않습니다.', false); return; }
+    currentUser = { userid, ...doc.data() };
+    localStorage.setItem(SESSION_KEY, userid);
+    renderForCurrentUser();
+});
+
+document.getElementById('signupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const userid = document.getElementById('signupUserid').value.trim();
+    const password = document.getElementById('signupPassword').value;
+    const name = document.getElementById('signupName').value.trim();
+    if (!userid || !password || !name) return;
+    const ref = db.collection(COL_USERS).doc(userid);
+    const doc = await ref.get();
+    if (doc.exists) { showAuthMsg('이미 존재하는 아이디입니다.', false); return; }
+    const hashed = await hashPassword(password);
+    await ref.set({ password: hashed, name, role: 'student', approved: false });
+    showAuthMsg('회원가입이 완료되었습니다. 교사 승인 후 로그인 가능합니다.', true);
+    document.getElementById('signupForm').reset();
+    document.getElementById('toggleFormBtn').click();
+});
+
+function doLogout() {
+    localStorage.removeItem(SESSION_KEY);
+    currentUser = null;
+    renderForCurrentUser();
+}
+document.getElementById('pendingLogoutBtn').addEventListener('click', doLogout);
+document.getElementById('adminLogoutBtn').addEventListener('click', doLogout);
+document.getElementById('startLogoutBtn').addEventListener('click', doLogout);
+
+// ---------------------------------------------------------------------
+// 관리자
+// ---------------------------------------------------------------------
+function switchAdminTab(tab) {
+    ['users','questions'].forEach(t => {
+        document.getElementById('tabContent-' + t).classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById('tabBtn-' + t);
+        btn.classList.toggle('text-indigo-600', t === tab);
+        btn.classList.toggle('border-indigo-600', t === tab);
+        btn.classList.toggle('text-slate-400', t !== tab);
+    });
+}
+
+async function loadAdminUsers() {
+    const box = document.getElementById('userListBox');
+    box.innerHTML = '<p class="text-center text-slate-400 py-12"><i class="fas fa-spinner fa-spin"></i></p>';
+    const snap = await db.collection(COL_USERS).get();
+    const users = snap.docs.filter(d => d.id !== 'admin').map(d => ({ id: d.id, ...d.data() }));
+    if (users.length === 0) {
+        box.innerHTML = '<div class="py-12 text-center text-slate-400"><i class="fas fa-inbox text-4xl mb-3 block opacity-50"></i>가입한 학생이 없습니다.</div>';
+        return;
+    }
+    box.innerHTML = '<ul class="divide-y divide-slate-100"></ul>';
+    const ul = box.querySelector('ul');
+    users.forEach(u => {
+        const li = document.createElement('li');
+        li.className = 'py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-slate-50 px-2 rounded-lg transition-colors';
+        li.innerHTML = `
+            <div>
+                <p class="font-bold text-slate-800 text-lg">${escapeHtml(u.name)} <span class="text-sm text-slate-400 font-medium ml-1">(${escapeHtml(u.id)})</span></p>
+                <p class="text-sm mt-1 ${u.approved ? 'text-emerald-500 font-bold' : 'text-amber-500 font-bold'}"><i class="fas ${u.approved ? 'fa-check-circle' : 'fa-clock'} mr-1"></i>${u.approved ? '승인 완료' : '승인 대기중'}</p>
+            </div>
+            <div class="flex gap-2">
+                ${!u.approved ? `<button data-approve="${u.id}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors">승인</button>` : ''}
+                <button data-delete="${u.id}" class="bg-slate-200 hover:bg-rose-500 hover:text-white text-slate-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors">삭제</button>
+            </div>`;
+        ul.appendChild(li);
+    });
+    ul.querySelectorAll('[data-approve]').forEach(btn => btn.addEventListener('click', async () => {
+        await db.collection(COL_USERS).doc(btn.dataset.approve).update({ approved: true });
+        showToast('승인 완료했습니다.');
+        loadAdminUsers();
+    }));
+    ul.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', async () => {
+        if (!confirm('정말 삭제하시겠습니까?')) return;
+        await db.collection(COL_USERS).doc(btn.dataset.delete).delete();
+        showToast('학생을 삭제했습니다.');
+        loadAdminUsers();
+    }));
+}
+
+async function loadAdminScores() {
+    const box = document.getElementById('scoreListBox');
+    box.innerHTML = '<p class="text-center text-slate-400 py-12"><i class="fas fa-spinner fa-spin"></i></p>';
+    const snap = await db.collection(COL_SCORES).orderBy('date', 'desc').limit(200).get();
+    const records = snap.docs.map(d => d.data());
+    if (records.length === 0) {
+        box.innerHTML = '<p class="text-slate-400 text-center py-12"><i class="fas fa-clipboard-list text-4xl mb-3 block opacity-50"></i>아직 응시 기록이 없습니다.</p>';
+        return;
+    }
+    let html = '<table class="w-full text-sm text-left"><thead class="text-xs text-slate-500 bg-slate-100 uppercase border-b"><tr><th class="px-4 py-3 font-bold">이름</th><th class="px-4 py-3 font-bold">응시 모드</th><th class="px-4 py-3 font-bold text-center">점수</th><th class="px-4 py-3 font-bold">응시일</th></tr></thead><tbody class="divide-y divide-slate-100">';
+    records.forEach(r => {
+        const ratio = r.total > 0 ? r.score / r.total : 0;
+        const colorClass = ratio >= 0.7 ? 'text-emerald-600' : 'text-rose-500';
+        html += `<tr class="hover:bg-slate-50"><td class="px-4 py-3 font-black text-slate-800">${escapeHtml(r.name)}</td><td class="px-4 py-3"><span class="px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700">${escapeHtml(r.mode)}</span></td><td class="px-4 py-3 font-black text-center text-lg ${colorClass}">${r.score} <span class="text-sm font-bold text-slate-400">/ ${r.total}</span></td><td class="px-4 py-3 text-xs font-bold text-slate-500">${escapeHtml((r.date || '').replace('T',' ').slice(0,16))}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    box.innerHTML = html;
+}
+
+function toggleQTypeFields() {
+    const type = document.getElementById('q_type').value;
+    document.getElementById('mcq_fields').classList.toggle('hidden', type !== 'mcq');
+    document.getElementById('short_fields').classList.toggle('hidden', type !== 'short');
+}
+
+async function loadAdminQuestions() {
+    const box = document.getElementById('customQListBox');
+    box.innerHTML = '<p class="text-center text-slate-400 py-12"><i class="fas fa-spinner fa-spin"></i></p>';
+    const snap = await db.collection(COL_CUSTOM_Q).get();
+    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    document.getElementById('customQCount').innerText = `추가 ${list.length}문항`;
+    if (list.length === 0) {
+        box.innerHTML = '<p class="text-center text-slate-400 py-12"><i class="fas fa-folder-open text-4xl mb-3 block opacity-50"></i>추가 등록된 문제가 없습니다.</p>';
+        return;
+    }
+    box.innerHTML = '';
+    list.forEach(q => {
+        const correctAnsString = q.type === 'mcq' ? q.answer : (q.acceptedAnswers ? q.acceptedAnswers[0] : '');
+        const div = document.createElement('div');
+        div.className = 'border border-slate-200 rounded-xl p-5 bg-white hover:border-indigo-400 hover:shadow-lg transition-all relative';
+        div.innerHTML = `
+            <div class="flex justify-between items-start mb-3">
+                <div class="flex flex-wrap gap-2">
+                    <span class="bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-md">${escapeHtml(q.category)}</span>
+                    <span class="bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1 rounded-md border border-slate-200">${q.type === 'mcq' ? '객관식' : '단답형'}</span>
+                </div>
+                <button data-delq="${q.id}" class="text-slate-300 hover:text-rose-500 transition-colors"><i class="fas fa-trash"></i></button>
+            </div>
+            <p class="font-bold text-slate-800 mb-2">${escapeHtml(q.question)}</p>
+            <p class="text-sm text-emerald-600 font-bold"><i class="fas fa-check-circle mr-1"></i>${escapeHtml(correctAnsString)}</p>`;
+        box.appendChild(div);
+    });
+    box.querySelectorAll('[data-delq]').forEach(btn => btn.addEventListener('click', async () => {
+        if (!confirm('이 문제를 삭제하시겠습니까?')) return;
+        await db.collection(COL_CUSTOM_Q).doc(btn.dataset.delq).delete();
+        showToast('문제를 삭제했습니다.');
+        loadAdminQuestions();
+    }));
+}
+
+document.getElementById('addQForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const type = document.getElementById('q_type').value;
+    const newQ = {
+        type,
+        category: document.getElementById('q_category').value.trim(),
+        question: document.getElementById('q_question').value.trim(),
+        explanation: document.getElementById('q_explanation').value.trim()
+    };
+    if (type === 'mcq') {
+        const options = [
+            document.getElementById('q_opt1').value.trim(),
+            document.getElementById('q_opt2').value.trim(),
+            document.getElementById('q_opt3').value.trim(),
+            document.getElementById('q_opt4').value.trim()
+        ].filter(o => o);
+        const ansIdx = parseInt(document.querySelector('input[name="q_answer_idx"]:checked').value, 10);
+        if (options.length < 2) { showToast('보기를 2개 이상 입력해주세요.'); return; }
+        newQ.options = options;
+        newQ.answer = options[ansIdx] || options[0];
+    } else {
+        const raw = document.getElementById('q_accepted').value.split(',').map(s => s.trim()).filter(Boolean);
+        if (raw.length === 0) { showToast('정답 키워드를 입력해주세요.'); return; }
+        newQ.acceptedAnswers = raw;
+    }
+    if (!newQ.category || !newQ.question) { showToast('카테고리와 문제 내용을 입력해주세요.'); return; }
+    await db.collection(COL_CUSTOM_Q).add(newQ);
+    showToast('새로운 문제가 등록되었습니다.');
+    e.target.reset();
+    toggleQTypeFields();
+    loadAdminQuestions();
+});
+
+// ---------------------------------------------------------------------
+// 학생 - 퀴즈
+// ---------------------------------------------------------------------
+function shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+function startQuiz(numQuestions, modeName) {
+    if (dbQuestions.length === 0) { showToast('등록된 문제가 없습니다. 선생님께 문의하세요.'); return; }
+    quizState.mode = modeName;
+    let selected = shuffleArray(dbQuestions);
+    if (numQuestions !== 'ALL' && numQuestions < selected.length) {
+        selected = selected.slice(0, numQuestions);
+    }
+    quizState.questions = selected.map(q => {
+        if (q.type === 'mcq') {
+            const validOptions = q.options.filter(opt => opt && opt.trim() !== '');
+            return { ...q, shuffledOptions: shuffleArray(validOptions) };
+        }
+        return q;
+    });
+    quizState.currentIndex = 0; quizState.score = 0; quizState.userAnswers = [];
+    showScreen('playingScreen');
+    renderQuestion();
+}
+
+function renderQuestion() {
+    quizState.selectedOption = null;
+    quizState.isAnswerChecked = false;
+    const q = quizState.questions[quizState.currentIndex];
+
+    document.getElementById('qCategory').innerText = `${q.category} ${q.type === 'mcq' ? '(객관식/OX)' : '(단답형)'}`;
+    document.getElementById('qCurrentIndex').innerText = quizState.currentIndex + 1;
+    document.getElementById('qTotalCount').innerText = quizState.questions.length;
+    document.getElementById('qProgressBar').style.width = (((quizState.currentIndex + 1) / quizState.questions.length) * 100) + '%';
+    document.getElementById('qText').innerText = q.question;
+
+    const optionsContainer = document.getElementById('qOptions');
+    optionsContainer.innerHTML = '';
+
+    const checkBtn = document.getElementById('btnCheckAnswer');
+    checkBtn.classList.remove('hidden');
+    checkBtn.disabled = true;
+    checkBtn.className = 'w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all bg-slate-100 text-slate-400 cursor-not-allowed';
+
+    if (q.type === 'mcq') {
+        q.shuffledOptions.forEach((opt, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'w-full text-left p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-slate-700 font-bold text-lg transition-all duration-200 flex items-center option-btn bg-white shadow-sm';
+            btn.onclick = () => selectOption(opt, btn);
+            btn.innerHTML = `<span class="w-8 h-8 rounded-full border-2 border-slate-200 flex items-center justify-center mr-4 text-sm flex-shrink-0 text-slate-500">${String.fromCharCode(65 + idx)}</span><span class="leading-snug">${escapeHtml(opt)}</span>`;
+            optionsContainer.appendChild(btn);
+        });
+    } else if (q.type === 'short') {
+        optionsContainer.innerHTML = `<input type="text" id="shortAnswerInput" class="w-full px-5 py-5 rounded-2xl border-2 border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none text-xl font-bold text-slate-800 transition-all shadow-inner" placeholder="정답 키워드를 입력하세요" oninput="checkShortAnswerInput()" onkeypress="handleEnter(event)" autocomplete="off">`;
+        setTimeout(() => document.getElementById('shortAnswerInput').focus(), 100);
+    }
+
+    document.getElementById('qExplanationBox').classList.add('hidden');
+    document.getElementById('btnNext').classList.add('hidden');
+}
+
+function checkShortAnswerInput() {
+    const val = document.getElementById('shortAnswerInput').value.trim();
+    const checkBtn = document.getElementById('btnCheckAnswer');
+    checkBtn.disabled = val.length === 0;
+    checkBtn.className = val.length > 0
+        ? 'w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all bg-blue-600 hover:bg-blue-700 text-white shadow-xl'
+        : 'w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all bg-slate-100 text-slate-400 cursor-not-allowed';
+}
+
+function handleEnter(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        if (!document.getElementById('btnCheckAnswer').disabled) checkAnswer();
+    }
+}
+
+function selectOption(option, btnElement) {
+    if (quizState.isAnswerChecked) return;
+    quizState.selectedOption = option;
+    document.querySelectorAll('.option-btn').forEach(b => {
+        b.className = 'w-full text-left p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-slate-700 font-bold text-lg transition-all duration-200 flex items-center option-btn bg-white shadow-sm';
+        b.children[0].className = 'w-8 h-8 rounded-full border-2 border-slate-200 flex items-center justify-center mr-4 text-sm flex-shrink-0 text-slate-500';
+    });
+    btnElement.classList.replace('border-slate-200', 'border-indigo-500');
+    btnElement.classList.replace('text-slate-700', 'text-indigo-800');
+    btnElement.classList.add('shadow-md');
+    btnElement.children[0].classList.replace('border-slate-200', 'border-indigo-500');
+    btnElement.children[0].classList.replace('text-slate-500', 'text-indigo-600');
+    btnElement.children[0].classList.add('bg-white');
+    const checkBtn = document.getElementById('btnCheckAnswer');
+    checkBtn.disabled = false;
+    checkBtn.className = 'w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all bg-blue-600 hover:bg-blue-700 text-white shadow-xl';
+}
+
+function checkAnswer() {
+    quizState.isAnswerChecked = true;
+    const q = quizState.questions[quizState.currentIndex];
+    let isCorrect = false;
+    let userGivenAnswer = '';
+
+    if (q.type === 'mcq') {
+        userGivenAnswer = quizState.selectedOption;
+        isCorrect = (userGivenAnswer === q.answer);
+        const optionsContainer = document.getElementById('qOptions');
+        Array.from(optionsContainer.children).forEach(btn => {
+            const optText = btn.children[1].innerText;
+            btn.disabled = true;
+            if (optText === q.answer) {
+                btn.className = 'w-full text-left p-4 sm:p-5 rounded-2xl border-2 border-emerald-500 bg-emerald-50 text-emerald-800 font-bold text-lg flex items-center shadow-md';
+            } else if (optText === userGivenAnswer && !isCorrect) {
+                btn.className = 'w-full text-left p-4 sm:p-5 rounded-2xl border-2 border-rose-400 bg-rose-50 text-rose-700 font-bold text-lg flex items-center';
+            } else {
+                btn.className = 'w-full text-left p-4 sm:p-5 rounded-2xl border-2 border-slate-100 bg-slate-50 text-slate-400 font-bold text-lg flex items-center opacity-50';
+            }
+        });
+    } else if (q.type === 'short') {
+        const inputEl = document.getElementById('shortAnswerInput');
+        userGivenAnswer = inputEl.value.trim();
+        const normalizedUser = userGivenAnswer.replace(/\s+/g, '').toLowerCase();
+        isCorrect = q.acceptedAnswers.some(ans => ans.replace(/\s+/g, '').toLowerCase() === normalizedUser);
+        inputEl.disabled = true;
+        if (isCorrect) {
+            inputEl.classList.replace('border-indigo-500', 'border-emerald-500');
+            inputEl.classList.add('bg-emerald-50', 'text-emerald-700');
+        } else {
+            inputEl.classList.replace('border-indigo-500', 'border-rose-400');
+            inputEl.classList.add('bg-rose-50', 'text-rose-700');
+            const optionsContainer = document.getElementById('qOptions');
+            optionsContainer.innerHTML += `<div class="mt-4 p-5 bg-emerald-50 text-emerald-800 rounded-2xl font-black text-xl border-2 border-emerald-200 flex items-center shadow-sm"><span class="bg-emerald-200 text-emerald-700 p-1 rounded mr-3 text-sm">정답</span>${escapeHtml(q.acceptedAnswers[0])}</div>`;
+        }
+    }
+
+    if (isCorrect) quizState.score++;
+    quizState.userAnswers.push({ question: q, selected: userGivenAnswer, isCorrect });
+
+    document.getElementById('qExplanation').innerText = q.explanation || '해설이 등록되지 않았습니다.';
+    document.getElementById('qExplanationBox').classList.remove('hidden');
+    document.getElementById('btnCheckAnswer').classList.add('hidden');
+    const nextBtn = document.getElementById('btnNext');
+    nextBtn.classList.remove('hidden');
+    nextBtn.innerText = quizState.currentIndex + 1 === quizState.questions.length ? '최종 결과 리포트 보기' : '다음 문제';
+}
+
+function nextQuestion() {
+    if (quizState.currentIndex + 1 < quizState.questions.length) {
+        quizState.currentIndex++;
+        renderQuestion();
+    } else {
+        showResult();
+    }
+}
+
+async function showResult() {
+    showScreen('resultScreen');
+    const total = quizState.questions.length;
+    const percentage = Math.round((quizState.score / total) * 100);
+    let feedback = '기본 개념을 조금 더 복습해볼까요? 해설을 확인하세요!';
+    let circleColor = 'text-rose-500';
+    if (percentage >= 90) { feedback = '완벽합니다! 경제 마스터 수준입니다. 🏆'; circleColor = 'text-emerald-500'; }
+    else if (percentage >= 70) { feedback = '아주 좋아요! 틀린 개념만 확실히 잡고 가세요. 👍'; circleColor = 'text-blue-500'; }
+    else if (percentage >= 50) { feedback = '좋은 시도입니다! 오답노트를 꼼꼼히 확인하세요. 💡'; circleColor = 'text-amber-500'; }
+
+    document.getElementById('resultFeedback').innerText = feedback;
+    document.getElementById('resultPercentage').innerText = percentage;
+    document.getElementById('resultScoreText').innerText = `${quizState.score} 문항 정답 / 총 ${total} 문항`;
+
+    const circle = document.getElementById('resultCircle');
+    circle.style.strokeDasharray = `${(percentage / 100) * 553} 553`;
+    circle.classList.add(circleColor);
+
+    const wrongList = document.getElementById('wrongAnswersList');
+    wrongList.innerHTML = '';
+    const wrongs = quizState.userAnswers.filter(a => !a.isCorrect);
+    document.getElementById('wrongCount').innerText = `총 ${wrongs.length}문항`;
+
+    if (wrongs.length === 0) {
+        wrongList.innerHTML = '<div class="py-10 text-center"><span class="text-6xl mb-4 block">🎉</span><p class="text-emerald-600 font-black text-xl">틀린 문제가 없습니다. 대단해요!</p></div>';
+    } else {
+        wrongs.forEach((ans, idx) => {
+            const correctAnsString = ans.question.type === 'mcq' ? ans.question.answer : ans.question.acceptedAnswers[0];
+            wrongList.innerHTML += `
+                <div class="bg-white border-2 border-slate-100 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1.5 h-full bg-rose-400"></div>
+                    <div class="flex items-center mb-3">
+                        <span class="inline-block px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-black rounded mr-2">오답 ${idx+1}</span>
+                        <span class="inline-block px-2.5 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded">${escapeHtml(ans.question.category)}</span>
+                    </div>
+                    <p class="font-black text-slate-800 text-lg mb-4 leading-relaxed">${escapeHtml(ans.question.question)}</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm font-bold mb-4">
+                        <p class="text-rose-600 flex flex-col p-3 bg-rose-50 rounded-xl border border-rose-100"><span class="text-xs text-rose-400 mb-1">나의 선택</span> ${escapeHtml(ans.selected) || '<span class="text-rose-300 font-normal">미입력/오답</span>'}</p>
+                        <p class="text-emerald-700 flex flex-col p-3 bg-emerald-50 rounded-xl border border-emerald-100"><span class="text-xs text-emerald-500 mb-1">정확한 정답</span> ${escapeHtml(correctAnsString)}</p>
+                    </div>
+                    <div class="text-sm text-slate-600 bg-slate-50 p-4 rounded-xl leading-relaxed border border-slate-100">
+                        <strong class="text-slate-800 block mb-1">💡 해설</strong>
+                        ${escapeHtml(ans.question.explanation)}
+                    </div>
+                </div>`;
+        });
+    }
+
+    try {
+        await db.collection(COL_SCORES).add({
+            userid: currentUser.userid,
+            name: currentUser.name,
+            score: quizState.score,
+            total,
+            mode: quizState.mode,
+            date: new Date().toISOString()
+        });
+    } catch (err) {
+        console.error('점수 저장 실패', err);
+    }
+}
+
+init();
+</script>
+</body>
+</html>
