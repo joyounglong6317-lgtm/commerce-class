@@ -62,8 +62,21 @@
                 <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-md mt-4 text-lg">회원가입 요청</button>
             </form>
 
-            <div class="mt-6 text-center">
-                <button type="button" id="toggleFormBtn" class="text-indigo-600 font-bold hover:text-indigo-800 transition-colors">계정이 없으신가요? 회원가입</button>
+            <!-- 관리자 비밀번호 재설정 -->
+            <form id="adminResetForm" class="hidden space-y-4">
+                <p class="text-sm text-slate-500 font-medium leading-relaxed -mt-2 mb-1">관리자 아이디는 <b class="text-slate-700">admin</b> 입니다. 코드 상단의 복구 코드를 입력하고 새 비밀번호를 설정하세요.</p>
+                <input type="text" id="resetRecoveryCode" required placeholder="복구 코드" class="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-none font-medium">
+                <input type="password" id="resetNewPassword" required placeholder="새 비밀번호" class="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-none font-medium">
+                <input type="password" id="resetNewPasswordConfirm" required placeholder="새 비밀번호 확인" class="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-none font-medium">
+                <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-xl transition-all shadow-md mt-2 text-lg">비밀번호 재설정</button>
+            </form>
+
+            <div class="mt-6 text-center space-y-2">
+                <div id="normalAuthToggle">
+                    <button type="button" id="toggleFormBtn" class="text-indigo-600 font-bold hover:text-indigo-800 transition-colors block mx-auto">계정이 없으신가요? 회원가입</button>
+                    <button type="button" id="showResetBtn" class="text-slate-400 text-sm font-bold hover:text-slate-600 transition-colors block mx-auto mt-2">관리자 비밀번호를 잊으셨나요?</button>
+                </div>
+                <button type="button" id="backToLoginBtn" class="hidden text-indigo-600 font-bold hover:text-indigo-800 transition-colors">로그인으로 돌아가기</button>
             </div>
         </div>
     </div>
@@ -242,6 +255,9 @@ const COL_SCORES = 'golden_bell_scores';
 const COL_CUSTOM_Q = 'golden_bell_custom_questions';
 const SESSION_KEY = 'golden_bell_userid';
 const ADMIN_DEFAULT_PW = '1234';
+// 관리자 비밀번호를 잊었을 때 재설정에 사용하는 복구 코드입니다.
+// 이 파일을 수정할 수 있는 선생님만 알고 있어야 하므로, 원하는 값으로 꼭 바꿔서 사용하세요.
+const ADMIN_RECOVERY_CODE = 'JOYOUNGLONG2026';
 
 let db = null;
 try {
@@ -387,6 +403,39 @@ document.getElementById('signupForm').addEventListener('submit', async (e) => {
     showAuthMsg('회원가입이 완료되었습니다. 교사 승인 후 로그인 가능합니다.', true);
     document.getElementById('signupForm').reset();
     document.getElementById('toggleFormBtn').click();
+});
+
+// ---------------------------------------------------------------------
+// 관리자 비밀번호 재설정
+// ---------------------------------------------------------------------
+document.getElementById('showResetBtn').addEventListener('click', () => {
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('signupForm').classList.add('hidden');
+    document.getElementById('adminResetForm').classList.remove('hidden');
+    document.getElementById('normalAuthToggle').classList.add('hidden');
+    document.getElementById('backToLoginBtn').classList.remove('hidden');
+    document.getElementById('authMsg').classList.add('hidden');
+});
+document.getElementById('backToLoginBtn').addEventListener('click', () => {
+    document.getElementById('adminResetForm').classList.add('hidden');
+    document.getElementById('loginForm').classList.remove('hidden');
+    document.getElementById('normalAuthToggle').classList.remove('hidden');
+    document.getElementById('backToLoginBtn').classList.add('hidden');
+    document.getElementById('authMsg').classList.add('hidden');
+    document.getElementById('adminResetForm').reset();
+});
+document.getElementById('adminResetForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const code = document.getElementById('resetRecoveryCode').value.trim();
+    const pw1 = document.getElementById('resetNewPassword').value;
+    const pw2 = document.getElementById('resetNewPasswordConfirm').value;
+    if (code !== ADMIN_RECOVERY_CODE) { showAuthMsg('복구 코드가 일치하지 않습니다.', false); return; }
+    if (!pw1 || pw1.length < 4) { showAuthMsg('비밀번호는 4자 이상으로 입력해주세요.', false); return; }
+    if (pw1 !== pw2) { showAuthMsg('새 비밀번호가 서로 일치하지 않습니다.', false); return; }
+    const hashed = await hashPassword(pw1);
+    await db.collection(COL_USERS).doc('admin').set({ password: hashed, name: '관리자(교사)', role: 'admin', approved: true }, { merge: true });
+    showAuthMsg('관리자 비밀번호가 재설정되었습니다. 아이디 admin으로 로그인해주세요.', true);
+    document.getElementById('backToLoginBtn').click();
 });
 
 function doLogout() {
