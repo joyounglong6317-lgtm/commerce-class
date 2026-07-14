@@ -25,6 +25,9 @@
 </style>
 </head>
 <body class="min-h-screen">
+<div id="liveClockBadge" class="fixed top-3 right-3 z-50 bg-slate-800/90 backdrop-blur text-white text-xs font-mono font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 pointer-events-none">
+    <i class="fas fa-clock text-indigo-300"></i><span id="liveClockText">00:00:00</span>
+</div>
 <div id="toast-container"></div>
 
 <div id="configScreen" class="hidden min-h-screen flex items-center justify-center p-6">
@@ -178,6 +181,13 @@
                 <button id="startLogoutBtn" class="text-slate-400 hover:text-rose-500 transition-colors" title="로그아웃"><i class="fas fa-sign-out-alt text-xl"></i></button>
             </div>
             <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-black text-slate-500 mb-1.5 uppercase tracking-wider">채점 방식</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" id="modeInstantBtn" onclick="setScoringMode('instant')" class="py-3 px-3 rounded-xl border-2 font-bold text-sm transition-all border-indigo-500 bg-indigo-50 text-indigo-700">문제마다 바로 확인</button>
+                        <button type="button" id="modeBatchBtn" onclick="setScoringMode('batch')" class="py-3 px-3 rounded-xl border-2 font-bold text-sm transition-all border-slate-200 bg-white text-slate-500">한번에 풀고 채점</button>
+                    </div>
+                </div>
                 <button onclick="startQuiz(20, '20문항 퀵 테스트')" class="w-full group bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 text-slate-700 hover:text-blue-700 font-bold py-4 px-6 rounded-2xl transition-all flex justify-between items-center"><span>20문항 퀵 테스트</span><i class="fas fa-arrow-right"></i></button>
                 <button onclick="startQuiz(40, '40문항 실전 모의고사')" class="w-full group bg-white border-2 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 font-bold py-4 px-6 rounded-2xl transition-all flex justify-between items-center"><span>40문항 실전 모의고사</span><i class="fas fa-arrow-right"></i></button>
                 <button onclick="startQuiz('ALL', '전체 문항 마스터')" class="w-full bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-black text-white font-bold py-5 px-6 rounded-2xl transition-all shadow-xl flex justify-center items-center text-lg mt-2"><span>전체 문항 마스터</span></button>
@@ -190,9 +200,13 @@
             <div class="p-6 sm:p-8">
                 <div class="flex justify-between items-center mb-4">
                     <span id="qCategory" class="text-xs font-bold text-slate-400"></span>
-                    <span class="text-sm font-black text-slate-500"><span id="qCurrentIndex"></span> / <span id="qTotalCount"></span></span>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-black text-slate-500"><span id="qCurrentIndex"></span> / <span id="qTotalCount"></span></span>
+                        <button type="button" onclick="stopQuiz()" class="text-xs font-bold text-rose-400 hover:text-rose-600 border border-rose-200 hover:border-rose-400 rounded-full px-3 py-1 transition-colors"><i class="fas fa-stop mr-1"></i>그만 풀기</button>
+                    </div>
                 </div>
-                <div class="w-full bg-slate-100 rounded-full h-2 mb-6 overflow-hidden"><div id="qProgressBar" class="bg-indigo-500 h-2 rounded-full transition-all duration-500" style="width:0%"></div></div>
+                <div class="w-full bg-slate-100 rounded-full h-2 mb-4 overflow-hidden"><div id="qProgressBar" class="bg-indigo-500 h-2 rounded-full transition-all duration-500" style="width:0%"></div></div>
+                <div id="cheerBanner" class="mb-5 text-center text-sm font-bold text-indigo-500 bg-indigo-50 border border-indigo-100 rounded-xl py-2 px-3"><span id="cheerText"></span></div>
                 <p id="qText" class="text-xl font-bold text-slate-800 mb-6 whitespace-pre-wrap leading-relaxed"></p>
                 <div id="qOptions" class="space-y-3"></div>
                 <div id="qExplanationBox" class="hidden mt-6 p-5 bg-slate-50 rounded-2xl border border-slate-200">
@@ -240,15 +254,7 @@
    Firebase 설정 - 본인의 Firebase 프로젝트 값으로 반드시 교체하세요!
    Firebase 콘솔 > 프로젝트 설정 > 일반 > 내 앱 에서 확인할 수 있습니다.
 ===================================================================== */
-const firebaseConfig = {
-  apiKey: "AIzaSyBDMHS-bjHjjkxSkJf7OO_2U8jDPUWnfqk",
-  authDomain: "goldenbell-1773c.firebaseapp.com",
-  projectId: "goldenbell-1773c",
-  storageBucket: "goldenbell-1773c.firebasestorage.app",
-  messagingSenderId: "316328798900",
-  appId: "1:316328798900:web:cf4fc6d5a14d38a66805e1",
-  measurementId: "G-QQ312HH8Z1"
-};
+const firebaseConfig = {};
 
 const COL_USERS = 'golden_bell_users';
 const COL_SCORES = 'golden_bell_scores';
@@ -280,7 +286,59 @@ const DEFAULT_QUESTIONS = [{"id": "q_22_01", "type": "mcq", "category": "2022년
 let customQuestions = [];
 let dbQuestions = [];
 let currentUser = null;
-let quizState = { questions: [], currentIndex: 0, score: 0, selectedOption: null, isAnswerChecked: false, userAnswers: [], mode: '' };
+let quizState = { questions: [], currentIndex: 0, score: 0, selectedOption: null, isAnswerChecked: false, userAnswers: [], mode: '', scoringMode: 'instant' };
+
+// ---------------------------------------------------------------------
+// 실시간 시계 (초 단위)
+// ---------------------------------------------------------------------
+function startLiveClock() {
+    const el = document.getElementById('liveClockText');
+    if (!el) return;
+    const tick = () => {
+        const now = new Date();
+        const p = n => String(n).padStart(2, '0');
+        el.innerText = `${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`;
+    };
+    tick();
+    setInterval(tick, 1000);
+}
+startLiveClock();
+
+// ---------------------------------------------------------------------
+// 응원 배너
+// ---------------------------------------------------------------------
+const CHEER_MESSAGES = [
+    '할 수 있어요! 한 문제씩 차근차근 풀어봐요 💪',
+    '지금처럼만 하면 충분해요, 그대로 화이팅! 🔥',
+    '틀려도 괜찮아요, 배우는 과정이니까요 🌱',
+    '집중력 최고예요! 이 기세 그대로 가봐요 ✨',
+    '조금만 더 힘내요, 거의 다 왔어요! 🏁',
+    '실수는 성장의 증거예요, 편안하게 풀어봐요 🌤️',
+    '지금 이 순간의 노력이 실력이 됩니다 📈',
+    '천천히, 정확하게! 서두르지 않아도 괜찮아요 🐢',
+    '오늘도 한 걸음 성장하는 중입니다 🚀',
+    '나 자신을 믿고 자신 있게 골라보세요 🌟'
+];
+function setRandomCheer() {
+    const el = document.getElementById('cheerText');
+    if (!el) return;
+    el.innerText = CHEER_MESSAGES[Math.floor(Math.random() * CHEER_MESSAGES.length)];
+}
+
+// ---------------------------------------------------------------------
+// 채점 방식 선택 (문제마다 즉시 확인 / 한번에 풀고 채점)
+// ---------------------------------------------------------------------
+function setScoringMode(mode) {
+    quizState.scoringMode = mode;
+    const instantBtn = document.getElementById('modeInstantBtn');
+    const batchBtn = document.getElementById('modeBatchBtn');
+    const selectedCls = 'py-3 px-3 rounded-xl border-2 font-bold text-sm transition-all border-indigo-500 bg-indigo-50 text-indigo-700';
+    const unselectedCls = 'py-3 px-3 rounded-xl border-2 font-bold text-sm transition-all border-slate-200 bg-white text-slate-500';
+    if (instantBtn && batchBtn) {
+        instantBtn.className = mode === 'instant' ? selectedCls : unselectedCls;
+        batchBtn.className = mode === 'batch' ? selectedCls : unselectedCls;
+    }
+}
 
 function showToast(msg) {
     const container = document.getElementById('toast-container');
@@ -724,16 +782,22 @@ function startQuiz(numQuestions, modeName) {
     renderQuestion();
 }
 
+function getPrimaryAction() {
+    return quizState.scoringMode === 'batch' ? submitBatchAnswer : checkAnswer;
+}
+
 function renderQuestion() {
     quizState.selectedOption = null;
     quizState.isAnswerChecked = false;
     const q = quizState.questions[quizState.currentIndex];
+    const isLast = quizState.currentIndex + 1 === quizState.questions.length;
 
     document.getElementById('qCategory').innerText = `${q.category} ${q.type === 'mcq' ? '(객관식/OX)' : '(단답형)'}`;
     document.getElementById('qCurrentIndex').innerText = quizState.currentIndex + 1;
     document.getElementById('qTotalCount').innerText = quizState.questions.length;
     document.getElementById('qProgressBar').style.width = (((quizState.currentIndex + 1) / quizState.questions.length) * 100) + '%';
     document.getElementById('qText').innerText = q.question;
+    setRandomCheer();
 
     const optionsContainer = document.getElementById('qOptions');
     optionsContainer.innerHTML = '';
@@ -742,6 +806,8 @@ function renderQuestion() {
     checkBtn.classList.remove('hidden');
     checkBtn.disabled = true;
     checkBtn.className = 'w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all bg-slate-100 text-slate-400 cursor-not-allowed';
+    checkBtn.onclick = getPrimaryAction();
+    checkBtn.innerText = quizState.scoringMode === 'batch' ? (isLast ? '제출하고 결과 보기' : '다음 문제') : '정답 확인하기';
 
     if (q.type === 'mcq') {
         q.shuffledOptions.forEach((opt, idx) => {
@@ -772,7 +838,8 @@ function checkShortAnswerInput() {
 function handleEnter(e) {
     if (e.key === 'Enter') {
         e.preventDefault();
-        if (!document.getElementById('btnCheckAnswer').disabled) checkAnswer();
+        const btn = document.getElementById('btnCheckAnswer');
+        if (!btn.disabled) btn.onclick();
     }
 }
 
@@ -841,6 +908,41 @@ function checkAnswer() {
     const nextBtn = document.getElementById('btnNext');
     nextBtn.classList.remove('hidden');
     nextBtn.innerText = quizState.currentIndex + 1 === quizState.questions.length ? '최종 결과 리포트 보기' : '다음 문제';
+}
+
+function submitBatchAnswer() {
+    quizState.isAnswerChecked = true;
+    const q = quizState.questions[quizState.currentIndex];
+    let isCorrect = false;
+    let userGivenAnswer = '';
+
+    if (q.type === 'mcq') {
+        userGivenAnswer = quizState.selectedOption;
+        isCorrect = (userGivenAnswer === q.answer);
+    } else if (q.type === 'short') {
+        const inputEl = document.getElementById('shortAnswerInput');
+        userGivenAnswer = inputEl ? inputEl.value.trim() : '';
+        const normalizedUser = userGivenAnswer.replace(/\s+/g, '').toLowerCase();
+        isCorrect = q.acceptedAnswers.some(ans => ans.replace(/\s+/g, '').toLowerCase() === normalizedUser);
+    }
+
+    if (isCorrect) quizState.score++;
+    quizState.userAnswers.push({ question: q, selected: userGivenAnswer, isCorrect });
+    nextQuestion();
+}
+
+function stopQuiz() {
+    const answeredCount = quizState.userAnswers.length;
+    if (answeredCount === 0) {
+        if (confirm('아직 채점된 문제가 없습니다. 시작 화면으로 돌아갈까요?')) {
+            showScreen('startScreen');
+        }
+        return;
+    }
+    if (confirm(`지금까지 ${answeredCount}문항을 풀었습니다. 여기까지만 채점하고 결과를 볼까요?`)) {
+        quizState.questions = quizState.questions.slice(0, answeredCount);
+        showResult();
+    }
 }
 
 function nextQuestion() {
