@@ -232,7 +232,7 @@ function docxDataUrl(base64) {
    Firebase 콘솔 > 프로젝트 설정 > 일반 > 내 앱 에서 확인할 수 있습니다.
 ===================================================================== */
 const firebaseConfig = {
-  apiKey: "AIzaSyB89aIdr4qh_oW2y2OpQu6krdTy88C72OM",
+apiKey: "AIzaSyB89aIdr4qh_oW2y2OpQu6krdTy88C72OM",
   authDomain: "bizenglish2.firebaseapp.com",
   projectId: "bizenglish2",
   storageBucket: "bizenglish2.firebasestorage.app",
@@ -665,8 +665,9 @@ function interviewView(){
         recognition.lang = "en-US";
         recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.maxAlternatives = 1;
+        recognition.maxAlternatives = 5;
         let baseText = ta.value.trim() ? ta.value.trim() + " " : "";
+        const modelKeywords = keywordsOf(q[1]);
 
         recognition.onstart = ()=>{
           state.recognizing = true;
@@ -692,13 +693,27 @@ function interviewView(){
           };
           setMicStatus("⚠ " + (reasons[ev.error] || ("음성 인식 오류(" + ev.error + "). 아래 칸에 직접 입력해주세요.")), "error");
         };
+        // 발음이 다소 부정확해도, 모범답안에 나오는 핵심 단어와 가장 많이 겹치는 인식 후보를 골라줍니다.
+        function pickBestAlternative(result){
+          let best = result[0].transcript;
+          let bestScore = -1;
+          for(let k=0; k<result.length; k++){
+            const alt = result[k].transcript;
+            const altLower = alt.toLowerCase();
+            let score = 0;
+            modelKeywords.forEach(kw=>{ if(altLower.includes(kw)) score++; });
+            score += (result.length - k) * 0.01; // 동점이면 원래 신뢰도 순서 유지
+            if(score > bestScore){ bestScore = score; best = alt; }
+          }
+          return best;
+        }
         recognition.onresult = (ev)=>{
           let finalChunk = "";
           let interimChunk = "";
           for(let i = ev.resultIndex; i < ev.results.length; i++){
-            const transcript = ev.results[i][0].transcript;
-            if(ev.results[i].isFinal) finalChunk += transcript;
-            else interimChunk += transcript;
+            const result = ev.results[i];
+            if(result.isFinal) finalChunk += pickBestAlternative(result);
+            else interimChunk += result[0].transcript;
           }
           if(finalChunk){
             baseText = (baseText + finalChunk).trim() + " ";
@@ -840,6 +855,14 @@ function resultView(){
   wrap.appendChild(card);
   setTimeout(renderScoreState,0);
   return wrap;
+}
+
+function computeTotal(){
+  return state.scores.reduce((sum,s)=> sum + (s.c||0) + (s.p||0) + (s.g||0) + (s.fluency||0) + (s.accuracy||0), 0);
+}
+function renderScoreState(){
+  const badge = document.querySelector(".total-badge");
+  if(badge) badge.textContent = computeTotal();
 }
 
 /* ============ 인증 화면 ============ */
