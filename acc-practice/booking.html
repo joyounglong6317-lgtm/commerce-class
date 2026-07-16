@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회계 탐정: 장부조회 마스터 프로</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        },
+                        erp: {
+                            dark: '#1e293b',
+                            panel: '#334155',
+                            accent: '#38bdf8'
+                        }
+                    },
+                    animation: {
+                        'bounce-slow': 'bounce 2s infinite',
+                        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+                    },
+                    keyframes: {
+                        shake: {
+                            '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                            '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                            '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                            '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f1f5f9; margin: 0; overflow: hidden; }
+        .chat-scroll::-webkit-scrollbar { width: 6px; }
+        .chat-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+        .chat-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .chat-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .fade-in { animation: fadeIn 0.4s ease-in-out forwards; }
+        .slide-up { animation: slideUp 0.3s ease-out forwards; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .heart-icon { transition: all 0.3s ease; }
+        .heart-empty { color: #cbd5e1; transform: scale(0.8); }
+        .heart-full { color: #ef4444; }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col font-sans text-gray-800">
+    <div id="root" class="h-full w-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const ALL_MENUS = [
+            { id: 'm1', name: '총계정원장', icon: 'fa-book' },
+            { id: 'm2', name: '계정별원장', icon: 'fa-book-open' },
+            { id: 'm3', name: '거래처원장', icon: 'fa-building' },
+            { id: 'm4', name: '손익계산서', icon: 'fa-chart-line' },
+            { id: 'm5', name: '부가가치세신고서', icon: 'fa-file-invoice-dollar' },
+            { id: 'm6', name: '세금계산서합계표', icon: 'fa-receipt' },
+            { id: 'm7', name: '일계표(월계표)', icon: 'fa-calendar-day' },
+            { id: 'm8', name: '매입매출장', icon: 'fa-file-invoice' },
+            { id: 'm9', name: '현금출납장', icon: 'fa-coins' },
+            { id: 'm10', name: '재무상태표', icon: 'fa-balance-scale' }
+        ];
+
+        const QUIZ_DATA = [
+            {
+                id: 125_1,
+                session: '125회',
+                bossMessage: "김사원! 2분기(4월~6월) 중에 '기업업무추진비(판관비)' 지출이 가장 많았던 달이랑 적었던 달 합계 금액 좀 빨리 알아봐 줘. 회의 들어가야 해!",
+                correctMenu: '총계정원장',
+                options: [
+                    { text: "기간: 4월~6월, 계정과목: 기업업무추진비", isCorrect: true },
+                    { text: "기간: 1월~6월, 계정과목: 복리후생비", isCorrect: false },
+                    { text: "기간: 4월~6월, 거래처: 무지개상사", isCorrect: false }
+                ],
+                answerAmount: "33,471,500원",
+                explanation: "월별 계정 금액의 크기를 비교할 때는 [총계정원장]이 가장 빠릅니다.",
+                hint: "각 월별로 한눈에 잔액과 발생액을 비교할 수 있는 장부를 찾아보세요."
+            },
+            {
+                id: 125_2,
+                session: '125회',
+                bossMessage: "혹시 2026년 2월 한 달 동안 증가한 지급어음 금액이 얼마인지 확인 가능한가? 잔액 말고 증가액(발생액) 말이야.",
+                correctMenu: '계정별원장',
+                options: [
+                    { text: "기간: 1월~2월, 계정과목: 받을어음", isCorrect: false },
+                    { text: "기간: 2월~2월, 계정과목: 지급어음 대변(증가) 확인", isCorrect: true },
+                    { text: "기간: 2월~2월, 거래처: 전 거래처", isCorrect: false }
+                ],
+                answerAmount: "6,270,000원",
+                explanation: "특정 계정의 특정 기간 증감 내역은 [계정별원장]이나 [총계정원장]에서 확인합니다. 부채인 지급어음의 증가는 대변입니다.",
+                hint: "특정 계정과목 하나만의 상세한 변동 내역을 볼 수 있는 곳입니다."
+            },
+            {
+                id: 125_3,
+                session: '125회',
+                bossMessage: "우리가 1기 예정(1~3월)에 무지개상회한테 발급해준 전자세금계산서 총 몇 매고, 공급대가는 얼마지?",
+                correctMenu: '세금계산서합계표',
+                options: [
+                    { text: "매입탭 > 1~3월 > 무지개상회 클릭", isCorrect: false },
+                    { text: "매출탭 > 1~3월 > 무지개상회 클릭", isCorrect: true },
+                    { text: "부가가치세신고서 > 1~3월 과세표준", isCorrect: false }
+                ],
+                answerAmount: "4매, 28,700,000원",
+                explanation: "세금계산서의 '매수'를 물어볼 때는 [세금계산서합계표]가 정답입니다.",
+                hint: "세금계산서의 매수를 집계해주는 전용 메뉴가 있습니다."
+            },
+            {
+                id: 124_1,
+                session: '124회',
+                bossMessage: "영풍산업 결제일이 다가오는데, 6월 말 기준으로 영풍산업한테 줘야 할 외상매입금 잔액이 얼마나 남았지?",
+                correctMenu: '거래처원장',
+                options: [
+                    { text: "기간: 1~6월, 계정과목: 외상매출금, 거래처: 영풍산업", isCorrect: false },
+                    { text: "기간: 1~6월, 계정과목: 외상매입금, 거래처: 영풍산업", isCorrect: true },
+                    { text: "기간: 6~6월, 계정과목: 미지급금, 거래처: 영풍산업", isCorrect: false }
+                ],
+                answerAmount: "7,000,000원",
+                explanation: "특정 '거래처'의 계정 잔액을 물어보면 무조건 [거래처원장]입니다.",
+                hint: "특정 '거래처' 이름이 나오면 무조건 이 장부로 가세요."
+            },
+            {
+                id: 124_2,
+                session: '124회',
+                bossMessage: "올해 1분기(1~3월) 동안 발생한 '영업외비용' 총액이 얼마인지 손익 내역 좀 뽑아봐.",
+                correctMenu: '손익계산서',
+                options: [
+                    { text: "기간: 3월 조회 > 영업외비용 합계 확인", isCorrect: true },
+                    { text: "기간: 3월 조회 > 판매비와관리비 합계 확인", isCorrect: false },
+                    { text: "기간: 1~3월, 계정과목: 이자비용", isCorrect: false }
+                ],
+                answerAmount: "382,000원",
+                explanation: "수익, 비용 항목의 일정 기간 누적액(특히 합계)은 [손익계산서]에서 월 단위로 조회하는 것이 편리합니다.",
+                hint: "특정 계정과목이 아닌 수익/비용의 '분류(영업외비용 등)' 총액은 재무제표를 봅니다."
+            },
+            {
+                id: 126_3,
+                session: '126회',
+                bossMessage: "5월 한 달 동안 우리 회사에서 지출된 현금 총액이 얼마인지 확인해줄래? 영수증 처리 건수가 많아서.",
+                correctMenu: '현금출납장',
+                options: [
+                    { text: "기간: 5월~5월, 입금액 합계", isCorrect: false },
+                    { text: "기간: 5월~5월, 출금액 합계", isCorrect: true },
+                    { text: "기간: 1월~5월, 출금액 합계", isCorrect: false }
+                ],
+                answerAmount: "12,450,000원",
+                explanation: "특정 기간 동안의 현금 유입(입금)과 유출(출금)만을 집중적으로 볼 때는 [현금출납장]이 가장 정확합니다.",
+                hint: "오직 '현금'의 입금과 출금 내역만 모아놓은 장부입니다."
+            },
+            {
+                id: 123_1,
+                session: '123회',
+                bossMessage: "4월~6월 부가세 신고할 때 매입세액 공제액 중에 '고정자산 매입'으로 공제된 세액이 얼마였지? 세금계산서 수취분 말이야.",
+                correctMenu: '부가가치세신고서',
+                options: [
+                    { text: "세금계산서합계표 > 4~6월 > 매입", isCorrect: false },
+                    { text: "부가가치세신고서 > 4~6월 > 매입세액 > 고정자산매입(11번) 세액 확인", isCorrect: true },
+                    { text: "부가가치세신고서 > 4~6월 > 과세표준(1번)", isCorrect: false }
+                ],
+                answerAmount: "6,372,000원",
+                explanation: "부가세 신고서의 특정 항목(고정자산 매입 등)을 물어볼 때는 [부가가치세신고서]를 직접 조회합니다.",
+                hint: "세금계산서 수취분 중 고정자산, 일반매입 등 신고서 서식에 있는 항목을 묻고 있습니다."
+            },
+            {
+                id: 127_2,
+                session: '127회',
+                bossMessage: "올해 1분기(1~3월)에 매입한 거래 중에서 '카드가맹점'을 통해 매입(카과)한 건수랑 공급가액 합계가 어떻게 되지?",
+                correctMenu: '매입매출장',
+                options: [
+                    { text: "기간: 1~3월, 구분: 매출, 유형: 카과", isCorrect: false },
+                    { text: "기간: 1~3월, 구분: 매입, 유형: 카과", isCorrect: true },
+                    { text: "부가가치세신고서 > 1~3월 > 신용카드수령명세", isCorrect: false }
+                ],
+                answerAmount: "5건, 4,500,000원",
+                explanation: "특정 부가세 '유형(카과, 현과, 건별 등)'의 건수나 공급가액/부가세를 조회할 때는 [매입매출장]이 가장 좋습니다.",
+                hint: "과세 유형별(카과, 건별, 영세 등) 거래 내역을 세부적으로 볼 수 있는 장부입니다."
+            },
+            {
+                id: 120_1,
+                session: '120회',
+                bossMessage: "올해 1월부터 3월까지 우리가 원재료 매입한 총액이 얼마야? 현금으로 산거랑 외상으로 산거 합쳐서 월별로 볼 필요 없이 합계만!",
+                correctMenu: '일계표(월계표)',
+                options: [
+                    { text: "월계표 탭 > 1~3월 > 원재료 계정 차변 합계(계)", isCorrect: true },
+                    { text: "일계표 탭 > 1~3월 > 제품 계정 대변 합계(계)", isCorrect: false },
+                    { text: "거래처원장 > 1~3월 > 원재료", isCorrect: false }
+                ],
+                answerAmount: "148,850,000원",
+                explanation: "일정 기간 동안의 현금/대체 거래 구분까지 포함된 특정 계정 발생액 전체를 볼 때는 [일계표(월계표)]가 유용합니다.",
+                hint: "현금 지출액과 현금 외 지출액(대체)을 구분해서 보여주는 요약표 성격의 장부입니다."
+            },
+            {
+                id: 127_3,
+                session: '127회',
+                bossMessage: "은행에 대출 연장 서류 내야 하는데, 6월 말 기준으로 우리 회사 '유동부채'가 작년 말(전기) 대비 얼마나 증가했는지 확인해 줘.",
+                correctMenu: '재무상태표',
+                options: [
+                    { text: "기간: 6월 > 당기 유동부채 - 전기 유동부채 계산", isCorrect: true },
+                    { text: "손익계산서 > 6월 > 당기 비유동부채 - 전기 비유동부채", isCorrect: false },
+                    { text: "합계잔액시산표 > 6월 > 유동부채 대변잔액", isCorrect: false }
+                ],
+                answerAmount: "15,000,000원 증가",
+                explanation: "자산, 부채, 자본의 전기(작년) 대비 증감을 비교할 때는 비교식으로 제공되는 [재무상태표]를 활용합니다.",
+                hint: "자산, 부채, 자본의 현재 상태를 작년과 비교해서 보여주는 가장 기본적인 재무제표입니다."
+            }
+        ];
+
+        const CustomAlert = ({ message, type, onClose }) => {
+            const bgColor = type === 'error' ? 'bg-red-500' : type === 'warning' ? 'bg-orange-500' : 'bg-green-500';
+            const icon = type === 'error' ? 'fa-triangle-exclamation' : type === 'warning' ? 'fa-bell' : 'fa-check-circle';
+            return (
+                <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-[100] fade-in">
+                    <div className={`${bgColor} text-white px-6 py-3 rounded-full shadow-lg flex items-center space-x-3`}>
+                        <i className={`fas ${icon} text-xl`}></i>
+                        <span className="font-medium whitespace-pre-line">{message}</span>
+                        <button onClick={onClose} className="ml-4 hover:text-gray-200">
+                            <i className="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const ChatBubble = ({ message, isBoss, isHint }) => {
+            return (
+                <div className={`flex w-full mb-4 ${isBoss || isHint ? 'justify-start' : 'justify-end'} slide-up`}>
+                    {isBoss && !isHint && (
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3 shadow-sm border border-blue-200 flex-shrink-0">
+                            <span className="text-2xl">👨‍💼</span>
+                        </div>
+                    )}
+                    {isHint && (
+                        <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3 shadow-sm border border-yellow-200 flex-shrink-0 text-yellow-500">
+                            <i className="fas fa-lightbulb text-xl"></i>
+                        </div>
+                    )}
+                    <div className={`max-w-[75%] px-4 py-3 rounded-2xl shadow-sm ${
+                        isHint 
+                        ? 'bg-yellow-50 text-yellow-900 border border-yellow-200 rounded-tl-none' 
+                        : isBoss 
+                        ? 'bg-white text-gray-800 rounded-tl-none border border-gray-100' 
+                        : 'bg-brand-500 text-white rounded-tr-none'
+                    }`}>
+                        <p className="leading-relaxed text-[15px] whitespace-pre-wrap font-medium">{message}</p>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [currentStage, setCurrentStage] = useState(0);
+            const [chatHistory, setChatHistory] = useState([]);
+            const [alertData, setAlertData] = useState(null);
+            const [showSearchModal, setShowSearchModal] = useState(false);
+            const [showResultModal, setShowResultModal] = useState(false);
+            const [score, setScore] = useState(0);
+            const [lives, setLives] = useState(3);
+            const [gameState, setGameState] = useState('playing'); // playing, gameover, completed
+            const [isShake, setIsShake] = useState(false);
+            const [hintUsed, setHintUsed] = useState(false);
+            const chatEndRef = useRef(null);
+
+            // Start game
+            useEffect(() => {
+                startStage(0);
+            }, []);
+
+            useEffect(() => {
+                chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, [chatHistory]);
+
+            const startStage = (stageIndex) => {
+                if (stageIndex >= QUIZ_DATA.length) {
+                    setGameState('completed');
+                    return;
+                }
+                const quiz = QUIZ_DATA[stageIndex];
+                setHintUsed(false);
+                setChatHistory([
+                    { text: `=== [${quiz.session} 기출] 업무 지시 ===`, isBoss: true },
+                    { text: quiz.bossMessage, isBoss: true }
+                ]);
+            };
+
+            const triggerError = (msg) => {
+                showAlert(msg, 'error');
+                setIsShake(true);
+                setTimeout(() => setIsShake(false), 500);
+                
+                const newLives = lives - 1;
+                setLives(newLives);
+                
+                if (newLives <= 0) {
+                    setTimeout(() => setGameState('gameover'), 600);
+                }
+            };
+
+            const showAlert = (message, type) => {
+                setAlertData({ message, type });
+                setTimeout(() => setAlertData(null), 3000);
+            };
+
+            const showHint = () => {
+                if (hintUsed || gameState !== 'playing' || showSearchModal || showResultModal) return;
+                
+                const quiz = QUIZ_DATA[currentStage];
+                setHintUsed(true);
+                setChatHistory(prev => [
+                    ...prev,
+                    { text: `시스템 힌트: ${quiz.hint}`, isHint: true }
+                ]);
+                showAlert("힌트를 사용하여 클리어 보너스 점수가 감소합니다.", "warning");
+            };
+
+            const handleMenuClick = (menuName) => {
+                if (gameState !== 'playing' || showSearchModal || showResultModal) return;
+
+                const currentQuiz = QUIZ_DATA[currentStage];
+                
+                if (menuName === currentQuiz.correctMenu) {
+                    setShowSearchModal(true);
+                } else {
+                    triggerError(`땡! [${menuName}]에서는 해당 정보를 찾기 어렵습니다.\n잘못된 메뉴 선택으로 라이프가 1 감소합니다.`);
+                }
+            };
+
+            const handleConditionSelect = (isCorrect) => {
+                if (isCorrect) {
+                    setShowSearchModal(false);
+                    setShowResultModal(true);
+                } else {
+                    triggerError("조회 조건이 틀렸습니다.\n부정확한 조회로 라이프가 1 감소합니다.");
+                }
+            };
+
+            const handleReportBoss = () => {
+                const currentQuiz = QUIZ_DATA[currentStage];
+                
+                setChatHistory(prev => [
+                    ...prev,
+                    { text: `부장님, 지시하신 내용 확인했습니다.\n조회 결과: [${currentQuiz.answerAmount}] 입니다.`, isBoss: false }
+                ]);
+
+                setShowResultModal(false);
+                
+                // 점수 계산 로직
+                const pointsEarned = hintUsed ? 5 : 10;
+                setScore(prev => prev + pointsEarned);
+
+                setTimeout(() => {
+                    setChatHistory(prev => [
+                        ...prev,
+                        { text: hintUsed ? "음, 확인했어. 다음엔 더 빨리 부탁해." : "오, 정확하군. 수고했어!", isBoss: true }
+                    ]);
+                    
+                    setTimeout(() => {
+                        const nextStage = currentStage + 1;
+                        setCurrentStage(nextStage);
+                        startStage(nextStage);
+                    }, 2000);
+                }, 1000);
+            };
+
+            const resetGame = () => {
+                setScore(0);
+                setLives(3);
+                setCurrentStage(0);
+                setGameState('playing');
+                startStage(0);
+            };
+
+            // Renders Game Over or Game Completed screens
+            if (gameState === 'gameover') {
+                return (
+                    <div className="flex-1 flex items-center justify-center bg-gray-900 h-screen w-screen">
+                        <div className="bg-white p-10 rounded-2xl shadow-2xl text-center max-w-lg w-full slide-up">
+                            <div className="text-6xl mb-4 text-red-500"><i className="fas fa-skull-crossbones"></i></div>
+                            <h1 className="text-3xl font-bold text-gray-800 mb-2">업무 실패 (해고 위기)</h1>
+                            <p className="text-gray-600 mb-6">부장님의 분노 게이지가 100%를 초과했습니다.<br/>메뉴와 조건을 다시 복습해보세요.</p>
+                            <div className="bg-red-50 text-red-800 p-4 rounded-lg font-bold text-xl mb-6">
+                                획득 점수: {score}점 (Stage {currentStage + 1})
+                            </div>
+                            <button 
+                                onClick={resetGame}
+                                className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg transition-colors w-full"
+                            >
+                                <i className="fas fa-redo mr-2"></i> 처음부터 다시 취업하기
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (gameState === 'completed') {
+                return (
+                    <div className="flex-1 flex items-center justify-center bg-brand-50 h-screen w-screen">
+                        <div className="bg-white p-10 rounded-2xl shadow-xl text-center max-w-lg w-full slide-up">
+                            <div className="text-6xl mb-4 text-yellow-500"><i className="fas fa-trophy"></i></div>
+                            <h1 className="text-3xl font-bold text-gray-800 mb-2">초고속 승진!</h1>
+                            <p className="text-gray-600 mb-6">모든 장부조회 지시를 완벽하게 처리했습니다.<br/>당신은 진정한 ERP 마스터입니다.</p>
+                            <div className="bg-blue-50 text-blue-800 p-4 rounded-lg font-bold text-xl mb-6 flex justify-between items-center px-8">
+                                <span>최종 점수: </span>
+                                <span className="text-3xl">{score}점</span>
+                            </div>
+                            <button 
+                                onClick={resetGame}
+                                className="bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-8 rounded-lg transition-colors w-full"
+                            >
+                                기록 갱신 재도전
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            const currentQuiz = QUIZ_DATA[currentStage];
+
+            return (
+                <div className="flex h-screen w-screen overflow-hidden">
+                    {alertData && <CustomAlert message={alertData.message} type={alertData.type} onClose={() => setAlertData(null)} />}
+                    
+                    {/* Left Panel: Messenger */}
+                    <div className="w-full md:w-1/3 lg:w-96 bg-blue-50 border-r border-blue-100 flex flex-col h-full relative z-10">
+                        {/* Header */}
+                        <div className="bg-white px-5 py-4 border-b border-gray-200 shadow-sm z-10">
+                            <div className="flex justify-between items-center mb-2">
+                                <div>
+                                    <h1 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                                        <i className="fas fa-comment-dots text-brand-500"></i> 사내 메신저
+                                    </h1>
+                                    <p className="text-xs text-gray-500">영업부 김부장 (접속중)</p>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-xs font-bold text-gray-500 mb-1">내 평고 (라이프)</div>
+                                    <div className="flex gap-1 text-lg">
+                                        {[1, 2, 3].map(heart => (
+                                            <i key={heart} className={`fas fa-heart heart-icon ${heart <= lives ? 'heart-full' : 'heart-empty'}`}></i>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
+                                <div className="bg-brand-100 text-brand-800 px-3 py-1 rounded-full text-xs font-bold">
+                                    업무 {currentStage + 1} / {QUIZ_DATA.length}
+                                </div>
+                                <div className="font-bold text-brand-600 text-sm">
+                                    스코어: {score}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Chat Area */}
+                        <div className="flex-1 p-4 overflow-y-auto chat-scroll flex flex-col pb-24 bg-[#f8fafc]">
+                            {chatHistory.map((chat, idx) => (
+                                <ChatBubble key={idx} message={chat.text} isBoss={chat.isBoss} isHint={chat.isHint} />
+                            ))}
+                            <div ref={chatEndRef} />
+                        </div>
+                        
+                        {/* Status/Input bar */}
+                        <div className="absolute bottom-0 w-full bg-white border-t border-gray-200 p-3 flex items-center justify-between shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
+                            <div className="text-sm text-gray-500 flex items-center flex-1">
+                                <span className="animate-pulse-fast inline-block w-2 h-2 rounded-full bg-brand-500 mr-2"></span>
+                                ERP에서 장부를 조회하세요...
+                            </div>
+                            <button 
+                                onClick={showHint}
+                                disabled={hintUsed || showSearchModal || showResultModal}
+                                className={`ml-2 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1 transition-colors ${
+                                    hintUsed || showSearchModal || showResultModal 
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                    : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                                }`}
+                                title="힌트 보기 (클리어 점수 감소)"
+                            >
+                                <i className="fas fa-lightbulb"></i> 힌트
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Right Panel: ERP System */}
+                    <div className={`hidden md:flex flex-1 flex-col bg-gray-100 relative ${isShake ? 'animate-shake' : ''}`}>
+                        {/* ERP Header */}
+                        <div className="bg-erp-dark text-white px-6 py-4 flex justify-between items-center shadow-md z-10">
+                            <div className="text-xl font-bold tracking-tight flex items-center gap-3">
+                                <i className="fas fa-desktop text-erp-accent"></i>
+                                Smart-ERP <span className="font-light text-sm text-gray-300">Enterprise v3.0</span>
+                            </div>
+                            <div className="text-sm font-medium flex items-center gap-4">
+                                <div className="hidden lg:flex items-center gap-2 text-gray-300 border-r border-gray-600 pr-4">
+                                    <i className="fas fa-building"></i> (주)엘리스상사
+                                </div>
+                                <div>접속자: <span className="text-erp-accent">김사원 (회계부)</span></div>
+                            </div>
+                        </div>
+
+                        {/* ERP Workspace */}
+                        <div className="flex-1 p-6 lg:p-10 overflow-y-auto">
+                            <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:p-8">
+                                <h2 className="text-xl font-bold text-gray-700 mb-6 border-b pb-4 flex justify-between items-center">
+                                    <span><i className="fas fa-th-large mr-2 text-brand-500"></i> 장부관리 / 결산재무제표</span>
+                                    <span className="text-sm font-normal text-gray-500 bg-gray-100 px-3 py-1 rounded-full">원하는 장부 아이콘을 클릭하세요</span>
+                                </h2>
+                                
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                                    {ALL_MENUS.map(menu => (
+                                        <button 
+                                            key={menu.id}
+                                            onClick={() => handleMenuClick(menu.name)}
+                                            className="flex flex-col items-center justify-center py-6 px-4 bg-white border-2 border-gray-100 hover:bg-brand-50 hover:border-brand-300 rounded-xl transition-all hover:-translate-y-1 hover:shadow-lg group"
+                                        >
+                                            <div className="w-14 h-14 bg-gray-50 group-hover:bg-brand-100 rounded-full flex items-center justify-center mb-3 transition-colors">
+                                                <i className={`fas ${menu.icon} text-2xl text-gray-400 group-hover:text-brand-500 transition-colors`}></i>
+                                            </div>
+                                            <span className="font-semibold text-gray-700 group-hover:text-brand-700 text-center text-[15px] tracking-tight">{menu.name}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Search Condition Modal */}
+                        {showSearchModal && (
+                            <div className="absolute inset-0 bg-erp-dark bg-opacity-70 flex items-center justify-center z-20 backdrop-blur-sm">
+                                <div className="bg-white w-11/12 max-w-lg rounded-xl shadow-2xl p-0 overflow-hidden slide-up border border-gray-200">
+                                    <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                                        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                            <i className="fas fa-search text-brand-500"></i>
+                                            [{currentQuiz.correctMenu}] 조회 조건 입력
+                                        </h3>
+                                        <button onClick={() => setShowSearchModal(false)} className="text-gray-400 hover:text-red-500 transition-colors">
+                                            <i className="fas fa-times text-xl"></i>
+                                        </button>
+                                    </div>
+                                    <div className="p-6">
+                                        <p className="text-gray-600 mb-5 font-medium text-sm">부장님의 지시를 파악하고 가장 적절한 조회 조건을 선택하세요.</p>
+                                        <div className="space-y-3">
+                                            {currentQuiz.options.map((opt, idx) => (
+                                                <button 
+                                                    key={idx}
+                                                    onClick={() => handleConditionSelect(opt.isCorrect)}
+                                                    className="w-full text-left px-5 py-4 bg-white border border-gray-200 hover:bg-blue-50 hover:border-brand-400 rounded-lg transition-all hover:shadow-md flex items-start gap-3 group"
+                                                >
+                                                    <i className="fas fa-check-circle text-gray-300 group-hover:text-brand-500 mt-1"></i>
+                                                    <span className="text-gray-700 group-hover:text-brand-900 font-medium leading-relaxed">{opt.text}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Result Modal */}
+                        {showResultModal && (
+                            <div className="absolute inset-0 bg-erp-dark bg-opacity-70 flex items-center justify-center z-30 backdrop-blur-sm">
+                                <div className="bg-white w-11/12 max-w-md rounded-2xl shadow-2xl p-0 overflow-hidden slide-up">
+                                    <div className="bg-brand-600 p-6 text-center relative overflow-hidden">
+                                        <div className="absolute opacity-10 right-0 top-0 text-9xl transform translate-x-4 -translate-y-4">
+                                            <i className="fas fa-file-invoice-dollar"></i>
+                                        </div>
+                                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg relative z-10">
+                                            <i className="fas fa-search-dollar text-3xl text-brand-600"></i>
+                                        </div>
+                                        <h3 className="text-white font-bold text-xl relative z-10">조회 완료</h3>
+                                    </div>
+                                    <div className="p-6 text-center">
+                                        <p className="text-sm text-gray-500 mb-2 font-medium">산출된 데이터 값</p>
+                                        <div className="text-3xl font-bold text-gray-800 mb-5 bg-gray-50 py-4 rounded-xl border-2 border-dashed border-gray-200 text-brand-600">
+                                            {currentQuiz.answerAmount}
+                                        </div>
+                                        <div className="bg-blue-50 border border-blue-100 text-blue-800 p-4 rounded-xl text-sm mb-6 text-left shadow-sm">
+                                            <strong><i className="fas fa-graduation-cap text-blue-600 mr-2"></i>해설 노트:</strong> 
+                                            <span className="mt-1 block text-gray-600 leading-relaxed">{currentQuiz.explanation}</span>
+                                        </div>
+                                        <button 
+                                            onClick={handleReportBoss}
+                                            className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-4 px-4 rounded-xl transition-all hover:shadow-lg flex items-center justify-center gap-2 transform active:scale-95"
+                                        >
+                                            <i className="fas fa-paper-plane"></i> 부장님께 메신저로 보고하기
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

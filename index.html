@@ -20,6 +20,8 @@
   --c-erp:#4A4A6E;          /* ERP */
   --c-contest:#B8342B;      /* 전국전산회계경진대회 */
   --c-biz-contest:#2B7A6E;  /* 상업경진대회 */
+  --c-ncs:#3D6E8A;          /* NCS 직업기초능력평가 */
+  --c-teacher:#8A4A2B;      /* 교사 교수·수업도구 */
 }
 *{box-sizing:border-box;}
 html{scroll-behavior:smooth;}
@@ -77,6 +79,8 @@ body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);colo
     <a href="#erp"><span class="dot" style="background:var(--c-erp);"></span>ERP</a>
     <a href="#contest"><span class="dot" style="background:var(--c-contest);"></span>전국전산회계경진대회</a>
     <a href="#biz-contest"><span class="dot" style="background:var(--c-biz-contest);"></span>상업경진대회</a>
+    <a href="#ncs"><span class="dot" style="background:var(--c-ncs);"></span>NCS 직업기초능력평가</a>
+    <a href="#teacher-tools"><span class="dot" style="background:var(--c-teacher);"></span>교사 교수·수업도구</a>
   </div>
 
   <!-- 재무회계 -->
@@ -160,10 +164,21 @@ body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);colo
     <div class="section-head">
       <span class="section-dot" style="background:var(--c-acc-practice);"></span>
       <h2>회계실무</h2>
-      <span class="cnt">준비 중</span>
+      <span class="cnt">2개 활동</span>
     </div>
     <div class="grid">
-      <div class="empty-card">아직 등록된 활동이 없어요. acc-practice 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
+      <a class="game-card" href="acc-practice/booking.html">
+        <span class="game-tag" style="background:var(--c-acc-practice);">ERP 시뮬레이션</span>
+        <h3>회계 탐정 : 장부조회 마스터 프로</h3>
+        <p>가상 ERP 화면에서 부장님의 메신저 지시를 받아, 알맞은 장부와 조회 조건을 찾아 클릭하는 시뮬레이션입니다. 잘못 조회하면 분노 게이지가 쌓이고, 모든 지시를 완벽히 처리하면 초고속 승진에 도전합니다.</p>
+        <span class="go">시작하기 →</span>
+      </a>
+      <a class="game-card" href="acc-practice/closing.html">
+        <span class="game-tag" style="background:var(--c-acc-practice);">결산 트레이닝</span>
+        <h3>결산 마스터 요원 훈련</h3>
+        <p>선급비용·선수수익·미수수익·미지급비용부터 감가상각, 대손 추산, 유가증권 평가까지 결산정리 8단계를 사건 수사 콘셉트로 풀어보는 트레이닝입니다.</p>
+        <span class="go">시작하기 →</span>
+      </a>
     </div>
   </div>
 
@@ -263,6 +278,30 @@ body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);colo
         <p>경제 골든벨 대회 대비 객관식·단답형 문제를 풀어보는 학습 도구입니다. 로그인 후 채점 결과가 자동으로 저장됩니다.</p>
         <span class="go">시작하기 →</span>
       </a>
+    </div>
+  </div>
+
+  <!-- NCS 직업기초능력평가 -->
+  <div class="section" id="ncs">
+    <div class="section-head">
+      <span class="section-dot" style="background:var(--c-ncs);"></span>
+      <h2>NCS 직업기초능력평가</h2>
+      <span class="cnt">준비 중</span>
+    </div>
+    <div class="grid">
+      <div class="empty-card">아직 등록된 활동이 없어요. ncs 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
+    </div>
+  </div>
+
+  <!-- 교사 교수·수업도구 -->
+  <div class="section" id="teacher-tools">
+    <div class="section-head">
+      <span class="section-dot" style="background:var(--c-teacher);"></span>
+      <h2>교사 교수·수업도구</h2>
+      <span class="cnt">준비 중</span>
+    </div>
+    <div class="grid">
+      <div class="empty-card">아직 등록된 활동이 없어요. teacher-tools 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
     </div>
   </div>
 

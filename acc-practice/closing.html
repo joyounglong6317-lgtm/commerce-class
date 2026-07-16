@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>결산 마스터 요원 훈련</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --neon-green: #deff9a;
+            --neon-green-dim: rgba(222, 255, 154, 0.2);
+            --neon-red: #ff4d4d;
+            --neon-yellow: #ffd700;
+        }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: var(--bg-dark);
+            color: white;
+            margin: 0;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Cyberpunk Glitch & Glow Effects */
+        .neon-text {
+            color: var(--neon-green);
+            text-shadow: 0 0 10px var(--neon-green-dim);
+        }
+
+        .neon-border {
+            border: 2px solid var(--neon-green);
+            box-shadow: 0 0 15px var(--neon-green-dim), inset 0 0 15px var(--neon-green-dim);
+        }
+
+        .cyber-card {
+            background: rgba(26, 26, 26, 0.9);
+            border: 1px solid #333;
+            border-left: 4px solid var(--neon-green);
+            transition: all 0.3s ease;
+        }
+
+        .option-btn {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            transition: all 0.2s ease;
+        }
+
+        .option-btn:hover, .option-btn:active {
+            border-color: var(--neon-green);
+            background: var(--neon-green-dim);
+            transform: translateY(-2px);
+        }
+
+        /* Scanline Overlay */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0.3;
+        }
+
+        /* Combo Animation */
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); color: var(--neon-yellow); text-shadow: 0 0 20px rgba(255,215,0,0.8); }
+            100% { transform: scale(1); }
+        }
+        .combo-pop {
+            animation: pop 0.4s ease-out;
+        }
+
+        /* Print Styles */
+        @media print {
+            body { background-color: white !important; color: black !important; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .scanlines { display: none !important; }
+            .print-page { page-break-after: always; padding: 20px; }
+            h1, h2, h3 { color: black !important; }
+            .worksheet-box { border: 1px solid #000; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+            .worksheet-title { font-weight: bold; font-size: 1.2rem; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 10px; }
+            .blank-line { border-bottom: 1px solid #666; display: inline-block; width: 150px; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center">
+
+    <div class="scanlines"></div>
+
+    <!-- 기존 인쇄용 워크시트 (핵심 8문제 유지) -->
+    <div id="worksheet" class="hidden print-only w-full max-w-4xl mx-auto text-black bg-white p-8">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold mb-2">🕵️‍♂️ [결산 마스터 요원 훈련 일지] 핵심 요약본</h1>
+            <p class="text-lg">소속: _______학년 _______반  이름: ________________</p>
+        </div>
+
+        <div class="worksheet-box">
+            <div class="worksheet-title">🛡️ STAGE 1. 비용의 이연 (선급비용)</div>
+            <p class="mb-2"><strong>[사건 기록]</strong> 당기 9월 1일에 1년 치 화재보험료 120,000원을 현금 지급하고 전액 '보험료(비용)'로 처리했다. 기말 결산분개를 수행하라.</p>
+            <p class="mb-4 text-gray-700"><strong>[수사 메모 (월할계산)]</strong> 120,000원 × ( 8 / 12 )개월 = 내년도 미경과분 80,000원</p>
+            <p class="font-bold"><strong>[결산 분개]</strong> (차) <span class="blank-line"></span> ( <span class="blank-line" style="width:80px"></span> ) | (대) <span class="blank-line"></span> ( <span class="blank-line" style="width:80px"></span> )</p>
+        </div>
+
+        <div class="worksheet-box">
+            <div class="worksheet-title">🛡️ STAGE 2. 수익의 이연 (선수수익)</div>
+            <p class="mb-2"><strong>[사건 기록]</strong> 당기 10월 1일에 1년 치 임대료 1,200,000원을 현금 수령하고 전액 '임대료(수익)'로 처리했다. 기말 결산분개를 수행하라.</p>
+            <p class="mb-4 text-gray-700"><strong>[수사 메모 (월할계산)]</strong> 1,200,000원 × ( <span class="inline-block w-8 border-b border-gray-400"></span> / 12 )개월 = 내년도 미경과분 <span class="inline-block w-20 border-b border-gray-400"></span>원</p>
+            <p class="font-bold"><strong>[결산 분개]</strong> (차) <span class="blank-line"></span> ( <span class="blank-line" style="width:80px"></span> ) | (대) <span class="blank-line"></span> ( <span class="blank-line" style="width:80px"></span> )</p>
+        </div>
+
+        <div class="worksheet-box">
+            <div class="worksheet-title">🛡️ STAGE 3. 수익의 예상 (미수수익)</div>
+            <p class="mb-2"><strong>[사건 기록]</strong> 은행 정기예금에 대하여 당기 12월 31일까지 발생한 이자 30,000원을 아직 받지 못했다.</p>
+            <p class="mb-4 text-gray-700"><strong>[수사 메모]</strong> 수익이 발생했으나 미수령 → 당기 수익 발생(대변), 자산/받을권리 증가(차변)</p>
+            <p class="font-bold"><strong>[결산 분개]</strong> (차) <span class="blank-line"></span> ( <span class="blank-line" style="width:80px"></span> ) | (대) <span class="blank-line"></span> ( <span class="blank-line" style="width:80px"></span> )</p>
+        </div>
+
+        <div class="worksheet-box">
+            <div class="worksheet-title">🛡️ STAGE 4. 비용의 예상 (미지급비용)</div>
+            <p class="mb-2"><strong>[사건 기록]</strong> 은행 단기차입금에 대한 당기분 발생 이자 50,000원을 아직 지급하지 않았다.</p>
+            <p class="mb-4 text-gray-700"><strong>[수사 메모]</strong> 비용이 발생했으나 미지급 → 당기 비용 발생(차변), 부채/지급의무 증가(대변)</p>
+            <p class="font-bold"><strong>[결산 분개]</strong> (차) <span class="blank-line"></span> ( <span class="blank-line" style="width:80px"></span> ) | (대) <span class="blank-line"></span> ( <span class="blank-line" style="width:80px"></span> )</p>
+        </div>
+        
+        <div style="page-break-before: always;"></div>
+
+        <div class="worksheet-box">
+            <div class="worksheet-title">🛡️ STAGE 5. 소모품의 정리 (자산 대체)</div>
+            <p class="mb-2"><strong>[사건 기록]</strong> 기중에 구입하며 전액 '소모품비(비용)'로 처리한 복사용지 중, 기말 현재 미사용액은 20,000원이다.</p>
+            <p class="mb-4 text-gray-700"><strong>[수사 메모]</strong> 사용하지 않은 만큼 비용 취소(대변), 자산 증가(차변)</p>
+            <p class="font-bold"><strong>[결산 분개]</strong> (차) <span class="blank-line"></span> ( <span class="blank-line" style="width:80px"></span> ) | (대) <span class="blank-line"></span> ( <span class="blank-line" style="width:80px"></span> )</p>
+        </div>
+
+        <div class="worksheet-box">
+            <div class="worksheet-title">🛡️ STAGE 6. 유형자산의 감가상각 (간접법)</div>
+            <p class="mb-2"><strong>[사건 기록]</strong> 영업부 비품(취득원가 1,000,000원, 잔존가치 0원, 내용연수 5년)에 대해 정액법으로 감가상각하다.</p>
+            <p class="mb-4 text-gray-700"><strong>[수사 메모 (정액법 계산)]</strong> (1,000,000 - 0) ÷ 5년 = 당기 상각액 <span class="inline-block w-20 border-b border-gray-400"></span>원</p>
+            <p class="font-bold"><strong>[결산 분개]</strong> (차) <span class="blank-line"></span> ( <span class="blank-line" style="width:80px"></span> ) | (대) <span class="blank-line"></span> ( <span class="blank-line" style="width:80px"></span> )</p>
+        </div>
+
+        <div class="worksheet-box">
+            <div class="worksheet-title">🛡️ STAGE 7. 대손의 예상 (보충법)</div>
+            <p class="mb-2"><strong>[사건 기록]</strong> 기말 매출채권 잔액 3,000,000원에 대하여 1%의 대손을 예상하다. (결산 전 대손충당금 잔액은 10,000원)</p>
+            <p class="mb-4 text-gray-700"><strong>[수사 메모 (보충법 계산)]</strong> (3,000,000 × 1%) - 기존 잔액 10,000 = 보충액 <span class="inline-block w-20 border-b border-gray-400"></span>원</p>
+            <p class="font-bold"><strong>[결산 분개]</strong> (차) <span class="blank-line"></span> ( <span class="blank-line" style="width:80px"></span> ) | (대) <span class="blank-line"></span> ( <span class="blank-line" style="width:80px"></span> )</p>
+        </div>
+
+        <div class="worksheet-box">
+            <div class="worksheet-title">🛡️ STAGE 8. 단기매매증권의 평가</div>
+            <p class="mb-2"><strong>[사건 기록]</strong> 기말 보유 중인 단기매매증권의 장부금액은 100,000원이나, 결산일 현재 공정가치(시가)는 150,000원으로 평가되었다.</p>
+            <p class="mb-4 text-gray-700"><strong>[수사 메모]</strong> 150,000(시가) - 100,000(장부금액) = 가치 상승분 <span class="inline-block w-20 border-b border-gray-400"></span>원</p>
+            <p class="font-bold"><strong>[결산 분개]</strong> (차) <span class="blank-line"></span> ( <span class="blank-line" style="width:80px"></span> ) | (대) <span class="blank-line"></span> ( <span class="blank-line" style="width:80px"></span> )</p>
+        </div>
+    </div>
+
+    <!-- Game App -->
+    <div id="game-app" class="no-print w-full max-w-3xl flex flex-col h-screen p-4 sm:p-8 relative z-10">
+        
+        <!-- 1. Start Screen -->
+        <div id="screen-start" class="flex flex-col items-center justify-center h-full text-center space-y-8 transition-opacity duration-500">
+            <div>
+                <p class="text-[#deff9a] tracking-widest text-sm font-bold mb-2 font-mono">OPERATION: ACCOUNTING</p>
+                <h1 class="text-5xl sm:text-7xl font-extrabold text-white tracking-tight mb-4">결산 <span class="neon-text">마스터</span></h1>
+                <p class="text-gray-400 text-lg sm:text-xl max-w-md mx-auto mb-2">우당탕탕 상회의 무너진 장부를 구출하라.<br>총 38개 결산 미션 시뮬레이션</p>
+                <div class="inline-flex gap-4 mt-4">
+                    <span class="bg-gray-800 text-xs px-3 py-1 rounded font-mono"><i class="fa-solid fa-stopwatch text-[#deff9a]"></i> 30초 제한</span>
+                    <span class="bg-gray-800 text-xs px-3 py-1 rounded font-mono"><i class="fa-solid fa-fire text-[#ff4d4d]"></i> 콤보 점수</span>
+                </div>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
+                <button onclick="startGame()" class="flex-1 neon-border bg-[#1a1a1a] hover:bg-[#deff9a] hover:text-black text-[#deff9a] font-bold py-4 px-8 rounded font-mono text-xl transition-all">
+                    SYSTEM START
+                </button>
+            </div>
+            <button onclick="window.print()" class="text-gray-500 hover:text-white underline mt-4 text-sm flex items-center gap-2">
+                <i class="fa-solid fa-print"></i> 핵심 8문제 요약지 인쇄
+            </button>
+        </div>
+
+        <!-- 2. Game Screen -->
+        <div id="screen-game" class="hidden flex-col h-full w-full">
+            <!-- Header (Progress, Combo & Score) -->
+            <div class="flex justify-between items-end mb-4 border-b border-[#333] pb-4">
+                <div>
+                    <p class="text-gray-400 text-sm font-mono mb-1">MISSION</p>
+                    <p class="text-2xl font-bold text-[#deff9a]"><span id="ui-current-mission">1</span> <span class="text-gray-500 text-lg">/ <span id="ui-total-mission">38</span></span></p>
+                </div>
+                <div class="text-center hidden sm:block">
+                    <p class="text-gray-400 text-sm font-mono mb-1">COMBO</p>
+                    <p class="text-2xl font-bold text-[#ffd700] transition-all" id="ui-combo">0</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-gray-400 text-sm font-mono mb-1">SCORE</p>
+                    <p class="text-2xl font-bold font-mono transition-all" id="ui-score">0</p>
+                </div>
+            </div>
+            
+            <!-- Mobile Combo (shows under header on small screens) -->
+            <div class="text-center sm:hidden mb-4">
+                <p class="text-sm font-mono text-gray-400 inline">COMBO: </p>
+                <span class="text-lg font-bold text-[#ffd700] transition-all" id="ui-combo-mobile">0</span>
+            </div>
+
+            <!-- Timer Bar -->
+            <div class="w-full h-2 bg-gray-800 mb-6 rounded-full overflow-hidden">
+                <div id="timer-progress" class="h-full bg-[#deff9a] transition-all duration-1000 ease-linear" style="width: 100%"></div>
+            </div>
+
+            <!-- Question Card -->
+            <div class="cyber-card p-6 sm:p-8 rounded-lg mb-6 flex-grow-0 relative overflow-hidden shadow-lg">
+                <div class="absolute top-0 right-0 bg-[#deff9a] text-black text-xs font-bold px-3 py-1 font-mono rounded-bl-lg" id="ui-tag">유형</div>
+                <h2 class="text-xl sm:text-2xl font-semibold leading-relaxed mt-2" id="ui-question">질문 내용이 여기에 표시됩니다.</h2>
+            </div>
+
+            <!-- Options Container -->
+            <div class="flex flex-col gap-4 flex-grow overflow-y-auto pb-4" id="ui-options">
+                <!-- Options will be injected by JS -->
+            </div>
+        </div>
+
+        <!-- Feedback Overlay -->
+        <div id="feedback-overlay" class="hidden absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+            <div class="bg-[#1a1a1a] border-2 rounded-xl p-8 max-w-lg w-full text-center flex flex-col items-center" id="feedback-box">
+                <div id="feedback-icon" class="text-6xl mb-4"></div>
+                <h2 id="feedback-title" class="text-3xl font-bold mb-2"></h2>
+                <p id="feedback-score-gained" class="text-lg font-mono text-[#ffd700] mb-4 h-6"></p>
+                <div class="bg-black/50 p-4 rounded-lg mb-6 w-full text-left max-h-48 overflow-y-auto">
+                    <p class="text-sm text-gray-400 mb-1 font-mono">EXPLANATION</p>
+                    <p id="feedback-desc" class="text-base sm:text-lg leading-relaxed text-gray-200"></p>
+                </div>
+                <button onclick="handleNextStep()" class="w-full neon-border bg-[#deff9a] text-black font-bold py-4 rounded text-xl hover:bg-white transition-colors">
+                    NEXT MISSION <i class="fa-solid fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. End Screen -->
+        <div id="screen-end" class="hidden flex-col items-center justify-center h-full text-center">
+            <div id="rank-icon" class="text-7xl mb-4"></div>
+            <h1 class="text-5xl font-bold mb-2">MISSION ACCOMPLISHED</h1>
+            <p class="text-xl text-gray-400 mb-8" id="end-message">모든 결산 임무를 완료했습니다.</p>
+            
+            <div class="bg-[#1a1a1a] border border-[#333] rounded-2xl p-8 mb-8 w-full max-w-sm relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 text-9xl opacity-10 font-black italic" id="bg-rank">S</div>
+                <p class="text-gray-400 font-mono mb-2">FINAL SCORE</p>
+                <p class="text-5xl sm:text-6xl font-bold text-[#deff9a] font-mono mb-4" id="ui-final-score">0</p>
+                <div class="border-t border-gray-700 pt-4">
+                    <p class="text-sm text-gray-400">AGENT RANK</p>
+                    <p class="text-4xl font-black text-white mt-1" id="ui-final-rank">S-CLASS</p>
+                </div>
+            </div>
+
+            <button onclick="initGame()" class="neon-border bg-transparent hover:bg-[#deff9a] hover:text-black text-[#deff9a] font-bold py-3 px-8 rounded font-mono transition-colors">
+                <i class="fa-solid fa-rotate-right mr-2"></i> RESTART SYSTEM
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 1. Game Data Setup (38 Questions) ---
+        const missionData = [
+            // 기존 8문제
+            { tag: "STAGE 1. 선급비용", question: "9월 1일에 1년 치 화재보험료 120,000원을 현금 지급하고 전액 '보험료(비용)'로 처리했다. 기말 결산분개를 하시오. (월할계산)", options: [ { debit: "선급비용 80,000", credit: "보험료 80,000" }, { debit: "보험료 40,000", credit: "선급비용 40,000" }, { debit: "선급비용 120,000", credit: "보험료 120,000" } ], correctIndex: 0, explanation: "올해 비용 처리한 120,000원 중, 내년도 8개월분(80,000원)은 당기 비용에서 취소(대변)하고 자산인 '선급비용'으로(차변) 이연합니다." },
+            { tag: "STAGE 2. 선수수익", question: "10월 1일에 1년 치 임대료 1,200,000원을 현금 수령하고 전액 '임대료(수익)'로 처리했다. 기말 결산분개를 하시오. (월할계산)", options: [ { debit: "임대료 300,000", credit: "선수수익 300,000" }, { debit: "선수수익 900,000", credit: "임대료 900,000" }, { debit: "임대료 900,000", credit: "선수수익 900,000" } ], correctIndex: 2, explanation: "올해 수익 처리한 금액 중, 내년도 9개월분(900,000원)은 당기 수익에서 취소(차변)하고 부채인 '선수수익'으로(대변) 이연합니다." },
+            { tag: "STAGE 3. 미수수익", question: "은행 정기예금에 대하여 당기 12월 31일까지 발생한 이자 30,000원을 아직 받지 못했다.", options: [ { debit: "선수수익 30,000", credit: "이자수익 30,000" }, { debit: "미수수익 30,000", credit: "이자수익 30,000" }, { debit: "이자수익 30,000", credit: "미수수익 30,000" } ], correctIndex: 1, explanation: "당기에 이미 발생한 수익이므로 '이자수익'을 대변에 인식하고, 나중에 받을 권리인 '미수수익(자산)'을 차변에 기록합니다." },
+            { tag: "STAGE 4. 미지급비용", question: "은행 단기차입금에 대한 당기분 발생 이자 50,000원을 아직 지급하지 않았다.", options: [ { debit: "이자비용 50,000", credit: "미지급비용 50,000" }, { debit: "미지급비용 50,000", credit: "이자비용 50,000" }, { debit: "이자비용 50,000", credit: "미수수익 50,000" } ], correctIndex: 0, explanation: "당기에 이미 발생한 비용이므로 '이자비용'을 차변에 인식하고, 나중에 갚을 의무인 '미지급비용(부채)'을 대변에 기록합니다." },
+            { tag: "STAGE 5. 소모품", question: "구입 시 전액 '소모품비(비용)'로 처리한 복사용지 중, 기말 현재 미사용되어 창고에 남은 금액은 20,000원이다.", options: [ { debit: "소모품비 20,000", credit: "소모품 20,000" }, { debit: "소모품 30,000", credit: "소모품비 30,000" }, { debit: "소모품 20,000", credit: "소모품비 20,000" } ], correctIndex: 2, explanation: "사용하지 않은 만큼(20,000원) 당기 비용에서 취소(대변)하고, 내년에 사용할 수 있는 자산인 '소모품(차변)'으로 대체합니다." },
+            { tag: "STAGE 6. 감가상각", question: "영업부 비품(취득원가 1,000,000원, 잔존가치 0원, 내용연수 5년)에 대해 정액법으로 감가상각하다.", options: [ { debit: "비품 200,000", credit: "감가상각비 200,000" }, { debit: "감가상각비 200,000", credit: "비품 200,000" }, { debit: "감가상각비 200,000", credit: "감가상각누계액 200,000" } ], correctIndex: 2, explanation: "1,000,000원 ÷ 5년 = 200,000원. 자산에서 직접 빼지 않고 '감가상각누계액'이라는 차감적 계정으로 대변에 간접 처리합니다." },
+            { tag: "STAGE 7. 대손충당금", question: "기말 매출채권 잔액 3,000,000원에 대하여 1%의 대손을 예상하다. (결산 전 대손충당금 잔액은 10,000원)", options: [ { debit: "대손상각비 30,000", credit: "대손충당금 30,000" }, { debit: "대손상각비 20,000", credit: "대손충당금 20,000" }, { debit: "대손충당금 10,000", credit: "대손상각비 10,000" } ], correctIndex: 1, explanation: "예상액(30,000원)에서 기존 잔액(10,000원)을 뺀 부족분 20,000원만 추가로 비용(대손상각비) 처리하며 보충합니다." },
+            { tag: "STAGE 8. 단기매매증권", question: "기말 보유 중인 단기매매증권(장부금액 100,000원)의 기말 공정가치(시가)는 150,000원으로 확인되었다.", options: [ { debit: "단기매매증권 50,000", credit: "단기매매증권평가이익 50,000" }, { debit: "단기매매증권평가이익 50,000", credit: "단기매매증권 50,000" }, { debit: "단기매매증권 50,000", credit: "단기매매증권처분이익 50,000" } ], correctIndex: 0, explanation: "시가 상승분 50,000원을 자산(차변)으로 증가시키고, 미실현 이익인 '단기매매증권평가이익(대변)'으로 기록합니다." },
+            
+            // 추가 30문제
+            { tag: "STAGE 9. 소모품(자산)", question: "구입 시 전액 '소모품(자산)'으로 처리한 복사용지 50,000원 중, 기말 창고에 남은 것은 10,000원이었다.", options: [ { debit: "소모품비 40,000", credit: "소모품 40,000" }, { debit: "소모품 40,000", credit: "소모품비 40,000" }, { debit: "소모품비 10,000", credit: "소모품 10,000" } ], correctIndex: 0, explanation: "자산으로 처리했으므로, '사용한 만큼(40,000원)' 자산을 감소(대변)시키고 당기 비용(차변)으로 처리합니다." },
+            { tag: "STAGE 10. 대손충당금 환입", question: "기말 매출채권에 대해 1% 대손 예상액이 20,000원이다. 결산 전 대손충당금 잔액은 30,000원이다.", options: [ { debit: "대손상각비 10,000", credit: "대손충당금 10,000" }, { debit: "대손충당금 10,000", credit: "대손충당금환입 10,000" }, { debit: "대손충당금환입 10,000", credit: "대손충당금 10,000" } ], correctIndex: 1, explanation: "예상액(20,000)보다 기존 잔액(30,000)이 많으므로 초과액 10,000원을 '대손충당금환입(수익, 대변)'으로 처리합니다." },
+            { tag: "STAGE 11. 단기매매증권", question: "기말 보유 중인 단기매매증권(장부금액 300,000원)의 기말 시가는 250,000원이다.", options: [ { debit: "단기매매증권 50,000", credit: "단기매매증권평가손실 50,000" }, { debit: "단기매매증권평가손실 50,000", credit: "단기매매증권 50,000" }, { debit: "단기매매증권처분손실 50,000", credit: "단기매매증권 50,000" } ], correctIndex: 1, explanation: "시가 하락분 50,000원을 자산(대변)에서 감소시키고, 미실현 손실인 '단기매매증권평가손실(차변)'로 기록합니다." },
+            { tag: "STAGE 12. 선급비용", question: "11월 1일에 6개월분 사무실 임차료 600,000원을 지급하고 전액 '임차료(비용)'로 처리했다.", options: [ { debit: "선급비용 200,000", credit: "임차료 200,000" }, { debit: "선급비용 400,000", credit: "임차료 400,000" }, { debit: "임차료 400,000", credit: "선급비용 400,000" } ], correctIndex: 1, explanation: "당기 경과분은 2개월. 내년 미경과분 4개월치(400,000원)를 비용에서 취소(대변)하고 선급비용(자산)으로 이연합니다." },
+            { tag: "STAGE 13. 선수수익", question: "12월 1일에 3개월분 이자 30,000원을 현금 수령하고 전액 '이자수익'으로 처리했다.", options: [ { debit: "이자수익 20,000", credit: "선수수익 20,000" }, { debit: "선수수익 20,000", credit: "이자수익 20,000" }, { debit: "이자수익 10,000", credit: "선수수익 10,000" } ], correctIndex: 0, explanation: "수령한 3개월분 중 내년도 2개월분(20,000원)은 수익에서 취소(차변)하고 선수수익(부채)으로 이연합니다." },
+            { tag: "STAGE 14. 미수수익", question: "사무실 일부를 임대해주고 있으나, 당기분 임대료 500,000원을 아직 받지 못했다.", options: [ { debit: "미수수익 500,000", credit: "임대료 500,000" }, { debit: "미수금 500,000", credit: "임대료 500,000" }, { debit: "임대료 500,000", credit: "미수수익 500,000" } ], correctIndex: 0, explanation: "당기 수익(임대료)을 대변에 발생시키고, 아직 받지 못한 금액은 미수수익(자산)으로 차변에 기록합니다." },
+            { tag: "STAGE 15. 미지급비용", question: "12월분 종업원 급여 2,000,000원은 다음 달 5일에 지급될 예정이다.", options: [ { debit: "급여 2,000,000", credit: "미지급금 2,000,000" }, { debit: "급여 2,000,000", credit: "미지급비용 2,000,000" }, { debit: "미지급비용 2,000,000", credit: "급여 2,000,000" } ], correctIndex: 1, explanation: "당기에 발생한 비용(급여)을 차변에 기록하고, 지급 의무는 미지급비용(부채)으로 대변에 기록합니다." },
+            { tag: "STAGE 16. 현금과부족", question: "결산일 장부상 현금보다 실제 현금이 50,000원 부족하여 기중에 현금과부족(차변) 처리했던 원인을 알 수 없다.", options: [ { debit: "잡손실 50,000", credit: "현금과부족 50,000" }, { debit: "현금과부족 50,000", credit: "잡손실 50,000" }, { debit: "잡이익 50,000", credit: "현금과부족 50,000" } ], correctIndex: 0, explanation: "차변의 임시계정 현금과부족을 대변으로 없애고, 부족 원인을 모르므로 영업외비용인 '잡손실'로 처리합니다." },
+            { tag: "STAGE 17. 현금과부족", question: "결산일 현재 원인을 알 수 없는 현금과부족 대변 잔액 100,000원이 있다.", options: [ { debit: "현금과부족 100,000", credit: "잡손실 100,000" }, { debit: "현금과부족 100,000", credit: "잡이익 100,000" }, { debit: "잡이익 100,000", credit: "현금과부족 100,000" } ], correctIndex: 1, explanation: "대변의 임시계정을 차변으로 없애고, 남는 원인을 모르므로 영업외수익인 '잡이익'으로 처리합니다." },
+            { tag: "STAGE 18. 가지급금 정산", question: "사원에게 지급했던 출장비 가지급금 200,000원이 결산일에 전액 여비교통비로 사용된 것이 판명되었다.", options: [ { debit: "여비교통비 200,000", credit: "가수금 200,000" }, { debit: "가지급금 200,000", credit: "여비교통비 200,000" }, { debit: "여비교통비 200,000", credit: "가지급금 200,000" } ], correctIndex: 2, explanation: "임시 자산인 가지급금을 대변으로 감소시키고, 확정된 비용인 '여비교통비'를 차변에 인식합니다." },
+            { tag: "STAGE 19. 가수금 정산", question: "원인 불명으로 입금된 가수금 300,000원이 거래처의 외상매출금 회수액으로 판명되었다.", options: [ { debit: "외상매출금 300,000", credit: "가수금 300,000" }, { debit: "가수금 300,000", credit: "외상매출금 300,000" }, { debit: "가수금 300,000", credit: "선수금 300,000" } ], correctIndex: 1, explanation: "임시 부채인 가수금을 차변으로 감소시키고, 자산인 외상매출금의 감소를 대변에 기록합니다." },
+            { tag: "STAGE 20. 재고자산 감모", question: "기말 실사 결과 장부보다 50,000원 부족하다. 이는 보관 중 파손으로 인한 비정상적 감모이다.", options: [ { debit: "매출원가 50,000", credit: "상품 50,000" }, { debit: "재고자산감모손실 50,000", credit: "상품 50,000" }, { debit: "잡손실 50,000", credit: "상품 50,000" } ], correctIndex: 1, explanation: "비정상적 감모는 매출원가에 포함하지 않고 영업외비용인 '재고자산감모손실'로 별도 처리합니다." },
+            { tag: "STAGE 21. 재고자산 감모", question: "기말 상품 재고 실사 결과, 장부수량보다 부족한 금액 20,000원은 정상적인 과정에서 발생한 감모이다.", options: [ { debit: "매출원가 20,000", credit: "상품 20,000" }, { debit: "재고자산감모손실 20,000", credit: "상품 20,000" }, { debit: "상품 20,000", credit: "매출원가 20,000" } ], correctIndex: 0, explanation: "정상적 감모는 판매를 위한 필수 비용으로 보아 '매출원가'에 가산(차변)합니다." },
+            { tag: "STAGE 22. 유동성 대체", question: "장기차입금 5,000,000원의 상환 기일이 내년 6월 30일로 도래하였다.", options: [ { debit: "유동성장기부채 5,000,000", credit: "장기차입금 5,000,000" }, { debit: "장기차입금 5,000,000", credit: "단기차입금 5,000,000" }, { debit: "장기차입금 5,000,000", credit: "유동성장기부채 5,000,000" } ], correctIndex: 2, explanation: "비유동부채(장기차입금)를 차변에서 감소시키고, 1년 내 만기가 도래하는 '유동성장기부채(유동부채)'로 대변에 갱신합니다." },
+            { tag: "STAGE 23. 부가세 납부", question: "부가세대급금 1,000,000원과 부가세예수금 1,500,000원을 상계하고, 잔액은 미지급세금으로 계상한다.", options: [ { debit: "부가세대급금 1M / 미수금 500K", credit: "부가세예수금 1.5M" }, { debit: "부가세예수금 1.5M", credit: "부가세대급금 1M / 미지급세금 500K" }, { debit: "미지급세금 500K / 부가세대급금 1M", credit: "부가세예수금 1.5M" } ], correctIndex: 1, explanation: "거둬둔 예수금(부채)을 차변에, 낸 세금 대급금(자산)을 대변에 상계 후 남은 납부세액을 '미지급세금' 처리합니다." },
+            { tag: "STAGE 24. 부가세 환급", question: "부가세대급금 2,000,000원과 부가세예수금 1,200,000원을 상계하고, 잔액은 미수금으로 계상한다.", options: [ { debit: "부가세예수금 1.2M / 미수금 800K", credit: "부가세대급금 2M" }, { debit: "부가세예수금 1.2M / 미지급세금 800K", credit: "부가세대급금 2M" }, { debit: "부가세대급금 2M", credit: "부가세예수금 1.2M / 미수금 800K" } ], correctIndex: 0, explanation: "미리 낸 세금(대급금)이 더 많아 돌려받아야 하므로 800,000원을 자산인 '미수금'으로 차변에 계상합니다." },
+            { tag: "STAGE 25. 법인세", question: "당기 법인세 추산액 5,000,000원. 선납세금 2,000,000원을 대체하고 잔액은 미지급세금으로 계상.", options: [ { debit: "법인세비용 5M", credit: "선납세금 2M / 미지급세금 3M" }, { debit: "법인세비용 3M", credit: "미지급세금 3M" }, { debit: "선납세금 2M / 미지급세금 3M", credit: "법인세비용 5M" } ], correctIndex: 0, explanation: "법인세비용 총액(차변)을 잡고, 기납부한 선납세금(대변)을 차감한 뒤 잔액을 미지급세금으로 처리합니다." },
+            { tag: "STAGE 26. 영업외 대손", question: "기말 단기대여금 1,000,000원에 대해 2% 대손을 예상하다. (충당금 잔액 없음)", options: [ { debit: "대손상각비 20,000", credit: "대손충당금 20,000" }, { debit: "기타의대손상각비 20,000", credit: "단기대여금 20,000" }, { debit: "기타의대손상각비 20,000", credit: "대손충당금 20,000" } ], correctIndex: 2, explanation: "상거래 외의 채권(대여금, 미수금)에 대한 대손은 영업외비용인 '기타의대손상각비'로 처리합니다." },
+            { tag: "STAGE 27. 단기매매증권", question: "전기 취득 장부금액 1,500,000원인 단기매매증권의 당기 기말 공정가치가 1,800,000원이다.", options: [ { debit: "단기매매증권 300,000", credit: "단기매매증권평가이익 300,000" }, { debit: "단기매매증권평가이익 300,000", credit: "단기매매증권 300,000" }, { debit: "현금 300,000", credit: "단기매매증권평가이익 300,000" } ], correctIndex: 0, explanation: "시가가 300,000원 상승했으므로 단기매매증권을 차변에 증가시키고, 평가이익(대변)을 기록합니다." },
+            { tag: "STAGE 28. 외화환산이익", question: "외화단기차입금 $1,000(장부금 1,100,000원)에 대해 기말 환율은 $1당 1,000원이다.", options: [ { debit: "외화단기차입금 100,000", credit: "외환차익 100,000" }, { debit: "외화단기차입금 100,000", credit: "외화환산이익 100,000" }, { debit: "외화환산손실 100,000", credit: "외화단기차입금 100,000" } ], correctIndex: 1, explanation: "갚을 빚이 1,000,000원으로 100,000원 감소(차변)했으므로, 기말 평가이익인 '외화환산이익(대변)'이 발생합니다." },
+            { tag: "STAGE 29. 외화환산손실", question: "보유 중인 외상매출금 $2,000(장부금 2,000,000원)에 대해 기말 환율은 $1당 900원이다.", options: [ { debit: "외화환산손실 200,000", credit: "외상매출금 200,000" }, { debit: "외환차손 200,000", credit: "외상매출금 200,000" }, { debit: "외상매출금 200,000", credit: "외화환산이익 200,000" } ], correctIndex: 0, explanation: "받을 돈이 1,800,000원으로 200,000원 감소(대변)했으므로, '외화환산손실(차변)'로 평가합니다." },
+            { tag: "STAGE 30. 퇴직급여", question: "퇴직금 추계액 10,000,000원. (결산 전 퇴직급여충당부채 잔액은 4,000,000원)", options: [ { debit: "퇴직급여 6,000,000", credit: "퇴직급여충당부채 6,000,000" }, { debit: "퇴직급여충당부채 6,000,000", credit: "퇴직급여 6,000,000" }, { debit: "퇴직급여 10,000,000", credit: "퇴직급여충당부채 10,000,000" } ], correctIndex: 0, explanation: "추계액에서 기존 잔액을 뺀 6,000,000원만 추가로 비용 처리(차변)하고 부채로 적립(대변)합니다." },
+            { tag: "STAGE 31. 무형자산", question: "영업권 5,000,000원에 대하여 5년간 정액법으로 직접 상각한다. (잔존가치 0)", options: [ { debit: "무형자산상각비 1,000,000", credit: "감가상각누계액 1,000,000" }, { debit: "무형자산상각비 1,000,000", credit: "영업권 1,000,000" }, { debit: "영업권 1,000,000", credit: "무형자산상각비 1,000,000" } ], correctIndex: 1, explanation: "무형자산은 직접법을 사용하여 당해 자산계정(영업권)을 대변에서 직접 차감합니다." },
+            { tag: "STAGE 32. 선수수익 2", question: "8월 1일 1년 치 컨설팅 수수료 1,200,000원을 받고 수수료수익으로 처리했다. (월할계산)", options: [ { debit: "선수수익 700,000", credit: "수수료수익 700,000" }, { debit: "수수료수익 500,000", credit: "선수수익 500,000" }, { debit: "수수료수익 700,000", credit: "선수수익 700,000" } ], correctIndex: 2, explanation: "당기 5개월. 내년 미경과 7개월치(700,000원)를 당기 수익에서 취소(차변)하고 선수수익(부채) 처리합니다." },
+            { tag: "STAGE 33. 미수수익 2", question: "결산일 현재 당기분 미수 수수료수익 150,000원을 계상하다.", options: [ { debit: "미수수익 150,000", credit: "수수료수익 150,000" }, { debit: "미수금 150,000", credit: "수수료수익 150,000" }, { debit: "수수료수익 150,000", credit: "미수수익 150,000" } ], correctIndex: 0, explanation: "당기 수익(대변)을 인식하고, 나중에 받을 권리인 미수수익(자산)을 차변에 기록합니다." },
+            { tag: "STAGE 34. 미지급비용 2", question: "12월분 통신비 80,000원의 고지서를 받았으나 아직 지급하지 않았다.", options: [ { debit: "통신비 80,000", credit: "미지급금 80,000" }, { debit: "미지급비용 80,000", credit: "통신비 80,000" }, { debit: "통신비 80,000", credit: "미지급비용 80,000" } ], correctIndex: 2, explanation: "비용(통신비)을 차변에 발생시키고, 미지급액은 결산시 미지급비용(부채)으로 대변에 처리합니다." },
+            { tag: "STAGE 35. 선급비용 2", question: "기중 광고선전비로 비용처리한 금액 중, 결산일 현재 미경과분은 1,400,000원이다.", options: [ { debit: "선급비용 1,000,000", credit: "광고선전비 1,000,000" }, { debit: "선급비용 1,400,000", credit: "광고선전비 1,400,000" }, { debit: "광고선전비 1,400,000", credit: "선급비용 1,400,000" } ], correctIndex: 1, explanation: "미경과분(1,400,000원)만큼 당기 비용에서 취소(대변)하고 선급비용(자산)으로 대체합니다." },
+            { tag: "STAGE 36. 이자미지급", question: "단기차입금에 대한 당기분 이자 120,000원의 지급기일이 내년 1월 15일이다.", options: [ { debit: "이자비용 120,000", credit: "미지급금 120,000" }, { debit: "이자비용 120,000", credit: "미지급비용 120,000" }, { debit: "미지급비용 120,000", credit: "이자비용 120,000" } ], correctIndex: 1, explanation: "당기 비용이므로 차변에 이자비용을, 아직 주지 않았으므로 대변에 미지급비용을 기록합니다." },
+            { tag: "STAGE 37. 감가상각(기중)", question: "7월 1일에 취득한 차량운반구(원가 1,000만원, 잔존가치 0, 내용연수 5년) 정액법 상각.", options: [ { debit: "감가상각비 2,000,000", credit: "감가상각누계액 2,000,000" }, { debit: "감가상각비 1,000,000", credit: "차량운반구 1,000,000" }, { debit: "감가상각비 1,000,000", credit: "감가상각누계액 1,000,000" } ], correctIndex: 2, explanation: "1년 200만원이나 7월 취득이므로 6개월치 월할상각합니다. (2,000,000 × 6/12 = 1,000,000원)" },
+            { tag: "FINAL STAGE. 복합", question: "장기차입금 유동성 대체 3,000,000원과 당기분 비품 감가상각 500,000원을 동시에 처리하시오.", options: [ { debit: "감가상각비 500K / 유동성 3M", credit: "비품 500K / 장기차입금 3M" }, { debit: "감가상각비 500K / 장기차입금 3M", credit: "감가상각누계액 500K / 유동성장기부채 3M" }, { debit: "감가상각누계액 500K / 장기차입 3M", credit: "감가상각비 500K / 유동성장기부채 3M" } ], correctIndex: 1, explanation: "장기차입금(차변)->유동성장기부채(대변) 분개와 감가상각비(차변)->누계액(대변) 분개의 결합입니다." }
+        ];
+
+        // --- 2. State Variables ---
+        let currentMissionIndex = 0;
+        let score = 0;
+        let combo = 0;
+        let timeLeft = 30;
+        let timerInterval;
+        const BASE_POINTS = 100;
+        const COMBO_BONUS = 10;
+        
+        // --- 3. DOM Elements ---
+        const screens = {
+            start: document.getElementById('screen-start'),
+            game: document.getElementById('screen-game'),
+            end: document.getElementById('screen-end')
+        };
+        
+        const ui = {
+            progress: document.getElementById('ui-current-mission'),
+            total: document.getElementById('ui-total-mission'),
+            score: document.getElementById('ui-score'),
+            combo: document.getElementById('ui-combo'),
+            comboMobile: document.getElementById('ui-combo-mobile'),
+            timerProgress: document.getElementById('timer-progress'),
+            tag: document.getElementById('ui-tag'),
+            question: document.getElementById('ui-question'),
+            optionsContainer: document.getElementById('ui-options'),
+            finalScore: document.getElementById('ui-final-score'),
+            finalRank: document.getElementById('ui-final-rank'),
+            bgRank: document.getElementById('bg-rank'),
+            rankIcon: document.getElementById('rank-icon'),
+            endMessage: document.getElementById('end-message')
+        };
+
+        const modal = {
+            overlay: document.getElementById('feedback-overlay'),
+            box: document.getElementById('feedback-box'),
+            icon: document.getElementById('feedback-icon'),
+            title: document.getElementById('feedback-title'),
+            scoreGained: document.getElementById('feedback-score-gained'),
+            desc: document.getElementById('feedback-desc')
+        };
+
+        // Initialize Total Mission Count
+        ui.total.innerText = missionData.length;
+
+        // --- 4. Logic Functions ---
+        function showScreen(screenName) {
+            Object.values(screens).forEach(s => {
+                s.classList.add('hidden');
+                s.classList.remove('flex');
+            });
+            screens[screenName].classList.remove('hidden');
+            screens[screenName].classList.add('flex');
+        }
+
+        function initGame() {
+            currentMissionIndex = 0;
+            score = 0;
+            combo = 0;
+            updateScoreUI();
+            updateComboUI();
+            showScreen('start');
+        }
+
+        function startGame() {
+            showScreen('game');
+            loadMission(currentMissionIndex);
+        }
+
+        function loadMission(index) {
+            const data = missionData[index];
+            ui.progress.innerText = index + 1;
+            ui.tag.innerText = data.tag;
+            ui.question.innerText = data.question;
+            
+            // Clear previous options
+            ui.optionsContainer.innerHTML = '';
+            
+            // Render options
+            data.options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn w-full p-4 sm:p-5 rounded-lg text-left cursor-pointer flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2';
+                btn.onclick = () => handleSelection(i);
+                
+                // Formatting texts replacing 'K' and 'M' slightly for visuals if needed
+                let debitText = opt.debit;
+                let creditText = opt.credit;
+                
+                btn.innerHTML = `
+                    <div class="flex-1 text-base sm:text-lg font-bold"><span class="text-gray-400 font-normal mr-2 text-sm">(차)</span> ${debitText}</div>
+                    <div class="hidden sm:block text-gray-600 mx-2">|</div>
+                    <div class="flex-1 text-base sm:text-lg font-bold sm:text-right"><span class="text-gray-400 font-normal mr-2 text-sm">(대)</span> ${creditText}</div>
+                `;
+                ui.optionsContainer.appendChild(btn);
+            });
+            
+            startTimer();
+        }
+
+        function startTimer() {
+            timeLeft = 30;
+            updateTimerUI();
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerUI();
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    handleTimeout();
+                }
+            }, 1000);
+        }
+
+        function updateTimerUI() {
+            const percentage = (timeLeft / 30) * 100;
+            ui.timerProgress.style.width = percentage + '%';
+            
+            if (timeLeft <= 10) {
+                ui.timerProgress.classList.remove('bg-[#deff9a]');
+                ui.timerProgress.classList.add('bg-[#ff4d4d]');
+            } else {
+                ui.timerProgress.classList.remove('bg-[#ff4d4d]');
+                ui.timerProgress.classList.add('bg-[#deff9a]');
+            }
+        }
+
+        function handleTimeout() {
+            combo = 0;
+            updateComboUI();
+            const data = missionData[currentMissionIndex];
+            showFeedback(false, "TIME OVER! 시간 초과입니다.\n\n" + data.explanation);
+        }
+
+        function handleSelection(selectedIndex) {
+            clearInterval(timerInterval);
+            const data = missionData[currentMissionIndex];
+            const isCorrect = (selectedIndex === data.correctIndex);
+
+            if (isCorrect) {
+                combo++;
+                const comboBonus = (combo > 1) ? (combo - 1) * COMBO_BONUS : 0;
+                const pointsGained = BASE_POINTS + comboBonus;
+                score += pointsGained;
+                
+                updateScoreUI();
+                updateComboUI(true);
+                showFeedback(true, data.explanation, pointsGained, combo);
+            } else {
+                combo = 0;
+                updateComboUI();
+                showFeedback(false, data.explanation);
+            }
+        }
+
+        function showFeedback(isCorrect, explanationText, pointsGained = 0, currentCombo = 0) {
+            modal.overlay.classList.remove('hidden');
+            
+            if(isCorrect) {
+                modal.box.className = "bg-[#1a1a1a] border-2 border-[#deff9a] rounded-xl p-8 max-w-lg w-full text-center flex flex-col items-center shadow-[0_0_30px_rgba(222,255,154,0.3)]";
+                modal.icon.innerHTML = '<i class="fa-solid fa-check-circle text-[#deff9a]"></i>';
+                modal.title.innerText = "ACCESS GRANTED";
+                modal.title.className = "text-3xl font-bold mb-1 text-[#deff9a] font-mono";
+                
+                let scoreText = `+${pointsGained} PTS`;
+                if(currentCombo > 1) {
+                    scoreText += ` <span class="text-xs">(${currentCombo} COMBO!)</span>`;
+                }
+                modal.scoreGained.innerHTML = scoreText;
+                
+            } else {
+                modal.box.className = "bg-[#1a1a1a] border-2 border-[#ff4d4d] rounded-xl p-8 max-w-lg w-full text-center flex flex-col items-center shadow-[0_0_30px_rgba(255,77,77,0.3)]";
+                modal.icon.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-[#ff4d4d]"></i>';
+                modal.title.innerText = "ACCESS DENIED";
+                modal.title.className = "text-3xl font-bold mb-1 text-[#ff4d4d] font-mono";
+                modal.scoreGained.innerHTML = "COMBO BROKEN";
+                modal.scoreGained.className = "text-sm font-mono text-[#ff4d4d] mb-4 h-6";
+            }
+            
+            modal.desc.innerText = explanationText;
+        }
+
+        function handleNextStep() {
+            modal.overlay.classList.add('hidden');
+            currentMissionIndex++;
+            
+            if (currentMissionIndex < missionData.length) {
+                loadMission(currentMissionIndex);
+            } else {
+                finishGame();
+            }
+        }
+
+        function updateScoreUI() {
+            ui.score.innerText = score;
+            ui.score.classList.add('text-white');
+            setTimeout(() => ui.score.classList.remove('text-white'), 300);
+        }
+
+        function updateComboUI(isIncrease = false) {
+            const comboText = combo > 0 ? combo : "0";
+            ui.combo.innerText = comboText;
+            ui.comboMobile.innerText = comboText;
+            
+            if (isIncrease && combo > 1) {
+                ui.combo.classList.remove('combo-pop');
+                void ui.combo.offsetWidth; // trigger reflow
+                ui.combo.classList.add('combo-pop');
+                
+                ui.comboMobile.classList.remove('combo-pop');
+                void ui.comboMobile.offsetWidth;
+                ui.comboMobile.classList.add('combo-pop');
+            }
+        }
+
+        function finishGame() {
+            ui.finalScore.innerText = score;
+            
+            // Calculate Rank
+            // Max score is roughly around 10000+ if all correct with combo.
+            let rank = 'F';
+            let rankColor = 'text-gray-500';
+            let icon = 'fa-skull';
+            let msg = "결산의 기초부터 다시 훈련이 필요합니다.";
+            
+            if (score >= 9000) {
+                rank = 'S'; rankColor = 'text-[#ffd700]'; icon = 'fa-crown';
+                msg = "전설적인 결산 마스터! 완벽하게 회사를 구출했습니다.";
+            } else if (score >= 7000) {
+                rank = 'A'; rankColor = 'text-[#deff9a]'; icon = 'fa-medal';
+                msg = "훌륭한 요원입니다. 대부분의 장부를 복구했습니다.";
+            } else if (score >= 5000) {
+                rank = 'B'; rankColor = 'text-blue-400'; icon = 'fa-thumbs-up';
+                msg = "준수한 실력입니다. 무난하게 결산을 마무리했습니다.";
+            } else if (score >= 3000) {
+                rank = 'C'; rankColor = 'text-orange-400'; icon = 'fa-clipboard-check';
+                msg = "결산을 끝내긴 했으나, 약간의 오류가 발견되었습니다.";
+            }
+            
+            ui.finalRank.innerText = rank + "-CLASS";
+            ui.finalRank.className = `text-4xl font-black mt-1 ${rankColor}`;
+            ui.bgRank.innerText = rank;
+            ui.bgRank.className = `absolute -right-4 -top-8 text-[10rem] opacity-5 font-black italic ${rankColor}`;
+            ui.rankIcon.innerHTML = `<i class="fa-solid ${icon} ${rankColor}"></i>`;
+            ui.endMessage.innerText = msg;
+            
+            showScreen('end');
+        }
+
+        // Initialize on load
+        window.onload = initGame;
+    </script>
+</body>
+</html>
