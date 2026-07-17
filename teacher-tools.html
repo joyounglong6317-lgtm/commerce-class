@@ -13,7 +13,6 @@
     
     <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/addons/p5.sound.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -534,7 +533,7 @@
 
         window.studentArray = []; window.excludePickedList = []; window.scores = [];
         let timerInterval = null; let remainingSeconds = 0; let isTimerRunning = false;
-        let mic; let isNoiseMeasuring = false; let noiseInterval = null;
+        let isNoiseMeasuring = false; let audioCtx = null; let micStream = null; let noiseRAF = null;
         let p5Instance = null; let penColor = '#1e293b'; let boardInitialized = false;
         let wheelChart = null; let wheelItems = []; let currentRotation = 0;
         let qrcodeObj = null;
@@ -771,12 +770,13 @@
             btn.innerHTML = '<i class="fa-solid fa-play mr-2"></i> 시작'; btn.classList.replace('bg-amber-500', 'bg-indigo-600');
         };
 
-        window.toggleNoiseMeter = function(forceStop = false) {
+        window.toggleNoiseMeter = async function(forceStop = false) {
             const btn = document.getElementById('btn-noise-toggle');
             if (isNoiseMeasuring || forceStop) {
                 isNoiseMeasuring = false;
-                if(noiseInterval) clearInterval(noiseInterval);
-                if(mic) mic.stop();
+                if (noiseRAF) cancelAnimationFrame(noiseRAF);
+                if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+                if (audioCtx) { audioCtx.close().catch(()=>{}); audioCtx = null; }
                 btn.innerHTML = '<i class="fa-solid fa-microphone mr-2"></i> 마이크 켜기 / 측정 시작';
                 btn.classList.replace('bg-rose-500', 'bg-indigo-600');
                 updateNoiseUI(0);
@@ -789,17 +789,39 @@
             }
 
             try {
-                if(!mic) mic = new p5.AudioIn();
-                mic.start(() => {
-                    isNoiseMeasuring = true;
-                    btn.innerHTML = '<i class="fa-solid fa-stop mr-2"></i> 측정 정지';
-                    btn.classList.replace('bg-indigo-600', 'bg-rose-500');
-                    noiseInterval = setInterval(() => { let level = mic.getLevel(); updateNoiseUI(Math.min(Math.floor(level * 500), 100)); }, 100);
-                }, (err) => { window.customAlert("브라우저에서 마이크 접근 권한을 거부했거나 연결된 마이크가 없습니다.<br><br>주소창 왼쪽 자물쇠 아이콘을 눌러 마이크 권한을 '허용'으로 바꿔주세요."); });
+                micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') await audioCtx.resume();
+                const source = audioCtx.createMediaStreamSource(micStream);
+                const analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 512;
+                source.connect(analyser);
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                isNoiseMeasuring = true;
+                btn.innerHTML = '<i class="fa-solid fa-stop mr-2"></i> 측정 정지';
+                btn.classList.replace('bg-indigo-600', 'bg-rose-500');
+
+                const loop = () => {
+                    if (!isNoiseMeasuring) return;
+                    analyser.getByteTimeDomainData(dataArray);
+                    let sumSquares = 0;
+                    for (let i = 0; i < dataArray.length; i++) {
+                        const v = (dataArray[i] - 128) / 128;
+                        sumSquares += v * v;
+                    }
+                    const rms = Math.sqrt(sumSquares / dataArray.length);
+                    updateNoiseUI(Math.min(Math.floor(rms * 500), 100));
+                    noiseRAF = requestAnimationFrame(loop);
+                };
+                loop();
             } catch (e) {
                 console.error('마이크 실행 오류:', e);
-                if (typeof p5 === 'undefined' || typeof p5.AudioIn === 'undefined') {
-                    window.customAlert("소리 측정 라이브러리(p5.sound)를 불러오지 못했습니다.<br>네트워크 상태나 광고 차단 확장 프로그램을 확인 후 새로고침 해주세요.");
+                isNoiseMeasuring = false;
+                if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError' || e.name === 'SecurityError') {
+                    window.customAlert("마이크 접근 권한이 거부되었습니다.<br><br>주소창 왼쪽 자물쇠 아이콘을 눌러 마이크 권한을 '허용'으로 바꾼 뒤 다시 시도해주세요.");
+                } else if (e.name === 'NotFoundError' || e.name === 'DevicesNotFoundError') {
+                    window.customAlert("연결된 마이크를 찾을 수 없습니다. 마이크가 연결되어 있는지 확인해주세요.");
                 } else {
                     window.customAlert(`마이크를 실행할 수 없습니다.<br><br><span class="text-xs text-slate-400">(${e.message || e})</span>`);
                 }
