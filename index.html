@@ -3,359 +3,115 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>상업과 교실 : AI 융합 학습 자료실</title>
+<title>스마트 수업 도구 모음 · 전체 보기</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700;900&family=Noto+Sans+KR:wght@400;500;700&family=Roboto+Mono:wght@500;700&display=swap');
-:root{
-  --cover:#1F3D2E; --cover-dark:#152A20; --paper:#F3EEDD; --paper-line:#DDD5B8;
-  --ink:#223447; --gold:#B8892B;
-  --c-teacher:#8A4A2B;      /* 교사 교수·수업도구 */
-  --c-fin-acc:#2B5F8A;      /* 재무회계 */
-  --c-cost-acc:#5E8A2B;     /* 원가회계 */
-  --c-tax-acc:#7A3D6E;      /* 세무회계 */
-  --c-general-affairs:#2F8A6B; /* 총무 */
-  --c-acc-practice:#1F7A8C; /* 회계실무 */
-  --c-tax:#8A7B2B;          /* 세무실무 */
-  --c-finance:#2B3F8A;      /* 금융일반 */
-  --c-econ:#B8622B;         /* 상업경제 */
-  --c-erp:#4A4A6E;          /* ERP */
-  --c-contest:#B8342B;      /* 전국전산회계경진대회 */
-  --c-biz-contest:#2B7A6E;  /* 상업경진대회 */
-  --c-ncs:#3D6E8A;          /* NCS 직업기초능력평가 */
-}
-*{box-sizing:border-box;}
-html{scroll-behavior:smooth;}
-body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);color:var(--ink);min-height:100vh;padding:28px 14px 70px;}
-.wrap{max-width:1060px;margin:0 auto;}
-
-.hero{background:var(--cover);border:2px solid var(--gold);border-radius:12px;padding:32px 30px;color:var(--paper);margin-bottom:18px;position:relative;overflow:hidden;}
-.hero::before{content:"商";position:absolute;right:24px;top:10px;font-family:'Noto Serif KR';font-size:96px;color:rgba(184,137,43,0.15);}
-.eyebrow{font-size:12px;letter-spacing:4px;color:var(--gold);font-weight:700;margin-bottom:10px;}
-.hero h1{font-family:'Noto Serif KR',serif;font-weight:900;font-size:30px;margin:0 0 8px;}
-.hero p{margin:0;font-size:14px;opacity:.85;line-height:1.7;max-width:660px;}
-
-.quicknav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:30px;}
-.quicknav a{font-size:12.5px;font-weight:700;color:var(--paper);background:rgba(243,238,221,0.08);border:1px solid rgba(243,238,221,0.25);border-radius:20px;padding:6px 14px;text-decoration:none;display:flex;align-items:center;gap:6px;}
-.quicknav a:hover{background:rgba(243,238,221,0.16);}
-.quicknav .dot{width:8px;height:8px;border-radius:50%;}
-
-.section{margin-bottom:30px;scroll-margin-top:16px;}
-.section-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-left:2px;}
-.section-dot{width:10px;height:10px;border-radius:50%;flex:none;}
-.section-head h2{font-family:'Noto Serif KR';font-weight:700;font-size:18px;color:var(--paper);margin:0;}
-.section-head .cnt{font-family:'Roboto Mono';font-size:12px;color:var(--paper);opacity:.6;}
-
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
-.game-card{background:var(--paper);border:1.5px solid var(--paper-line);border-radius:10px;padding:18px 20px;text-decoration:none;color:var(--ink);display:block;box-shadow:0 3px 0 var(--paper-line);transition:transform .12s;}
-.game-card:hover{transform:translateY(-3px);}
-.game-tag{display:inline-block;font-family:'Roboto Mono';font-size:10.5px;font-weight:700;letter-spacing:.5px;color:#fff;border-radius:20px;padding:2px 10px;margin-bottom:10px;}
-.game-card h3{font-family:'Noto Serif KR';font-size:16px;margin:0 0 6px;color:var(--cover);}
-.game-card p{font-size:12.5px;color:#6b6247;line-height:1.6;margin:0 0 12px;}
-.game-card .go{font-size:12.5px;font-weight:700;color:var(--gold);}
-
-.empty-card{background:rgba(255,255,255,0.06);border:1.5px dashed rgba(243,238,221,0.35);border-radius:10px;padding:18px 20px;color:var(--paper);opacity:.6;font-size:12.5px;line-height:1.6;}
-
-.tool-chip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;margin-top:14px;}
-.tool-chip{background:var(--paper);border:1.5px solid var(--paper-line);border-radius:12px;padding:16px 8px 12px;text-decoration:none;color:var(--ink);display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;box-shadow:0 2px 0 var(--paper-line);transition:transform .12s, box-shadow .12s;}
-.tool-chip:hover{transform:translateY(-3px);box-shadow:0 4px 0 var(--paper-line);}
-.tool-chip .chip-icon{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;background:rgba(61,110,138,0.12);color:var(--c-teacher);}
-.tool-chip .chip-label{font-size:11.5px;font-weight:700;line-height:1.3;color:var(--cover);}
-
-.footer-note{text-align:center;font-size:11.5px;color:var(--paper);opacity:.5;margin-top:40px;}
+  body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  .tool-card { transition: transform .15s, box-shadow .15s; }
+  .tool-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px -8px rgba(0,0,0,.15); }
 </style>
 </head>
-<body>
-<div class="wrap">
+<body class="min-h-screen text-slate-800">
 
-  <div class="hero">
-    <div class="eyebrow">특성화고 상업과 · AI 융합수업</div>
-    <h1>상업과 교실 학습 자료실</h1>
-    <p>재무회계, 원가회계, 세무회계, 회계실무, 세무실무, 총무, 금융일반 등 상업과 교과의 개념을 게임 및 시뮬레이션 등으로 학습하는 공간입니다. 아래 과목 카드를 눌러 원하는 학습 활동으로 이동하세요.</p>
-  </div>
-
-  <div class="quicknav">
-    <a href="#fin-acc"><span class="dot" style="background:var(--c-fin-acc);"></span>재무회계</a>
-    <a href="#cost-acc"><span class="dot" style="background:var(--c-cost-acc);"></span>원가회계</a>
-    <a href="#tax-acc"><span class="dot" style="background:var(--c-tax-acc);"></span>세무회계</a>
-    <a href="#general-affairs"><span class="dot" style="background:var(--c-general-affairs);"></span>총무</a>
-    <a href="#acc-practice"><span class="dot" style="background:var(--c-acc-practice);"></span>회계실무</a>
-    <a href="#tax"><span class="dot" style="background:var(--c-tax);"></span>세무실무</a>
-    <a href="#finance"><span class="dot" style="background:var(--c-finance);"></span>금융일반</a>
-    <a href="#econ"><span class="dot" style="background:var(--c-econ);"></span>상업경제</a>
-    <a href="#erp"><span class="dot" style="background:var(--c-erp);"></span>ERP</a>
-    <a href="#contest"><span class="dot" style="background:var(--c-contest);"></span>전국전산회계경진대회</a>
-    <a href="#biz-contest"><span class="dot" style="background:var(--c-biz-contest);"></span>상업경진대회</a>
-    <a href="#ncs"><span class="dot" style="background:var(--c-ncs);"></span>NCS 직업기초능력평가</a>
-    <a href="#teacher-tools"><span class="dot" style="background:var(--c-teacher);"></span>교사 교수·수업도구</a>
-  </div>
-
-  <!-- 교사 교수·수업도구 -->
-  <div class="section" id="teacher-tools">
-    <div class="section-head">
-      <span class="section-dot" style="background:var(--c-teacher);"></span>
-      <h2>교사 교수·수업도구</h2>
-      <span class="cnt">18개 활동</span>
-    </div>
-    <div class="grid">
-      <a class="game-card" href="teacher-tools/index.html" style="border-color:var(--gold);border-width:2px;">
-        <span class="game-tag" style="background:var(--gold);">🧰 전체 모음</span>
-        <h3>스마트 수업 도구 모음 (허브)</h3>
-        <p>아래 개별 도구들을 카드로 모아 한눈에 볼 수 있는 페이지입니다. 처음이시라면 이 카드로 먼저 들어가 보세요.</p>
-        <span class="go">전체 보기 →</span>
-      </a>
-      <a class="game-card" href="teacher-tools.html" style="opacity:.85;">
-        <span class="game-tag" style="background:#8a8a8a;">📦 참고용 · 원본 통합본</span>
-        <h3>스마트 수업 도구 (한 화면 팝업 버전)</h3>
-        <p>모든 도구가 하나의 파일에서 사이드바 메뉴 + 팝업 형태로 열리는 예전 통합 버전입니다. 개별 페이지가 아닌 한 화면에서 빠르게 도구를 전환하고 싶을 때 참고하세요.</p>
-        <span class="go">열어보기 →</span>
-      </a>
-    </div>
-
-    <div class="tool-chip-grid">
-      <a class="tool-chip" href="teacher-tools/roster.html"><span class="chip-icon">👥</span><span class="chip-label">명단 관리</span></a>
-      <a class="tool-chip" href="teacher-tools/clock.html"><span class="chip-icon">🕐</span><span class="chip-label">시계</span></a>
-      <a class="tool-chip" href="teacher-tools/timer.html"><span class="chip-icon">⏱️</span><span class="chip-label">타이머</span></a>
-      <a class="tool-chip" href="teacher-tools/noise-meter.html"><span class="chip-icon">🔊</span><span class="chip-label">소음 측정기</span></a>
-      <a class="tool-chip" href="teacher-tools/dust.html"><span class="chip-icon">🌫️</span><span class="chip-label">미세먼지</span></a>
-      <a class="tool-chip" href="teacher-tools/random-picker.html"><span class="chip-icon">🔀</span><span class="chip-label">랜덤 뽑기</span></a>
-      <a class="tool-chip" href="teacher-tools/wheel.html"><span class="chip-icon">🎡</span><span class="chip-label">돌림판</span></a>
-      <a class="tool-chip" href="teacher-tools/coin.html"><span class="chip-icon">🪙</span><span class="chip-label">동전 던지기</span></a>
-      <a class="tool-chip" href="teacher-tools/groups.html"><span class="chip-icon">🧑‍🤝‍🧑</span><span class="chip-label">모둠 짜기</span></a>
-      <a class="tool-chip" href="teacher-tools/bracket.html"><span class="chip-icon">🏆</span><span class="chip-label">대진표</span></a>
-      <a class="tool-chip" href="teacher-tools/scoreboard.html"><span class="chip-icon">📊</span><span class="chip-label">모둠 점수판</span></a>
-      <a class="tool-chip" href="teacher-tools/memo.html"><span class="chip-icon">📝</span><span class="chip-label">메모장</span></a>
-      <a class="tool-chip" href="teacher-tools/checklist.html"><span class="chip-icon">✅</span><span class="chip-label">체크리스트</span></a>
-      <a class="tool-chip" href="teacher-tools/board.html"><span class="chip-icon">🖍️</span><span class="chip-label">판서 보드</span></a>
-      <a class="tool-chip" href="teacher-tools/video.html"><span class="chip-icon">▶️</span><span class="chip-label">영상 재생</span></a>
-      <a class="tool-chip" href="teacher-tools/qrcode.html"><span class="chip-icon">🔳</span><span class="chip-label">QR코드</span></a>
-      <a class="tool-chip" href="teacher-tools/shorturl.html"><span class="chip-icon">🔗</span><span class="chip-label">주소 줄이기</span></a>
-    </div>
-  </div> 
- 
-  <!-- 재무회계 -->
-  <div class="section" id="fin-acc">
-    <div class="section-head">
-      <span class="section-dot" style="background:var(--c-fin-acc);"></span>
-      <h2>재무회계</h2>
-      <span class="cnt">4개 활동</span>
-    </div>
-    <div class="grid">
-      <a class="game-card" href="accounting/hub.html" style="border-color:var(--gold);border-width:2px;">
-        <span class="game-tag" style="background:var(--gold);">🎓 학생 로그인</span>
-        <h3>재무회계 학습 허브</h3>
-        <p>이름+PIN으로 로그인 후 아래 활동들과 1단원 학습지를 한 곳에서 골라 들어갈 수 있어요. 학생들에게는 이 카드 링크를 안내해주세요.</p>
-        <span class="go">입장하기 →</span>
-      </a>
-      <a class="game-card" href="accounting/bookkeeping-cafe-simulation.html">
-        <span class="game-tag" style="background:var(--c-fin-acc);">시뮬레이션</span>
-        <h3>부기 마스터 : 카페 창업 다이어리</h3>
-        <p>가상 카페를 창업하며 10가지 거래를 분개하고, 실시간으로 완성되는 재무상태표·손익계산서를 확인하는 스토리형 시뮬레이션입니다.</p>
-        <span class="go">시작하기 →</span>
-      </a>
-      <a class="game-card" href="accounting/bookkeeping-daily-practice.html">
-        <span class="game-tag" style="background:var(--c-fin-acc);">데일리 연습</span>
-        <h3>데일리 분개 트레이닝</h3>
-        <p>Day 1~7로 나뉜 60문항의 분개·개념 확인 문제은행. 하루 한 세트씩 꾸준히 풀며 자산·부채·자본부터 응용 거래까지 복습합니다.</p>
-        <span class="go">시작하기 →</span>
-      </a>
-      <a class="game-card" href="accounting/bookkeeping-matching-game.html">
-        <span class="game-tag" style="background:var(--c-fin-acc);">카드 게임</span>
-        <h3>거래 & 분개 짝맞추기</h3>
-        <p>거래 상황 카드와 정답 분개 카드의 짝을 맞추는 메모리 게임. 수업 워밍업이나 모둠 대결 활동으로 활용하기 좋습니다.</p>
-        <span class="go">시작하기 →</span>
-      </a>
+<header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+  <div class="max-w-6xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
+    <a href="../index.html" class="flex items-center text-slate-500 hover:text-indigo-600 transition-colors font-bold text-sm">
+      <i class="fa-solid fa-arrow-left mr-2"></i> 메인 화면으로
+    </a>
+    <div class="flex items-center">
+      <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-2"><i class="fa-solid fa-toolbox"></i></div>
+      <span class="font-bold text-slate-700">스마트 수업 도구 모음</span>
     </div>
   </div>
+</header>
 
-  <!-- 원가회계 -->
-  <div class="section" id="cost-acc">
-    <div class="section-head">
-      <span class="section-dot" style="background:var(--c-cost-acc);"></span>
-      <h2>원가회계</h2>
-      <span class="cnt">준비 중</span>
-    </div>
-    <div class="grid">
-      <div class="empty-card">아직 등록된 활동이 없어요. cost-acc 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
-    </div>
+<main class="max-w-6xl mx-auto p-4 md:p-8">
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-slate-800 mb-2"><i class="fa-solid fa-toolbox text-indigo-500 mr-3"></i>도구 모음</h1>
+    <p class="text-slate-500 text-sm md:text-base">원하는 도구 카드를 눌러 바로 실행하세요. 랜덤뽑기·돌림판·모둠짜기·대진표는 명단을 함께 공유합니다.</p>
   </div>
 
-  <!-- 세무회계 -->
-  <div class="section" id="tax-acc">
-    <div class="section-head">
-      <span class="section-dot" style="background:var(--c-tax-acc);"></span>
-      <h2>세무회계</h2>
-      <span class="cnt">준비 중</span>
-    </div>
-    <div class="grid">
-      <div class="empty-card">아직 등록된 활동이 없어요. tax-acc 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
-    </div>
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <a href="roster.html" class="tool-card bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
+      <div class="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-2xl">👥</div>
+      <span class="font-bold text-slate-700">명단 관리</span>
+    </a>
+    <a href="clock.html" class="tool-card bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
+      <div class="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-2xl">🕐</div>
+      <span class="font-bold text-slate-700">현재 시간</span>
+    </a>
+    <a href="timer.html" class="tool-card bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
+      <div class="w-14 h-14 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-2xl">⏱️</div>
+      <span class="font-bold text-slate-700">수업 타이머</span>
+    </a>
+    <a href="noise-meter.html" class="tool-card bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
+      <div class="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-2xl">🔊</div>
+      <span class="font-bold text-slate-700">소음 측정기</span>
+    </a>
+    <a href="dust.html" class="tool-card bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
+      <div class="w-14 h-14 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 text-2xl">🌫️</div>
+      <span class="font-bold text-slate-700">실시간 미세먼지</span>
+    </a>
+    <a href="random-picker.html" class="tool-card bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
+      <div class="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-2xl">🔀</div>
+      <span class="font-bold text-slate-700">랜덤 뽑기</span>
+    </a>
+    <a href="wheel.html" class="tool-card bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
+      <div class="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-2xl">🎡</div>
+      <span class="font-bold text-slate-700">돌림판</span>
+    </a>
+    <a href="coin.html" class="tool-card bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
+      <div class="w-14 h-14 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 text-2xl">🪙</div>
+      <span class="font-bold text-slate-700">동전 던지기</span>
+    </a>
+    <a href="groups.html" class="tool-card bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
+      <div class="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-2xl">🧑‍🤝‍🧑</div>
+      <span class="font-bold text-slate-700">모둠 짜기</span>
+    </a>
+    <a href="bracket.html" class="tool-card bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
+      <div class="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 text-2xl">🏆</div>
+      <span class="font-bold text-slate-700">대진표 생성기</span>
+    </a>
+    <a href="scoreboard.html" class="tool-card bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
+      <div class="w-14 h-14 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 text-2xl">📊</div>
+      <span class="font-bold text-slate-700">모둠 점수판</span>
+    </a>
+    <a href="memo.html" class="tool-card bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
+      <div class="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center text-amber-500 text-2xl">📝</div>
+      <span class="font-bold text-slate-700">간편 메모장</span>
+    </a>
+    <a href="checklist.html" class="tool-card bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
+      <div class="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-2xl">✅</div>
+      <span class="font-bold text-slate-700">수업 체크리스트</span>
+    </a>
+    <a href="board.html" class="tool-card bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
+      <div class="w-14 h-14 rounded-full bg-slate-200 flex items-center justify-center text-slate-700 text-2xl">🖍️</div>
+      <span class="font-bold text-slate-700">판서 보드</span>
+    </a>
+    <a href="video.html" class="tool-card bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
+      <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-2xl">▶️</div>
+      <span class="font-bold text-slate-700">유튜브 영상 재생</span>
+    </a>
+    <a href="qrcode.html" class="tool-card bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
+      <div class="w-14 h-14 rounded-full bg-slate-200 flex items-center justify-center text-slate-800 text-2xl">🔳</div>
+      <span class="font-bold text-slate-700">QR코드 생성기</span>
+    </a>
+    <a href="shorturl.html" class="tool-card bg-white border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
+      <div class="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-2xl">🔗</div>
+      <span class="font-bold text-slate-700">긴 주소 줄이기</span>
+    </a>
   </div>
 
-  <!-- 총무 -->
-  <div class="section" id="general-affairs">
-    <div class="section-head">
-      <span class="section-dot" style="background:var(--c-general-affairs);"></span>
-      <h2>총무</h2>
-      <span class="cnt">2개 활동</span>
-    </div>
-    <div class="grid">
-      <a class="game-card" href="general-affairs/trip.html">
-        <span class="game-tag" style="background:var(--c-general-affairs);">시뮬레이션</span>
-        <h3>Hanil STAR ENT. : 총무 신입사원 체험</h3>
-        <p>기안 작성부터 출장 정산, 제증명 발급까지 총무 실무 흐름을 체험하는 롤플레이 시뮬레이션입니다. 미니게임과 사내 메신저로 실무 감각을 익힙니다.</p>
-        <span class="go">시작하기 →</span>
-      </a>
-      <a class="game-card" href="general-affairs/layout.html">
-        <span class="game-tag" style="background:var(--c-general-affairs);">시뮬레이션</span>
-        <h3>사무실 공간 배치 실습</h3>
-        <p>난이도별 시나리오(초급~고급) 중 하나를 선택해 조건에 맞는 사무실 배치도를 설계하고, 완성된 배치도를 이미지/PDF 학습지로 다운로드합니다. 여러 가구를 한 번에 묶어 이동하는 다중 선택 기능도 지원합니다.</p>
-        <span class="go">시작하기 →</span>
-      </a>
-    </div>
+  <div class="mt-10 text-center">
+    <a href="../teacher-tools.html" class="text-sm text-slate-400 hover:text-indigo-600 underline">한 화면 통합 버전(팝업형)으로 보기 →</a>
   </div>
+</main>
 
-  <!-- 회계실무 -->
-  <div class="section" id="acc-practice">
-    <div class="section-head">
-      <span class="section-dot" style="background:var(--c-acc-practice);"></span>
-      <h2>회계실무</h2>
-      <span class="cnt">2개 활동</span>
-    </div>
-    <div class="grid">
-      <a class="game-card" href="acc-practice/booking.html">
-        <span class="game-tag" style="background:var(--c-acc-practice);">ERP 시뮬레이션</span>
-        <h3>회계 탐정 : 장부조회 마스터 프로</h3>
-        <p>가상 ERP 화면에서 부장님의 메신저 지시를 받아, 알맞은 장부와 조회 조건을 찾아 클릭하는 시뮬레이션입니다. 잘못 조회하면 분노 게이지가 쌓이고, 모든 지시를 완벽히 처리하면 초고속 승진에 도전합니다.</p>
-        <span class="go">시작하기 →</span>
-      </a>
-      <a class="game-card" href="acc-practice/closing.html">
-        <span class="game-tag" style="background:var(--c-acc-practice);">결산 트레이닝</span>
-        <h3>결산 마스터 요원 훈련</h3>
-        <p>선급비용·선수수익·미수수익·미지급비용부터 감가상각, 대손 추산, 유가증권 평가까지 결산정리 8단계를 사건 수사 콘셉트로 풀어보는 트레이닝입니다.</p>
-        <span class="go">시작하기 →</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- 세무실무 -->
-  <div class="section" id="tax">
-    <div class="section-head">
-      <span class="section-dot" style="background:var(--c-tax);"></span>
-      <h2>세무실무</h2>
-      <span class="cnt">준비 중</span>
-    </div>
-    <div class="grid">
-      <div class="empty-card">아직 등록된 활동이 없어요. tax 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
-    </div>
-  </div>
-
-  <!-- 금융일반 -->
-  <div class="section" id="finance">
-    <div class="section-head">
-      <span class="section-dot" style="background:var(--c-finance);"></span>
-      <h2>금융일반</h2>
-      <span class="cnt">준비 중</span>
-    </div>
-    <div class="grid">
-      <div class="empty-card">아직 등록된 활동이 없어요. finance 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
-    </div>
-  </div>
-
-  <!-- 상업경제 -->
-  <div class="section" id="econ">
-    <div class="section-head">
-      <span class="section-dot" style="background:var(--c-econ);"></span>
-      <h2>상업경제</h2>
-      <span class="cnt">1개 활동</span>
-    </div>
-    <div class="grid">
-      <a class="game-card" href="econ/daily-quiz.html">
-        <span class="game-tag" style="background:var(--c-econ);">데일리 퀴즈</span>
-        <h3>Daily HANIL Biz & Finance Master</h3>
-        <p>매일 5문제씩 경영·경제·금융 트렌드 퀴즈를 풀며 누적 점수를 쌓는 학습 관리 시스템입니다. AI 키를 등록하면 매일 새로운 문제가 자동 출제되고, 교사는 관리자 모드에서 학생별 진행 현황을 확인할 수 있습니다.</p>
-        <span class="go">시작하기 →</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- ERP -->
-  <div class="section" id="erp">
-    <div class="section-head">
-      <span class="section-dot" style="background:var(--c-erp);"></span>
-      <h2>ERP</h2>
-      <span class="cnt">준비 중</span>
-    </div>
-    <div class="grid">
-      <div class="empty-card">아직 등록된 활동이 없어요. erp 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
-    </div>
-  </div>
-
-  <!-- 전국전산회계경진대회 -->
-  <div class="section" id="contest">
-    <div class="section-head">
-      <span class="section-dot" style="background:var(--c-contest);"></span>
-      <h2>전국전산회계경진대회</h2>
-      <span class="cnt">1개 활동</span>
-    </div>
-    <div class="grid">
-      <a class="game-card" href="contest/corp-accounting-practice.html">
-        <span class="game-tag" style="background:var(--c-contest);">이론 + 전표입력</span>
-        <h3>기업회계실무 2급 : 이론 &amp; 전표입력 트레이닝</h3>
-        <p>기업회계실무 2급 수준의 객관식 이론 문제(OMR 형식)와 실무 전표입력 연습을 한 번에 풀어보는 대회 대비 프로그램입니다. 오답노트와 최고 점수 기록이 자동으로 저장됩니다.</p>
-        <span class="go">시작하기 →</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- 상업경진대회 -->
-  <div class="section" id="biz-contest">
-    <div class="section-head">
-      <span class="section-dot" style="background:var(--c-biz-contest);"></span>
-      <h2>상업경진대회</h2>
-      <span class="cnt">3개 활동</span>
-    </div>
-    <div class="grid">
-      <a class="game-card" href="biz-contest/biz_english.html">
-        <span class="game-tag" style="background:var(--c-biz-contest);">데일리 퀴즈</span>
-        <h3>상업경진대회 비즈니스영어</h3>
-        <p>비즈니스영어 대회 대비 문제은행을 풀며 누적 점수를 쌓는 학습 관리 시스템입니다. 로그인 후 채점 결과가 자동으로 저장됩니다.</p>
-        <span class="go">시작하기 →</span>
-      </a>
-      <a class="game-card" href="biz-contest/bizenglish2.html">
-        <span class="game-tag" style="background:var(--c-biz-contest);">회화 스피킹</span>
-        <h3>비즈니스영어 2과제 : 매일 회화 연습</h3>
-        <p>지문을 읽고 5개 질문에 영어로 답하는 실전 인터뷰 형식 연습입니다. 자체제작 세트와 2018~2025년 기출문제 아카이브를 매일 랜덤으로 만나고, 음성 인식·자가채점·성적 기록까지 한 번에 할 수 있습니다.</p>
-        <span class="go">시작하기 →</span>
-      </a>
-      <a class="game-card" href="biz-contest/golden_bell.html">
-        <span class="game-tag" style="background:var(--c-biz-contest);">골든벨</span>
-        <h3>상업경진대회 경제 골든벨</h3>
-        <p>경제 골든벨 대회 대비 객관식·단답형 문제를 풀어보는 학습 도구입니다. 로그인 후 채점 결과가 자동으로 저장됩니다.</p>
-        <span class="go">시작하기 →</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- NCS 직업기초능력평가 -->
-  <div class="section" id="ncs">
-    <div class="section-head">
-      <span class="section-dot" style="background:var(--c-ncs);"></span>
-      <h2>NCS 직업기초능력평가</h2>
-      <span class="cnt">1개 활동</span>
-    </div>
-    <div class="grid">
-      <a class="game-card" href="ncs/ncs.html">
-        <span class="game-tag" style="background:var(--c-ncs);">단계별 학습 + 모의고사</span>
-        <h3>NCS 직업기초능력 학습장</h3>
-        <p>의사소통·수리·문제해결 등 10개 영역을 기초→심화→변형문제 단계로 차근차근 학습합니다. 영역별 이론, 기출문제(즉시채점/모의고사), 듣기평가, 유튜브 영상을 한 곳에서 풀어보고, PIN 로그인으로 개인 기록이 저장됩니다.</p>
-        <span class="go">시작하기 →</span>
-      </a>
-    </div>
-  </div>
-
-
-
-  <div class="footer-note">본 자료실은 수업 보조 학습 도구로 제작되었습니다.</div>
-</div>
 </body>
 </html>

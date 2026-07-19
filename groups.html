@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>모둠 짜기 · 스마트 수업 도구</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+<style>
+  body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  .coin-container { perspective: 1000px; width: 150px; height: 150px; margin: 0 auto; }
+  .coin { width: 100%; height: 100%; position: relative; transition: transform 3s cubic-bezier(0.4, 2, 0.2, 1); transform-style: preserve-3d; }
+  .coin.flip-heads { transform: rotateY(1800deg); }
+  .coin.flip-tails { transform: rotateY(1980deg); }
+  .coin-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; border: 8px solid #cbd5e1; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+  .coin-front { background: linear-gradient(135deg, #fef08a 0%, #eab308 100%); color: #854d0e; border-color: #ca8a04; }
+  .coin-back { background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%); color: #334155; transform: rotateY(180deg); border-color: #64748b; }
+  #drawing-container canvas { border-radius: 0.75rem; touch-action: none; display: block; }
+  .bracket-connector { position: relative; }
+  .bracket-connector::after { content: ''; position: absolute; right: -1rem; top: 50%; width: 1rem; border-bottom: 2px solid #cbd5e1; }
+  
+</style>
+</head>
+<body class="min-h-screen text-slate-800">
+
+<!-- 상단 바 -->
+<header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+  <div class="max-w-5xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
+    <a href="../index.html" class="flex items-center text-slate-500 hover:text-indigo-600 transition-colors font-bold text-sm">
+      <i class="fa-solid fa-arrow-left mr-2"></i> 도구 모음으로
+    </a>
+    <div class="flex items-center gap-3">
+      <span id="fbStatus" class="text-[11px] text-slate-400"></span>
+      <div class="flex items-center">
+        <div class="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 mr-2"><i class="fa-solid fa-people-group"></i></div>
+        <span class="font-bold text-slate-700">모둠 짜기</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto p-4 md:p-8">
+  
+    
+<div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-8">
+  <div class="flex items-center justify-between mb-3">
+    <label class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-users mr-2 text-slate-400"></i>명단 (줄바꿈 또는 쉼표로 구분)</label>
+    <span id="rosterCount" class="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg">0명</span>
+  </div>
+  <textarea id="rosterInput" class="w-full h-28 p-4 border border-slate-300 rounded-xl outline-none resize-y text-sm leading-relaxed" placeholder="김철수&#10;이영희&#10;박지민"></textarea>
+  <button onclick="window.saveRosterInput()" class="mt-3 bg-slate-800 hover:bg-slate-900 text-white text-sm font-bold py-2 px-6 rounded-xl">명단 저장</button>
+  <p class="text-xs text-slate-400 mt-2">※ 이 명단은 같은 폴더의 랜덤뽑기·돌림판·모둠짜기·대진표 도구가 함께 사용합니다.</p>
+</div>
+    <section class="bg-white p-6 md:p-10 rounded-3xl shadow-sm border border-slate-200">
+      <div class="flex items-center mb-8">
+        <div class="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 mr-4"><i class="fa-solid fa-people-group text-2xl"></i></div>
+        <h2 class="text-3xl font-bold text-slate-800">랜덤 모둠 편성</h2>
+      </div>
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-10 bg-slate-50 p-6 rounded-3xl border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-6 flex-1 w-full sm:w-auto">
+          <div class="flex flex-col">
+            <label class="text-sm text-slate-500 font-bold mb-2">분배 기준</label>
+            <select id="groupType" class="p-3 border border-slate-300 rounded-xl outline-none font-bold text-slate-700 shadow-sm focus:ring-2 focus:ring-teal-500">
+              <option value="groupCount">모둠 수로 나누기 (예: 4모둠)</option>
+              <option value="memberCount">인원 수로 묶기 (예: 4명씩)</option>
+            </select>
+          </div>
+          <div class="flex flex-col">
+            <label class="text-sm text-slate-500 font-bold mb-2">숫자 입력</label>
+            <input type="number" id="groupNumberInput" min="2" max="20" value="4" class="w-24 p-3 border border-slate-300 rounded-xl text-center outline-none font-bold text-xl text-slate-700 shadow-sm">
+          </div>
+        </div>
+        <button onclick="window.generateGroups()" class="w-full sm:w-auto bg-teal-500 hover:bg-teal-600 text-white font-bold text-xl py-4 px-12 rounded-2xl shadow-lg mt-4 sm:mt-0">
+          <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> 편성하기
+        </button>
+      </div>
+      <div id="groupResults" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div class="text-center text-slate-400 py-16 col-span-full border-2 border-dashed border-slate-300 rounded-3xl bg-slate-50">상단의 편성하기 버튼을 눌러주세요.</div>
+      </div>
+    </section>
+</main>
+
+<!-- 커스텀 모달 -->
+<div id="customModal" class="hidden fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center backdrop-blur-sm">
+  <div id="customModalContent" class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-sm w-full mx-4 transform scale-95 opacity-0 transition-all duration-200">
+    <div id="modalIcon" class="w-16 h-16 mx-auto bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-3xl mb-4"><i class="fa-solid fa-bell"></i></div>
+    <h3 id="modalTitle" class="text-xl font-bold mb-2 text-center text-slate-800">알림</h3>
+    <p id="modalMessage" class="text-slate-600 mb-8 text-center text-sm md:text-base leading-relaxed"></p>
+    <div class="flex justify-center gap-3" id="modalButtons"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Firebase 연동 (선생님 설정 필요)
+     ============================================================
+     아래 FIREBASE_CONFIG에 Firebase 콘솔 > 프로젝트 설정 > 내 앱에서
+     복사한 값을 붙여넣으면 명단이 Firestore 클라우드에 저장되어
+     여러 기기(교무실 PC, 교실 PC 등)에서 같은 명단을 볼 수 있습니다.
+     비워두면 자동으로 이 브라우저의 localStorage만 사용합니다.
+
+     ⚠ 이 config 값은 "비밀 키"가 아니라 프로젝트 식별용 공개 설정입니다.
+       실제 보안은 Firestore 콘솔의 "규칙(Rules)" 탭에서 설정합니다.
+       아래처럼 이 문서 하나만 누구나 읽고 쓸 수 있게 열어두는 것이
+       가장 간단합니다 (테스트/학급용으로 충분):
+
+       rules_version = '2';
+       service cloud.firestore {
+         match /databases/{database}/documents {
+           match /classTools/roster {
+             allow read, write: if true;
+           }
+         }
+       }
+
+     이 config를 사용하는 다른 파일(roster.html, random-picker.html,
+     wheel.html, groups.html, bracket.html) 모두에 똑같이 붙여넣어야
+     명단이 서로 연동됩니다.
+     ============================================================ -->
+<script type="module">
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCAWtLmHf7L5BSzAO4A9EveQShscrAHRzc",
+  authDomain: "tool-1afe7.firebaseapp.com",
+  projectId: "tool-1afe7",
+  storageBucket: "tool-1afe7.firebasestorage.app",
+  messagingSenderId: "598080083208",
+  appId: "1:598080083208:web:545bbee80896ef5ef508bd",
+  measurementId: "G-XPDXQMM3PN"
+  };
+  window.__fbReady = (async () => {
+    const enabled = FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY";
+    if (!enabled) { window.__fb = null; return; }
+    try {
+      const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js");
+      const { getFirestore, doc, getDoc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js");
+      const app = initializeApp(FIREBASE_CONFIG);
+      window.__fb = { db: getFirestore(app), doc, getDoc, setDoc };
+      const el = document.getElementById('fbStatus'); if (el) el.textContent = '☁ Firebase 연결됨 (클라우드 저장 중)';
+    } catch (e) {
+      console.error('Firebase 초기화 실패, 이 브라우저에만 저장합니다.', e);
+      window.__fb = null;
+    }
+  })();
+</script>
+<script>
+  window.showModal = function(title, message, isConfirm = false, onConfirm = null) {
+    const modal = document.getElementById('customModal'), content = document.getElementById('customModalContent'),
+          btnContainer = document.getElementById('modalButtons'), iconEl = document.getElementById('modalIcon'),
+          titleEl = document.getElementById('modalTitle'), msgEl = document.getElementById('modalMessage');
+    titleEl.innerText = title; msgEl.innerHTML = message; btnContainer.innerHTML = '';
+    if (isConfirm) {
+      iconEl.className = "w-16 h-16 mx-auto bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-3xl mb-4";
+      iconEl.innerHTML = '<i class="fa-solid fa-circle-question"></i>';
+    } else {
+      iconEl.className = "w-16 h-16 mx-auto bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-3xl mb-4";
+      iconEl.innerHTML = '<i class="fa-solid fa-bell"></i>';
+    }
+    const closeModal = () => { content.classList.remove('scale-100','opacity-100'); content.classList.add('scale-95','opacity-0'); setTimeout(()=>modal.classList.add('hidden'),200); };
+    if (isConfirm) {
+      const cancelBtn = document.createElement('button'); cancelBtn.className = "flex-1 bg-slate-100 text-slate-700 font-bold py-3 px-4 rounded-xl"; cancelBtn.innerText = "취소"; cancelBtn.onclick = closeModal;
+      const confirmBtn = document.createElement('button'); confirmBtn.className = "flex-1 bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl"; confirmBtn.innerText = "확인"; confirmBtn.onclick = () => { closeModal(); if(onConfirm) onConfirm(); };
+      btnContainer.appendChild(cancelBtn); btnContainer.appendChild(confirmBtn);
+    } else {
+      const okBtn = document.createElement('button'); okBtn.className = "w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl"; okBtn.innerText = "확인"; okBtn.onclick = closeModal; btnContainer.appendChild(okBtn);
+    }
+    modal.classList.remove('hidden');
+    setTimeout(() => { content.classList.remove('scale-95','opacity-0'); content.classList.add('scale-100','opacity-100'); }, 10);
+  };
+  window.customAlert = (msg) => window.showModal('알림', msg, false);
+  window.customConfirm = (msg, onConfirm) => window.showModal('확인', msg, true, onConfirm);
+
+  // ---- 명단 공유 유틸 ----
+  // Firebase가 설정되어 있으면 Firestore(classTools/roster 문서)에 저장하고,
+  // 아니면 이 브라우저의 localStorage만 사용합니다. (자동 감지)
+  window.ROSTER_KEY = 'sct_students_v1';
+  window.getRoster = async function(){
+    await window.__fbReady;
+    if (window.__fb) {
+      try {
+        const ref = window.__fb.doc(window.__fb.db, 'classTools', 'roster');
+        const snap = await window.__fb.getDoc(ref);
+        if (snap.exists() && snap.data().names) {
+          localStorage.setItem(window.ROSTER_KEY, JSON.stringify(snap.data().names));
+          return snap.data().names;
+        }
+      } catch(e){ console.warn('Firestore 명단 불러오기 실패, 로컬 저장본을 사용합니다.', e); }
+    }
+    const raw = localStorage.getItem(window.ROSTER_KEY);
+    if (raw) return JSON.parse(raw);
+    return ["김철수","이영희","박지민","최동훈","정수아","강민준","조윤서"];
+  };
+  window.setRoster = async function(arr){
+    localStorage.setItem(window.ROSTER_KEY, JSON.stringify(arr));
+    await window.__fbReady;
+    if (window.__fb) {
+      try {
+        await window.__fb.setDoc(window.__fb.doc(window.__fb.db, 'classTools', 'roster'), { names: arr, updatedAt: Date.now() });
+      } catch(e){ console.warn('Firestore 저장 실패, 이 브라우저에만 저장되었습니다.', e); }
+    }
+  };
+  window.parseNames = function(text){ return text.split(/[\n,]+/).map(s=>s.trim()).filter(s=>s.length>0); };
+</script>
+<script>
+
+  async function loadRosterIntoBox(){
+    const arr = await window.getRoster();
+    document.getElementById('rosterInput').value = arr.join('\n');
+    document.getElementById('rosterCount').innerText = arr.length + '명';
+  }
+  window.saveRosterInput = async function(silent){
+    const arr = window.parseNames(document.getElementById('rosterInput').value);
+    await window.setRoster(arr);
+    document.getElementById('rosterCount').innerText = arr.length + '명';
+    if(!silent) window.customAlert('명단이 저장되었습니다! (' + arr.length + '명)');
+    return arr;
+  };
+  document.addEventListener('DOMContentLoaded', loadRosterIntoBox);
+
+    window.generateGroups=async function(){
+      const studentArray = await window.saveRosterInput(true);
+      if(studentArray.length===0) return window.customAlert('위 명단 칸에 학생 이름을 먼저 입력하고 저장해주세요.');
+      const mode=document.getElementById('groupType').value, num=parseInt(document.getElementById('groupNumberInput').value);
+      if(num<2) return window.customAlert('숫자는 2 이상 입력해주세요.');
+      let shuffled=[...studentArray];
+      for(let i=shuffled.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]]; }
+      let groups=[];
+      if(mode==='groupCount'){ groups=Array.from({length:num},()=>[]); shuffled.forEach((s,idx)=>groups[idx%num].push(s)); }
+      else { for(let i=0;i<shuffled.length;i+=num) groups.push(shuffled.slice(i,i+num)); }
+      const container=document.getElementById('groupResults'); container.innerHTML='';
+      groups.forEach((group,index)=>{
+        const card=document.createElement('div'); card.className='bg-white border-2 border-teal-100 rounded-2xl shadow-sm overflow-hidden flex flex-col h-full';
+        card.innerHTML=`<div class="bg-teal-50 border-b border-teal-100 py-3 px-4 font-black text-teal-800 text-center flex justify-between items-center"><span class="text-lg">${index+1}모둠</span><span class="text-xs bg-white px-3 py-1 rounded-full text-teal-600 border border-teal-100">${group.length}명</span></div><ul class="p-4 divide-y divide-slate-50 flex-1">${group.map(s=>`<li class="py-2 text-center text-slate-700 font-medium">${s}</li>`).join('')}</ul>`;
+        container.appendChild(card);
+      });
+    };
+  
+</script>
+</body>
+</html>
