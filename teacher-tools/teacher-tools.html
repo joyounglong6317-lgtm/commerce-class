@@ -13,7 +13,6 @@
     
     <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/addons/p5.sound.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -522,19 +521,13 @@
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
-  apiKey: "AIzaSyCAWtLmHf7L5BSzAO4A9EveQShscrAHRzc",
-  authDomain: "tool-1afe7.firebaseapp.com",
-  projectId: "tool-1afe7",
-  storageBucket: "tool-1afe7.firebasestorage.app",
-  messagingSenderId: "598080083208",
-  appId: "1:598080083208:web:545bbee80896ef5ef508bd",
-  measurementId: "G-XPDXQMM3PN"
+
 };
 
 
         window.studentArray = []; window.excludePickedList = []; window.scores = [];
         let timerInterval = null; let remainingSeconds = 0; let isTimerRunning = false;
-        let mic; let isNoiseMeasuring = false; let noiseInterval = null;
+        let isNoiseMeasuring = false; let audioCtx = null; let micStream = null; let noiseRAF = null;
         let p5Instance = null; let penColor = '#1e293b'; let boardInitialized = false;
         let wheelChart = null; let wheelItems = []; let currentRotation = 0;
         let qrcodeObj = null;
@@ -675,7 +668,22 @@
 
         window.showModal = function(title, message, isConfirm = false, onConfirm = null) {
             const modal = document.getElementById('customModal'); const content = document.getElementById('customModalContent'); const btnContainer = document.getElementById('modalButtons'); const iconEl = document.getElementById('modalIcon');
-            document.getElementById('modalTitle').innerText = title; document.getElementById('modalMessage').innerHTML = message; btnContainer.innerHTML = '';
+            const titleEl = document.getElementById('modalTitle'); const msgEl = document.getElementById('modalMessage');
+
+            // 안전장치: 배포/캐시 문제 등으로 모달 요소 자체가 페이지에 없을 경우
+            // 화면이 멈추지 않도록 기본 alert()/confirm()으로 자동 전환합니다.
+            if (!modal || !content || !btnContainer || !iconEl || !titleEl || !msgEl) {
+                console.warn('커스텀 모달 요소를 찾을 수 없어 기본 alert로 대체합니다. (배포된 파일이 최신본인지 확인해주세요)');
+                const plainMsg = String(message).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '');
+                if (isConfirm) {
+                    if (window.confirm(`${title}\n\n${plainMsg}`) && onConfirm) onConfirm();
+                } else {
+                    window.alert(`${title}\n\n${plainMsg}`);
+                }
+                return;
+            }
+
+            titleEl.innerText = title; msgEl.innerHTML = message; btnContainer.innerHTML = '';
 
             if(isConfirm) {
                 iconEl.className = "w-16 h-16 mx-auto bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-3xl mb-4";
@@ -756,12 +764,13 @@
             btn.innerHTML = '<i class="fa-solid fa-play mr-2"></i> 시작'; btn.classList.replace('bg-amber-500', 'bg-indigo-600');
         };
 
-        window.toggleNoiseMeter = function(forceStop = false) {
+        window.toggleNoiseMeter = async function(forceStop = false) {
             const btn = document.getElementById('btn-noise-toggle');
             if (isNoiseMeasuring || forceStop) {
                 isNoiseMeasuring = false;
-                if(noiseInterval) clearInterval(noiseInterval);
-                if(mic) mic.stop();
+                if (noiseRAF) cancelAnimationFrame(noiseRAF);
+                if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+                if (audioCtx) { audioCtx.close().catch(()=>{}); audioCtx = null; }
                 btn.innerHTML = '<i class="fa-solid fa-microphone mr-2"></i> 마이크 켜기 / 측정 시작';
                 btn.classList.replace('bg-rose-500', 'bg-indigo-600');
                 updateNoiseUI(0);
@@ -774,14 +783,43 @@
             }
 
             try {
-                if(!mic) mic = new p5.AudioIn();
-                mic.start(() => {
-                    isNoiseMeasuring = true;
-                    btn.innerHTML = '<i class="fa-solid fa-stop mr-2"></i> 측정 정지';
-                    btn.classList.replace('bg-indigo-600', 'bg-rose-500');
-                    noiseInterval = setInterval(() => { let level = mic.getLevel(); updateNoiseUI(Math.min(Math.floor(level * 500), 100)); }, 100);
-                }, (err) => { window.customAlert("브라우저에서 마이크 접근 권한을 거부했거나 연결된 마이크가 없습니다."); });
-            } catch (e) { window.customAlert("마이크를 실행할 수 없습니다. HTTPS 환경인지 확인하세요."); }
+                micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') await audioCtx.resume();
+                const source = audioCtx.createMediaStreamSource(micStream);
+                const analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 512;
+                source.connect(analyser);
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                isNoiseMeasuring = true;
+                btn.innerHTML = '<i class="fa-solid fa-stop mr-2"></i> 측정 정지';
+                btn.classList.replace('bg-indigo-600', 'bg-rose-500');
+
+                const loop = () => {
+                    if (!isNoiseMeasuring) return;
+                    analyser.getByteTimeDomainData(dataArray);
+                    let sumSquares = 0;
+                    for (let i = 0; i < dataArray.length; i++) {
+                        const v = (dataArray[i] - 128) / 128;
+                        sumSquares += v * v;
+                    }
+                    const rms = Math.sqrt(sumSquares / dataArray.length);
+                    updateNoiseUI(Math.min(Math.floor(rms * 500), 100));
+                    noiseRAF = requestAnimationFrame(loop);
+                };
+                loop();
+            } catch (e) {
+                console.error('마이크 실행 오류:', e);
+                isNoiseMeasuring = false;
+                if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError' || e.name === 'SecurityError') {
+                    window.customAlert("마이크 접근 권한이 거부되었습니다.<br><br>주소창 왼쪽 자물쇠 아이콘을 눌러 마이크 권한을 '허용'으로 바꾼 뒤 다시 시도해주세요.");
+                } else if (e.name === 'NotFoundError' || e.name === 'DevicesNotFoundError') {
+                    window.customAlert("연결된 마이크를 찾을 수 없습니다. 마이크가 연결되어 있는지 확인해주세요.");
+                } else {
+                    window.customAlert(`마이크를 실행할 수 없습니다.<br><br><span class="text-xs text-slate-400">(${e.message || e})</span>`);
+                }
+            }
         };
 
         function updateNoiseUI(level) {
