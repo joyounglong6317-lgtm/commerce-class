@@ -35,9 +35,12 @@
     <a href="index.html" class="flex items-center text-slate-500 hover:text-indigo-600 transition-colors font-bold text-sm">
       <i class="fa-solid fa-arrow-left mr-2"></i> 도구 모음으로
     </a>
-    <div class="flex items-center">
-      <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-2"><i class="fa-solid fa-shuffle"></i></div>
-      <span class="font-bold text-slate-700">랜덤 뽑기</span>
+    <div class="flex items-center gap-3">
+      <span id="fbStatus" class="text-[11px] text-slate-400"></span>
+      <div class="flex items-center">
+        <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-2"><i class="fa-solid fa-shuffle"></i></div>
+        <span class="font-bold text-slate-700">랜덤 뽑기</span>
+      </div>
     </div>
   </div>
 </header>
@@ -82,6 +85,57 @@
   </div>
 </div>
 
+<!-- ============================================================
+     Firebase 연동 (선생님 설정 필요)
+     ============================================================
+     아래 FIREBASE_CONFIG에 Firebase 콘솔 > 프로젝트 설정 > 내 앱에서
+     복사한 값을 붙여넣으면 명단이 Firestore 클라우드에 저장되어
+     여러 기기(교무실 PC, 교실 PC 등)에서 같은 명단을 볼 수 있습니다.
+     비워두면 자동으로 이 브라우저의 localStorage만 사용합니다.
+
+     ⚠ 이 config 값은 "비밀 키"가 아니라 프로젝트 식별용 공개 설정입니다.
+       실제 보안은 Firestore 콘솔의 "규칙(Rules)" 탭에서 설정합니다.
+       아래처럼 이 문서 하나만 누구나 읽고 쓸 수 있게 열어두는 것이
+       가장 간단합니다 (테스트/학급용으로 충분):
+
+       rules_version = '2';
+       service cloud.firestore {
+         match /databases/{database}/documents {
+           match /classTools/roster {
+             allow read, write: if true;
+           }
+         }
+       }
+
+     이 config를 사용하는 다른 파일(roster.html, random-picker.html,
+     wheel.html, groups.html, bracket.html) 모두에 똑같이 붙여넣어야
+     명단이 서로 연동됩니다.
+     ============================================================ -->
+<script type="module">
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCAWtLmHf7L5BSzAO4A9EveQShscrAHRzc",
+  authDomain: "tool-1afe7.firebaseapp.com",
+  projectId: "tool-1afe7",
+  storageBucket: "tool-1afe7.firebasestorage.app",
+  messagingSenderId: "598080083208",
+  appId: "1:598080083208:web:545bbee80896ef5ef508bd",
+  measurementId: "G-XPDXQMM3PN"
+  };
+  window.__fbReady = (async () => {
+    const enabled = FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY";
+    if (!enabled) { window.__fb = null; return; }
+    try {
+      const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js");
+      const { getFirestore, doc, getDoc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js");
+      const app = initializeApp(FIREBASE_CONFIG);
+      window.__fb = { db: getFirestore(app), doc, getDoc, setDoc };
+      const el = document.getElementById('fbStatus'); if (el) el.textContent = '☁ Firebase 연결됨 (클라우드 저장 중)';
+    } catch (e) {
+      console.error('Firebase 초기화 실패, 이 브라우저에만 저장합니다.', e);
+      window.__fb = null;
+    }
+  })();
+</script>
 <script>
   window.showModal = function(title, message, isConfirm = false, onConfirm = null) {
     const modal = document.getElementById('customModal'), content = document.getElementById('customModalContent'),
@@ -109,26 +163,47 @@
   window.customAlert = (msg) => window.showModal('알림', msg, false);
   window.customConfirm = (msg, onConfirm) => window.showModal('확인', msg, true, onConfirm);
 
-  // ---- 명단 공유 유틸 (localStorage, 같은 폴더의 다른 도구 페이지와 공유됩니다) ----
+  // ---- 명단 공유 유틸 ----
+  // Firebase가 설정되어 있으면 Firestore(classTools/roster 문서)에 저장하고,
+  // 아니면 이 브라우저의 localStorage만 사용합니다. (자동 감지)
   window.ROSTER_KEY = 'sct_students_v1';
-  window.getRoster = function(){
+  window.getRoster = async function(){
+    await window.__fbReady;
+    if (window.__fb) {
+      try {
+        const ref = window.__fb.doc(window.__fb.db, 'classTools', 'roster');
+        const snap = await window.__fb.getDoc(ref);
+        if (snap.exists() && snap.data().names) {
+          localStorage.setItem(window.ROSTER_KEY, JSON.stringify(snap.data().names));
+          return snap.data().names;
+        }
+      } catch(e){ console.warn('Firestore 명단 불러오기 실패, 로컬 저장본을 사용합니다.', e); }
+    }
     const raw = localStorage.getItem(window.ROSTER_KEY);
     if (raw) return JSON.parse(raw);
     return ["김철수","이영희","박지민","최동훈","정수아","강민준","조윤서"];
   };
-  window.setRoster = function(arr){ localStorage.setItem(window.ROSTER_KEY, JSON.stringify(arr)); };
+  window.setRoster = async function(arr){
+    localStorage.setItem(window.ROSTER_KEY, JSON.stringify(arr));
+    await window.__fbReady;
+    if (window.__fb) {
+      try {
+        await window.__fb.setDoc(window.__fb.doc(window.__fb.db, 'classTools', 'roster'), { names: arr, updatedAt: Date.now() });
+      } catch(e){ console.warn('Firestore 저장 실패, 이 브라우저에만 저장되었습니다.', e); }
+    }
+  };
   window.parseNames = function(text){ return text.split(/[\n,]+/).map(s=>s.trim()).filter(s=>s.length>0); };
 </script>
 <script>
 
-  function loadRosterIntoBox(){
-    const arr = window.getRoster();
+  async function loadRosterIntoBox(){
+    const arr = await window.getRoster();
     document.getElementById('rosterInput').value = arr.join('\n');
     document.getElementById('rosterCount').innerText = arr.length + '명';
   }
-  window.saveRosterInput = function(silent){
+  window.saveRosterInput = async function(silent){
     const arr = window.parseNames(document.getElementById('rosterInput').value);
-    window.setRoster(arr);
+    await window.setRoster(arr);
     document.getElementById('rosterCount').innerText = arr.length + '명';
     if(!silent) window.customAlert('명단이 저장되었습니다! (' + arr.length + '명)');
     return arr;
@@ -136,8 +211,8 @@
   document.addEventListener('DOMContentLoaded', loadRosterIntoBox);
 
     let excludePickedList = [];
-    window.pickRandomStudent = function(){
-      const studentArray = window.saveRosterInput(true);
+    window.pickRandomStudent = async function(){
+      const studentArray = await window.saveRosterInput(true);
       if(studentArray.length===0) return window.customAlert('위 명단 칸에 학생 이름을 먼저 입력하고 저장해주세요.');
       const isExclude = document.getElementById('excludePicked').checked;
       let avail = studentArray;
