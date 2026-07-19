@@ -9,6 +9,7 @@
 :root{
   --cover:#1F3D2E; --cover-dark:#152A20; --paper:#F3EEDD; --paper-line:#DDD5B8;
   --ink:#223447; --gold:#B8892B;
+  --c-teacher:#8A4A2B;      /* 교사 교수·수업도구 */
   --c-fin-acc:#2B5F8A;      /* 재무회계 */
   --c-cost-acc:#5E8A2B;     /* 원가회계 */
   --c-tax-acc:#7A3D6E;      /* 세무회계 */
@@ -21,7 +22,6 @@
   --c-contest:#B8342B;      /* 전국전산회계경진대회 */
   --c-biz-contest:#2B7A6E;  /* 상업경진대회 */
   --c-ncs:#3D6E8A;          /* NCS 직업기초능력평가 */
-  --c-teacher:#8A4A2B;      /* 교사 교수·수업도구 */
 }
 *{box-sizing:border-box;}
 html{scroll-behavior:smooth;}
@@ -89,6 +89,49 @@ body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);colo
     <a href="#teacher-tools"><span class="dot" style="background:var(--c-teacher);"></span>교사 교수·수업도구</a>
   </div>
 
+  <!-- 교사 교수·수업도구 -->
+  <div class="section" id="teacher-tools">
+    <div class="section-head">
+      <span class="section-dot" style="background:var(--c-teacher);"></span>
+      <h2>교사 교수·수업도구</h2>
+      <span class="cnt">18개 활동</span>
+    </div>
+    <div class="grid">
+      <a class="game-card" href="teacher-tools/index.html" style="border-color:var(--gold);border-width:2px;">
+        <span class="game-tag" style="background:var(--gold);">🧰 전체 모음</span>
+        <h3>스마트 수업 도구 모음 (허브)</h3>
+        <p>아래 개별 도구들을 카드로 모아 한눈에 볼 수 있는 페이지입니다. 처음이시라면 이 카드로 먼저 들어가 보세요.</p>
+        <span class="go">전체 보기 →</span>
+      </a>
+      <a class="game-card" href="teacher-tools.html" style="opacity:.85;">
+        <span class="game-tag" style="background:#8a8a8a;">📦 참고용 · 원본 통합본</span>
+        <h3>스마트 수업 도구 (한 화면 팝업 버전)</h3>
+        <p>모든 도구가 하나의 파일에서 사이드바 메뉴 + 팝업 형태로 열리는 예전 통합 버전입니다. 개별 페이지가 아닌 한 화면에서 빠르게 도구를 전환하고 싶을 때 참고하세요.</p>
+        <span class="go">열어보기 →</span>
+      </a>
+    </div>
+
+    <div class="tool-chip-grid">
+      <a class="tool-chip" href="teacher-tools/roster.html"><span class="chip-icon">👥</span><span class="chip-label">명단 관리</span></a>
+      <a class="tool-chip" href="teacher-tools/clock.html"><span class="chip-icon">🕐</span><span class="chip-label">시계</span></a>
+      <a class="tool-chip" href="teacher-tools/timer.html"><span class="chip-icon">⏱️</span><span class="chip-label">타이머</span></a>
+      <a class="tool-chip" href="teacher-tools/noise-meter.html"><span class="chip-icon">🔊</span><span class="chip-label">소음 측정기</span></a>
+      <a class="tool-chip" href="teacher-tools/dust.html"><span class="chip-icon">🌫️</span><span class="chip-label">미세먼지</span></a>
+      <a class="tool-chip" href="teacher-tools/random-picker.html"><span class="chip-icon">🔀</span><span class="chip-label">랜덤 뽑기</span></a>
+      <a class="tool-chip" href="teacher-tools/wheel.html"><span class="chip-icon">🎡</span><span class="chip-label">돌림판</span></a>
+      <a class="tool-chip" href="teacher-tools/coin.html"><span class="chip-icon">🪙</span><span class="chip-label">동전 던지기</span></a>
+      <a class="tool-chip" href="teacher-tools/groups.html"><span class="chip-icon">🧑‍🤝‍🧑</span><span class="chip-label">모둠 짜기</span></a>
+      <a class="tool-chip" href="teacher-tools/bracket.html"><span class="chip-icon">🏆</span><span class="chip-label">대진표</span></a>
+      <a class="tool-chip" href="teacher-tools/scoreboard.html"><span class="chip-icon">📊</span><span class="chip-label">모둠 점수판</span></a>
+      <a class="tool-chip" href="teacher-tools/memo.html"><span class="chip-icon">📝</span><span class="chip-label">메모장</span></a>
+      <a class="tool-chip" href="teacher-tools/checklist.html"><span class="chip-icon">✅</span><span class="chip-label">체크리스트</span></a>
+      <a class="tool-chip" href="teacher-tools/board.html"><span class="chip-icon">🖍️</span><span class="chip-label">판서 보드</span></a>
+      <a class="tool-chip" href="teacher-tools/video.html"><span class="chip-icon">▶️</span><span class="chip-label">영상 재생</span></a>
+      <a class="tool-chip" href="teacher-tools/qrcode.html"><span class="chip-icon">🔳</span><span class="chip-label">QR코드</span></a>
+      <a class="tool-chip" href="teacher-tools/shorturl.html"><span class="chip-icon">🔗</span><span class="chip-label">주소 줄이기</span></a>
+    </div>
+  </div> 
+ 
   <!-- 재무회계 -->
   <div class="section" id="fin-acc">
     <div class="section-head">
@@ -310,48 +353,7 @@ body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);colo
     </div>
   </div>
 
-  <!-- 교사 교수·수업도구 -->
-  <div class="section" id="teacher-tools">
-    <div class="section-head">
-      <span class="section-dot" style="background:var(--c-teacher);"></span>
-      <h2>교사 교수·수업도구</h2>
-      <span class="cnt">18개 활동</span>
-    </div>
-    <div class="grid">
-      <a class="game-card" href="teacher-tools/index.html" style="border-color:var(--gold);border-width:2px;">
-        <span class="game-tag" style="background:var(--gold);">🧰 전체 모음</span>
-        <h3>스마트 수업 도구 모음 (허브)</h3>
-        <p>아래 개별 도구들을 카드로 모아 한눈에 볼 수 있는 페이지입니다. 처음이시라면 이 카드로 먼저 들어가 보세요.</p>
-        <span class="go">전체 보기 →</span>
-      </a>
-      <a class="game-card" href="teacher-tools.html" style="opacity:.85;">
-        <span class="game-tag" style="background:#8a8a8a;">📦 참고용 · 원본 통합본</span>
-        <h3>스마트 수업 도구 (한 화면 팝업 버전)</h3>
-        <p>모든 도구가 하나의 파일에서 사이드바 메뉴 + 팝업 형태로 열리는 예전 통합 버전입니다. 개별 페이지가 아닌 한 화면에서 빠르게 도구를 전환하고 싶을 때 참고하세요.</p>
-        <span class="go">열어보기 →</span>
-      </a>
-    </div>
 
-    <div class="tool-chip-grid">
-      <a class="tool-chip" href="teacher-tools/roster.html"><span class="chip-icon">👥</span><span class="chip-label">명단 관리</span></a>
-      <a class="tool-chip" href="teacher-tools/clock.html"><span class="chip-icon">🕐</span><span class="chip-label">시계</span></a>
-      <a class="tool-chip" href="teacher-tools/timer.html"><span class="chip-icon">⏱️</span><span class="chip-label">타이머</span></a>
-      <a class="tool-chip" href="teacher-tools/noise-meter.html"><span class="chip-icon">🔊</span><span class="chip-label">소음 측정기</span></a>
-      <a class="tool-chip" href="teacher-tools/dust.html"><span class="chip-icon">🌫️</span><span class="chip-label">미세먼지</span></a>
-      <a class="tool-chip" href="teacher-tools/random-picker.html"><span class="chip-icon">🔀</span><span class="chip-label">랜덤 뽑기</span></a>
-      <a class="tool-chip" href="teacher-tools/wheel.html"><span class="chip-icon">🎡</span><span class="chip-label">돌림판</span></a>
-      <a class="tool-chip" href="teacher-tools/coin.html"><span class="chip-icon">🪙</span><span class="chip-label">동전 던지기</span></a>
-      <a class="tool-chip" href="teacher-tools/groups.html"><span class="chip-icon">🧑‍🤝‍🧑</span><span class="chip-label">모둠 짜기</span></a>
-      <a class="tool-chip" href="teacher-tools/bracket.html"><span class="chip-icon">🏆</span><span class="chip-label">대진표</span></a>
-      <a class="tool-chip" href="teacher-tools/scoreboard.html"><span class="chip-icon">📊</span><span class="chip-label">모둠 점수판</span></a>
-      <a class="tool-chip" href="teacher-tools/memo.html"><span class="chip-icon">📝</span><span class="chip-label">메모장</span></a>
-      <a class="tool-chip" href="teacher-tools/checklist.html"><span class="chip-icon">✅</span><span class="chip-label">체크리스트</span></a>
-      <a class="tool-chip" href="teacher-tools/board.html"><span class="chip-icon">🖍️</span><span class="chip-label">판서 보드</span></a>
-      <a class="tool-chip" href="teacher-tools/video.html"><span class="chip-icon">▶️</span><span class="chip-label">영상 재생</span></a>
-      <a class="tool-chip" href="teacher-tools/qrcode.html"><span class="chip-icon">🔳</span><span class="chip-label">QR코드</span></a>
-      <a class="tool-chip" href="teacher-tools/shorturl.html"><span class="chip-icon">🔗</span><span class="chip-label">주소 줄이기</span></a>
-    </div>
-  </div>
 
   <div class="footer-note">본 자료실은 수업 보조 학습 도구로 제작되었습니다.</div>
 </div>
