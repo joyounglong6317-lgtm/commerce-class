@@ -33,6 +33,7 @@ body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);colo
 .eyebrow{font-size:12px;letter-spacing:4px;color:var(--gold);font-weight:700;margin-bottom:10px;}
 .hero h1{font-family:'Noto Serif KR',serif;font-weight:900;font-size:30px;margin:0 0 8px;}
 .hero p{margin:0;font-size:14px;opacity:.85;line-height:1.7;max-width:660px;}
+.hero a{color:var(--gold);}
 
 .quicknav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:30px;}
 .quicknav a{font-size:12.5px;font-weight:700;color:var(--paper);background:rgba(243,238,221,0.08);border:1px solid rgba(243,238,221,0.25);border-radius:20px;padding:6px 14px;text-decoration:none;display:flex;align-items:center;gap:6px;}
@@ -62,10 +63,122 @@ body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);colo
 .tool-chip .chip-label{font-size:11.5px;font-weight:700;line-height:1.3;color:var(--cover);}
 
 .footer-note{text-align:center;font-size:11.5px;color:var(--paper);opacity:.5;margin-top:40px;}
+
+/* 로그인 / 비밀번호변경 오버레이 */
+.login-overlay{position:fixed;inset:0;background:var(--cover);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px;}
+.login-box{background:var(--paper);border:2px solid var(--gold);border-radius:14px;padding:36px 32px;max-width:360px;width:100%;box-sizing:border-box;}
+.login-box h2{font-family:'Noto Serif KR';margin:0 0 6px;font-size:20px;color:var(--cover);}
+.login-box p{font-size:12.5px;color:#6b6247;margin:0 0 20px;line-height:1.6;}
+.login-box label{display:block;font-size:11.5px;font-weight:700;color:#6b6247;margin-bottom:5px;}
+.login-box input{width:100%;padding:11px 12px;border:1.5px solid var(--paper-line);border-radius:8px;font-size:14px;margin-bottom:12px;box-sizing:border-box;font-family:inherit;}
+.login-box button{width:100%;padding:12px;border:none;border-radius:8px;background:var(--cover);color:var(--paper);font-weight:700;font-size:14px;cursor:pointer;}
+.login-box button:hover{background:var(--cover-dark);}
+.login-box button.secondary{background:transparent;color:var(--cover);border:1.5px solid var(--cover);margin-top:8px;}
+.login-error{color:#B8342B;font-size:12px;margin:-4px 0 10px;min-height:14px;}
+.login-msg{color:#2F8A6B;font-size:12px;margin:-4px 0 10px;min-height:14px;}
+.login-toggle-link{display:block;text-align:center;margin-top:16px;font-size:11.5px;color:#8a8168;text-decoration:none;background:none;border:none;cursor:pointer;width:100%;padding:0;}
+
+.topbar{display:none;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:8px;color:var(--paper);font-size:12.5px;}
+.topbar.show{display:flex;}
+.topbar button{background:rgba(243,238,221,0.1);border:1px solid rgba(243,238,221,0.3);color:var(--paper);border-radius:16px;padding:5px 12px;font-size:11.5px;cursor:pointer;}
+
+.section.locked .grid{position:relative;min-height:66px;}
+.locked-badge{position:absolute;inset:0;background:rgba(31,61,46,0.9);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--paper);font-size:12.5px;text-align:center;padding:16px;gap:4px;}
+.locked-badge .lock-icon{font-size:20px;}
+
+/* 관리자 패널 */
+.panel{background:var(--paper);border:1.5px solid var(--paper-line);border-radius:12px;padding:22px 24px;margin-bottom:20px;box-shadow:0 3px 0 var(--paper-line);}
+.panel h2{font-family:'Noto Serif KR';font-size:16px;margin:0 0 14px;color:var(--cover);}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px;}
+.form-grid label{display:block;font-size:11px;font-weight:700;color:#6b6247;margin-bottom:4px;}
+.form-grid input{width:100%;padding:9px 10px;border:1.5px solid var(--paper-line);border-radius:7px;font-size:13px;box-sizing:border-box;font-family:inherit;}
+.field-hint{font-size:10.5px;color:#8a8168;margin:-8px 0 12px;}
+
+.subject-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:16px;}
+.subject-chip{display:flex;align-items:center;gap:6px;font-size:12px;background:#fff;border:1px solid var(--paper-line);border-radius:7px;padding:7px 9px;}
+.subject-chip input{width:auto;margin:0;}
+
+.btn{display:inline-block;padding:10px 20px;border:none;border-radius:8px;background:var(--cover);color:var(--paper);font-weight:700;font-size:13px;cursor:pointer;}
+.btn:hover{background:var(--cover-dark);}
+.btn-outline{background:transparent;color:var(--cover);border:1.5px solid var(--cover);}
+.btn-small{padding:5px 10px;font-size:11.5px;border-radius:6px;}
+.btn-danger{background:#B8342B;}
+.btn-muted{background:#8a8168;}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--paper-line);vertical-align:top;}
+th{font-size:11px;color:#6b6247;font-weight:700;}
+.tag-list{display:flex;flex-wrap:wrap;gap:4px;}
+.tag{background:rgba(31,61,46,0.08);color:var(--cover);border-radius:10px;padding:2px 8px;font-size:10.5px;font-weight:700;}
+.empty{color:#8a8168;font-size:12.5px;padding:16px 4px;}
+.msg{font-size:12px;margin-top:8px;min-height:16px;}
+.msg.ok{color:#2F8A6B;}
+.msg.err{color:#B8342B;}
+.setup-warning{background:#fff7e0;border:1px solid #e6c766;border-radius:10px;padding:16px 18px;font-size:12.5px;line-height:1.7;color:#6b5a1a;margin-bottom:20px;}
+code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'Roboto Mono',monospace;}
+.action-btns{display:flex;flex-wrap:wrap;gap:5px;}
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
-<div class="wrap">
+
+<!-- 로그인 오버레이 (학생 / 관리자 전환) -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div id="studentLoginPane">
+      <h2>상업과 교실 로그인</h2>
+      <p>학번과 비밀번호를 입력하면 선생님이 열어주신 과목만 이용할 수 있어요.</p>
+      <form id="studentLoginForm">
+        <label for="studentIdInput">학번</label>
+        <input type="text" id="studentIdInput" inputmode="numeric" placeholder="예: 20301" autocomplete="off">
+        <label for="studentPwInput">비밀번호</label>
+        <input type="password" id="studentPwInput" placeholder="처음이면 기본 비밀번호 '비밀번호'" autocomplete="off">
+        <div class="login-error" id="studentLoginError"></div>
+        <button type="submit">로그인</button>
+      </form>
+      <button type="button" class="login-toggle-link" id="goAdminLoginBtn">선생님이신가요? 관리자 모드로 이동</button>
+    </div>
+
+    <div id="adminLoginPane" style="display:none;">
+      <h2>관리자 로그인</h2>
+      <p>선생님만 접속하는 화면입니다. 관리자 비밀번호를 입력해주세요.</p>
+      <form id="adminLoginForm">
+        <input type="password" id="adminPwInput" placeholder="관리자 비밀번호" autocomplete="off">
+        <div class="login-error" id="adminLoginError"></div>
+        <button type="submit">입장하기</button>
+      </form>
+      <button type="button" class="login-toggle-link" id="goStudentLoginBtn">학생이신가요? 학생 로그인으로</button>
+    </div>
+  </div>
+</div>
+
+<!-- 비밀번호 변경 오버레이 (학생 로그인 후 사용) -->
+<div class="login-overlay" id="pwModalOverlay" style="display:none;">
+  <div class="login-box">
+    <h2>비밀번호 변경</h2>
+    <p>새로 사용할 비밀번호를 입력해주세요.</p>
+    <form id="pwChangeForm">
+      <label for="pwNewInput">새 비밀번호</label>
+      <input type="password" id="pwNewInput" autocomplete="off">
+      <label for="pwConfirmInput">새 비밀번호 확인</label>
+      <input type="password" id="pwConfirmInput" autocomplete="off">
+      <div class="login-error" id="pwChangeError"></div>
+      <div class="login-msg" id="pwChangeMsg"></div>
+      <button type="submit">변경하기</button>
+      <button type="button" class="secondary" id="pwChangeCancelBtn">취소</button>
+    </form>
+  </div>
+</div>
+
+<!-- 학생용 학습 자료실 -->
+<div class="wrap" id="studentApp" style="display:none;">
+
+  <div class="topbar" id="topbar">
+    <span id="studentNameLabel"></span>
+    <button id="changePwBtn">비밀번호 변경</button>
+    <button id="logoutBtn">로그아웃</button>
+  </div>
 
   <div class="hero">
     <div class="eyebrow">특성화고 상업과 · AI 융합수업</div>
@@ -74,6 +187,7 @@ body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);colo
   </div>
 
   <div class="quicknav">
+    <a href="#teacher-tools"><span class="dot" style="background:var(--c-teacher);"></span>교사 교수·수업도구</a>
     <a href="#fin-acc"><span class="dot" style="background:var(--c-fin-acc);"></span>재무회계</a>
     <a href="#cost-acc"><span class="dot" style="background:var(--c-cost-acc);"></span>원가회계</a>
     <a href="#tax-acc"><span class="dot" style="background:var(--c-tax-acc);"></span>세무회계</a>
@@ -86,7 +200,6 @@ body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);colo
     <a href="#contest"><span class="dot" style="background:var(--c-contest);"></span>전국전산회계경진대회</a>
     <a href="#biz-contest"><span class="dot" style="background:var(--c-biz-contest);"></span>상업경진대회</a>
     <a href="#ncs"><span class="dot" style="background:var(--c-ncs);"></span>NCS 직업기초능력평가</a>
-    <a href="#teacher-tools"><span class="dot" style="background:var(--c-teacher);"></span>교사 교수·수업도구</a>
   </div>
 
   <!-- 교사 교수·수업도구 -->
@@ -130,8 +243,8 @@ body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);colo
       <a class="tool-chip" href="teacher-tools/qrcode.html"><span class="chip-icon">🔳</span><span class="chip-label">QR코드</span></a>
       <a class="tool-chip" href="teacher-tools/shorturl.html"><span class="chip-icon">🔗</span><span class="chip-label">주소 줄이기</span></a>
     </div>
-  </div> 
- 
+  </div>
+
   <!-- 재무회계 -->
   <div class="section" id="fin-acc">
     <div class="section-head">
@@ -189,10 +302,15 @@ body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);colo
     <div class="section-head">
       <span class="section-dot" style="background:var(--c-tax-acc);"></span>
       <h2>세무회계</h2>
-      <span class="cnt">준비 중</span>
+      <span class="cnt">1개 활동</span>
     </div>
     <div class="grid">
-      <div class="empty-card">아직 등록된 활동이 없어요. tax-acc 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
+      <a class="game-card" href="tax-acc/computerized-tax2-tax-acc.html">
+        <span class="game-tag" style="background:var(--c-tax-acc);">단계별 학습 + 퀴즈</span>
+        <h3>전산세무 2급 세무회계 학습 프로그램</h3>
+        <p>부가가치세(과세표준·세금계산서·면세와 영세율)와 소득세(근로소득·종합소득공제·세액공제)를 단원별로 학습하는 전산세무 2급 대비 프로그램입니다. XP·레벨업·뱃지, 스피드 퀴즈 게임, 자료실(업로드) 기능을 포함합니다.</p>
+        <span class="go">시작하기 →</span>
+      </a>
     </div>
   </div>
 
@@ -247,10 +365,15 @@ body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);colo
     <div class="section-head">
       <span class="section-dot" style="background:var(--c-tax);"></span>
       <h2>세무실무</h2>
-      <span class="cnt">준비 중</span>
+      <span class="cnt">1개 활동</span>
     </div>
     <div class="grid">
-      <div class="empty-card">아직 등록된 활동이 없어요. tax 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
+      <a class="game-card" href="tax/computerized-tax2-practice.html">
+        <span class="game-tag" style="background:var(--c-tax);">단계별 학습 + 퀴즈</span>
+        <h3>전산세무 2급 세무실무 학습 프로그램</h3>
+        <p>일반전표·매입매출전표 입력부터 원천징수, 부가가치세 신고서 작성, 결산정리, 법인세 세무조정까지 실무 절차 중심으로 학습합니다. XP·레벨업·뱃지, 스피드 퀴즈 게임, 자료실(업로드) 기능을 포함합니다.</p>
+        <span class="go">시작하기 →</span>
+      </a>
     </div>
   </div>
 
@@ -259,10 +382,15 @@ body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);colo
     <div class="section-head">
       <span class="section-dot" style="background:var(--c-finance);"></span>
       <h2>금융일반</h2>
-      <span class="cnt">준비 중</span>
+      <span class="cnt">1개 활동</span>
     </div>
     <div class="grid">
-      <div class="empty-card">아직 등록된 활동이 없어요. finance 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
+      <a class="game-card" href="finance/finance-general.html">
+        <span class="game-tag" style="background:var(--c-finance);">단계별 학습 + 퀴즈</span>
+        <h3>금융일반 학습 프로그램</h3>
+        <p>금융시장의 이해부터 예금·저축, 신용과 부채관리, 투자와 자산관리, 보험, 은퇴설계와 세금까지 특성화고 금융일반 교과 핵심 단원을 학습합니다. XP·레벨업·뱃지, 스피드 퀴즈 게임, 자료실(업로드) 기능을 포함합니다.</p>
+        <span class="go">시작하기 →</span>
+      </a>
     </div>
   </div>
 
@@ -288,10 +416,15 @@ body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);colo
     <div class="section-head">
       <span class="section-dot" style="background:var(--c-erp);"></span>
       <h2>ERP</h2>
-      <span class="cnt">준비 중</span>
+      <span class="cnt">1개 활동</span>
     </div>
     <div class="grid">
-      <div class="empty-card">아직 등록된 활동이 없어요. erp 폴더에 파일을 올리고 이 자리에 카드를 추가해보세요.</div>
+      <a class="game-card" href="erp/erp-management.html">
+        <span class="game-tag" style="background:var(--c-erp);">단계별 학습 + 퀴즈</span>
+        <h3>ERP 학습 프로그램 (인사·회계·생산·물류)</h3>
+        <p>ERP 4대 모듈(인사·회계·생산·물류)의 핵심 개념과 모듈 간 연동(BOM·MRP, 자동전기, 4대보험, SCM 등)을 학습합니다. XP·레벨업·뱃지, 스피드 퀴즈 게임, 자료실(업로드) 기능을 포함합니다.</p>
+        <span class="go">시작하기 →</span>
+      </a>
     </div>
   </div>
 
@@ -358,9 +491,421 @@ body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);colo
     </div>
   </div>
 
-
-
   <div class="footer-note">본 자료실은 수업 보조 학습 도구로 제작되었습니다.</div>
 </div>
+
+<!-- 관리자(선생님) 화면 -->
+<div class="wrap" id="adminApp" style="display:none;">
+  <div class="hero">
+    <div class="eyebrow">상업과 교실 · 관리자</div>
+    <h1>학생 계정 · 과목 권한 관리</h1>
+    <p>학생 계정을 등록하고, 학생별로 이용할 수 있는 과목(카드)을 지정하세요. 여기서 저장한 내용은 학습 자료실의 로그인·권한 잠금에 바로 반영됩니다. 비밀번호를 비워두면 기본값 <code>비밀번호</code>로 설정돼요.</p>
+    <div class="topbar show" style="justify-content:flex-start;margin-top:14px;">
+      <button id="adminLogoutBtn">관리자 로그아웃 / 허브로 돌아가기</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2 id="formTitle">학생 추가</h2>
+    <div class="form-grid">
+      <div><label>학번</label><input type="text" id="f_id" placeholder="예: 20301"></div>
+      <div><label>이름</label><input type="text" id="f_name" placeholder="예: 김상업"></div>
+      <div><label>반</label><input type="text" id="f_class" placeholder="예: 2학년 3반"></div>
+      <div><label>비밀번호</label><input type="text" id="f_pw" placeholder="비워두면 '비밀번호'"></div>
+    </div>
+    <div class="field-hint">비밀번호를 비워두고 저장하면 새 학생은 기본 비밀번호 <code>비밀번호</code>로 등록돼요. 학생은 로그인 후 직접 비밀번호를 바꿀 수 있어요.</div>
+    <label style="display:block;font-size:11px;font-weight:700;color:#6b6247;margin-bottom:8px;">이용 가능 과목 (체크한 것만 열림)</label>
+    <div class="subject-grid" id="subjectGrid"></div>
+    <button class="btn" id="saveBtn">저장하기</button>
+    <button class="btn btn-outline" id="cancelEditBtn" style="display:none;margin-left:8px;">수정 취소</button>
+    <div class="msg" id="formMsg"></div>
+  </div>
+
+  <div class="panel">
+    <h2>등록된 학생 목록</h2>
+    <div id="studentTableWrap">
+      <p class="empty">불러오는 중...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // --- 관리자 비밀번호 ---
+  // 반드시 아래 값을 선생님만 아는 비밀번호로 바꿔서 사용하세요.
+  const ADMIN_PASSWORD = "changeme123";
+
+  // --- 학생 기본(초기) 비밀번호 ---
+  const DEFAULT_STUDENT_PASSWORD = "비밀번호";
+
+  // --- Firebase 설정 ---
+  // Firebase 콘솔(프로젝트 설정 > 내 앱)에서 복사한 값을 아래에 붙여넣으세요.
+  // 값을 채우기 전에는 로그인 없이 모든 카드가 그대로 열려 있는 기존 방식으로 동작합니다.
+  const firebaseConfig = {
+    apiKey: "",
+    authDomain: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
+  };
+
+  const SECTION_LIST = [
+    { id: "fin-acc", label: "재무회계" },
+    { id: "cost-acc", label: "원가회계" },
+    { id: "tax-acc", label: "세무회계" },
+    { id: "general-affairs", label: "총무" },
+    { id: "acc-practice", label: "회계실무" },
+    { id: "tax", label: "세무실무" },
+    { id: "finance", label: "금융일반" },
+    { id: "econ", label: "상업경제" },
+    { id: "erp", label: "ERP" },
+    { id: "contest", label: "전국전산회계경진대회" },
+    { id: "biz-contest", label: "상업경진대회" },
+    { id: "ncs", label: "NCS 직업기초능력평가" }
+  ];
+
+  let fbReady = false;
+  let db = null;
+  try {
+    if (firebaseConfig.apiKey) {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      fbReady = true;
+    }
+  } catch (e) {
+    console.error("Firebase 초기화 오류:", e);
+  }
+
+  const loginOverlay = document.getElementById('loginOverlay');
+  const studentApp = document.getElementById('studentApp');
+  const adminApp = document.getElementById('adminApp');
+  const topbar = document.getElementById('topbar');
+  const nameLabel = document.getElementById('studentNameLabel');
+  const SESSION_KEY = 'hanil_commerce_student_session';
+  let currentSession = null; // { studentId, name, allowed }
+
+  // Firebase 미설정 시: 기존처럼 로그인 없이 학생 화면 전체 열람 (관리자 설정 전 화면이 잠기는 것을 방지)
+  if (!fbReady) {
+    loginOverlay.style.display = 'none';
+    studentApp.style.display = 'block';
+    return;
+  }
+
+  // ---------- 화면 전환 ----------
+  function showLoginOverlay() {
+    loginOverlay.style.display = 'flex';
+    studentApp.style.display = 'none';
+    adminApp.style.display = 'none';
+    document.getElementById('studentLoginPane').style.display = 'block';
+    document.getElementById('adminLoginPane').style.display = 'none';
+  }
+
+  function showStudentApp(session) {
+    currentSession = session;
+    loginOverlay.style.display = 'none';
+    adminApp.style.display = 'none';
+    studentApp.style.display = 'block';
+    topbar.classList.add('show');
+    nameLabel.textContent = session.name + '님';
+    applyPermissions(session.allowed);
+  }
+
+  function showAdminApp() {
+    loginOverlay.style.display = 'none';
+    studentApp.style.display = 'none';
+    adminApp.style.display = 'block';
+    initAdminApp();
+  }
+
+  // ---------- 학생: 과목 권한 잠금 ----------
+  function applyPermissions(allowed) {
+    const isAll = allowed === 'ALL';
+    document.querySelectorAll('#studentApp .section').forEach(function(sec) {
+      if (sec.id === 'teacher-tools') return; // 교사 도구는 제한하지 않음
+      const grid = sec.querySelector('.grid');
+      if (!grid) return;
+      const existing = grid.querySelector('.locked-badge');
+      const permitted = isAll || (Array.isArray(allowed) && allowed.indexOf(sec.id) !== -1);
+      if (permitted) {
+        sec.classList.remove('locked');
+        if (existing) existing.remove();
+      } else {
+        sec.classList.add('locked');
+        if (!existing) {
+          const badge = document.createElement('div');
+          badge.className = 'locked-badge';
+          badge.innerHTML = '<span class="lock-icon">🔒</span>아직 선생님이 열어주지 않은 과목이에요.';
+          grid.appendChild(badge);
+        }
+      }
+    });
+  }
+
+  // ---------- 학생 로그인 ----------
+  document.getElementById('studentLoginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const id = document.getElementById('studentIdInput').value.trim();
+    const pw = document.getElementById('studentPwInput').value;
+    const errEl = document.getElementById('studentLoginError');
+    errEl.textContent = '';
+    if (!id || !pw) return;
+    db.collection('students').doc(id).get().then(function(doc) {
+      if (!doc.exists) { errEl.textContent = '학번을 다시 확인해주세요.'; return; }
+      const data = doc.data();
+      if (data.password !== pw) { errEl.textContent = '비밀번호가 올바르지 않아요.'; return; }
+      const session = { studentId: id, name: data.name || id, allowed: data.allowedSections || [] };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      showStudentApp(session);
+    }).catch(function(err) {
+      console.error(err);
+      errEl.textContent = '로그인 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.';
+    });
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', function() {
+    localStorage.removeItem(SESSION_KEY);
+    currentSession = null;
+    showLoginOverlay();
+  });
+
+  document.getElementById('goAdminLoginBtn').addEventListener('click', function() {
+    document.getElementById('studentLoginPane').style.display = 'none';
+    document.getElementById('adminLoginPane').style.display = 'block';
+  });
+  document.getElementById('goStudentLoginBtn').addEventListener('click', function() {
+    document.getElementById('adminLoginPane').style.display = 'none';
+    document.getElementById('studentLoginPane').style.display = 'block';
+  });
+
+  // ---------- 비밀번호 변경 (학생) ----------
+  const pwModalOverlay = document.getElementById('pwModalOverlay');
+  document.getElementById('changePwBtn').addEventListener('click', function() {
+    document.getElementById('pwNewInput').value = '';
+    document.getElementById('pwConfirmInput').value = '';
+    document.getElementById('pwChangeError').textContent = '';
+    document.getElementById('pwChangeMsg').textContent = '';
+    pwModalOverlay.style.display = 'flex';
+  });
+  document.getElementById('pwChangeCancelBtn').addEventListener('click', function() {
+    pwModalOverlay.style.display = 'none';
+  });
+  document.getElementById('pwChangeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const pw1 = document.getElementById('pwNewInput').value;
+    const pw2 = document.getElementById('pwConfirmInput').value;
+    const errEl = document.getElementById('pwChangeError');
+    const msgEl = document.getElementById('pwChangeMsg');
+    errEl.textContent = '';
+    msgEl.textContent = '';
+    if (!pw1 || pw1.length < 2) { errEl.textContent = '비밀번호를 2자 이상 입력해주세요.'; return; }
+    if (pw1 !== pw2) { errEl.textContent = '비밀번호가 서로 달라요. 다시 확인해주세요.'; return; }
+    if (!currentSession) return;
+    db.collection('students').doc(currentSession.studentId).update({ password: pw1 }).then(function() {
+      msgEl.textContent = '비밀번호가 변경되었어요.';
+      setTimeout(function() { pwModalOverlay.style.display = 'none'; }, 900);
+    }).catch(function(err) {
+      console.error(err);
+      errEl.textContent = '변경 중 오류가 발생했어요. 다시 시도해주세요.';
+    });
+  });
+
+  // ---------- 관리자 로그인 ----------
+  document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const pw = document.getElementById('adminPwInput').value;
+    const errEl = document.getElementById('adminLoginError');
+    if (pw === ADMIN_PASSWORD) {
+      errEl.textContent = '';
+      showAdminApp();
+    } else {
+      errEl.textContent = '비밀번호가 올바르지 않아요.';
+    }
+  });
+
+  document.getElementById('adminLogoutBtn').addEventListener('click', function() {
+    showLoginOverlay();
+  });
+
+  // ---------- 관리자 앱 ----------
+  let adminInitialized = false;
+  function initAdminApp() {
+    const subjectGrid = document.getElementById('subjectGrid');
+    if (!adminInitialized) {
+      subjectGrid.innerHTML = SECTION_LIST.map(function(s) {
+        return '<label class="subject-chip"><input type="checkbox" value="' + s.id + '"> ' + s.label + '</label>';
+      }).join('');
+      adminInitialized = true;
+    }
+
+    const idInput = document.getElementById('f_id');
+    const nameInput = document.getElementById('f_name');
+    const classInput = document.getElementById('f_class');
+    const pwInput = document.getElementById('f_pw');
+    const formMsg = document.getElementById('formMsg');
+    const formTitle = document.getElementById('formTitle');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    let editingId = null;
+    let editingOriginalPassword = null;
+
+    function getCheckedSubjects() {
+      return Array.from(subjectGrid.querySelectorAll('input[type=checkbox]:checked')).map(function(cb) { return cb.value; });
+    }
+
+    function resetForm() {
+      editingId = null;
+      editingOriginalPassword = null;
+      idInput.value = '';
+      idInput.disabled = false;
+      nameInput.value = '';
+      classInput.value = '';
+      pwInput.value = '';
+      subjectGrid.querySelectorAll('input[type=checkbox]').forEach(function(cb) { cb.checked = false; });
+      formTitle.textContent = '학생 추가';
+      cancelEditBtn.style.display = 'none';
+    }
+
+    document.getElementById('saveBtn').onclick = function() {
+      const id = idInput.value.trim();
+      const name = nameInput.value.trim();
+      const klass = classInput.value.trim();
+      const pwRaw = pwInput.value;
+      formMsg.textContent = '';
+      formMsg.className = 'msg';
+      if (!id || !name) {
+        formMsg.textContent = '학번, 이름은 필수예요.';
+        formMsg.classList.add('err');
+        return;
+      }
+      let finalPassword;
+      if (pwRaw) {
+        finalPassword = pwRaw;
+      } else if (editingId && editingOriginalPassword) {
+        finalPassword = editingOriginalPassword; // 수정 시 비워두면 기존 비밀번호 유지
+      } else {
+        finalPassword = DEFAULT_STUDENT_PASSWORD; // 신규 등록 시 비워두면 기본값
+      }
+      const allowedSections = getCheckedSubjects();
+      db.collection('students').doc(id).set({
+        name: name,
+        class: klass,
+        password: finalPassword,
+        allowedSections: allowedSections
+      }).then(function() {
+        formMsg.textContent = (editingId ? '수정' : '등록') + '되었어요. (비밀번호: ' + finalPassword + ')';
+        formMsg.classList.add('ok');
+        resetForm();
+        loadStudents();
+      }).catch(function(err) {
+        console.error(err);
+        formMsg.textContent = '저장 중 오류가 발생했어요.';
+        formMsg.classList.add('err');
+      });
+    };
+
+    cancelEditBtn.onclick = resetForm;
+
+    function startEdit(id, data) {
+      editingId = id;
+      editingOriginalPassword = data.password || DEFAULT_STUDENT_PASSWORD;
+      idInput.value = id;
+      idInput.disabled = true;
+      nameInput.value = data.name || '';
+      classInput.value = data.class || '';
+      pwInput.value = '';
+      pwInput.placeholder = '비워두면 기존 비밀번호 유지';
+      const allowed = data.allowedSections || [];
+      subjectGrid.querySelectorAll('input[type=checkbox]').forEach(function(cb) {
+        cb.checked = allowed.indexOf(cb.value) !== -1;
+      });
+      formTitle.textContent = '학생 정보 수정 (' + id + ')';
+      cancelEditBtn.style.display = 'inline-block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function deleteStudent(id) {
+      if (!window.confirm('학번 ' + id + ' 학생 계정을 삭제할까요?')) return;
+      db.collection('students').doc(id).delete().then(loadStudents).catch(function(err) { console.error(err); });
+    }
+
+    function resetStudentPassword(id) {
+      if (!window.confirm('학번 ' + id + ' 학생의 비밀번호를 기본값(\'' + DEFAULT_STUDENT_PASSWORD + '\')으로 초기화할까요?')) return;
+      db.collection('students').doc(id).update({ password: DEFAULT_STUDENT_PASSWORD }).then(loadStudents).catch(function(err) { console.error(err); });
+    }
+
+    function loadStudents() {
+      const wrap = document.getElementById('studentTableWrap');
+      db.collection('students').get().then(function(snap) {
+        if (snap.empty) {
+          wrap.innerHTML = '<p class="empty">아직 등록된 학생이 없어요.</p>';
+          return;
+        }
+        const rows = [];
+        snap.forEach(function(doc) {
+          const d = doc.data();
+          const allowed = d.allowedSections || [];
+          const labels = allowed.map(function(sid) {
+            const found = SECTION_LIST.find(function(s) { return s.id === sid; });
+            return found ? found.label : sid;
+          });
+          rows.push(
+            '<tr>' +
+              '<td>' + doc.id + '</td>' +
+              '<td>' + (d.name || '') + '</td>' +
+              '<td>' + (d.class || '') + '</td>' +
+              '<td><div class="tag-list">' + (labels.length ? labels.map(function(l) { return '<span class="tag">' + l + '</span>'; }).join('') : '<span style="color:#8a8168;">없음</span>') + '</div></td>' +
+              '<td>' +
+                '<div class="action-btns">' +
+                  '<button class="btn btn-outline btn-small" data-action="edit" data-id="' + doc.id + '">수정</button>' +
+                  '<button class="btn btn-muted btn-small" data-action="reset" data-id="' + doc.id + '">비밀번호 초기화</button>' +
+                  '<button class="btn btn-danger btn-small" data-action="delete" data-id="' + doc.id + '">삭제</button>' +
+                '</div>' +
+              '</td>' +
+            '</tr>'
+          );
+        });
+        wrap.innerHTML =
+          '<table><thead><tr><th>학번</th><th>이름</th><th>반</th><th>이용 가능 과목</th><th></th></tr></thead><tbody>' +
+          rows.join('') + '</tbody></table>';
+
+        wrap.querySelectorAll('button[data-action="edit"]').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            const id = btn.getAttribute('data-id');
+            db.collection('students').doc(id).get().then(function(doc) {
+              if (doc.exists) startEdit(id, doc.data());
+            });
+          });
+        });
+        wrap.querySelectorAll('button[data-action="delete"]').forEach(function(btn) {
+          btn.addEventListener('click', function() { deleteStudent(btn.getAttribute('data-id')); });
+        });
+        wrap.querySelectorAll('button[data-action="reset"]').forEach(function(btn) {
+          btn.addEventListener('click', function() { resetStudentPassword(btn.getAttribute('data-id')); });
+        });
+      }).catch(function(err) {
+        console.error(err);
+        wrap.innerHTML = '<p class="empty">목록을 불러오지 못했어요.</p>';
+      });
+    }
+
+    resetForm();
+    loadStudents();
+  }
+
+  // ---------- 초기 진입: 세션 복원 또는 로그인 화면 ----------
+  const saved = localStorage.getItem(SESSION_KEY);
+  if (saved) {
+    try {
+      const session = JSON.parse(saved);
+      showStudentApp(session);
+    } catch (e) {
+      localStorage.removeItem(SESSION_KEY);
+      showLoginOverlay();
+    }
+  } else {
+    showLoginOverlay();
+  }
+})();
+</script>
 </body>
 </html>

@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP 학습 프로그램 (인사·회계·생산·물류)</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel (브라우저에서 JSX를 컴파일하기 위함) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script>
+        Babel.registerPreset('react-classic', {
+            presets: [
+                [Babel.availablePresets['react'], { runtime: 'classic' }]
+            ]
+        });
+    </script>
+
+    <!-- Firebase (자료실: 파일 업로드/보관) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+    <style>
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 overflow-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="env,react-classic">
+        const { useState, useEffect } = React;
+
+        // --- Firebase 자료실 설정 ---
+        // 아래 firebaseConfig 값을 Firebase 콘솔(프로젝트 설정 > 내 앱)에서 복사해 붙여넣으세요.
+        // 값을 채워 넣기 전에는 자료실이 "설정 필요" 상태로 표시되고, 나머지 학습 기능은 정상 작동합니다.
+        const firebaseConfig = {
+  apiKey: "AIzaSyDLEHF5jWor457zWYXL57jOkcJcPJsQfNU",
+  authDomain: "accounting-960b5.firebaseapp.com",
+  projectId: "accounting-960b5",
+  storageBucket: "accounting-960b5.firebasestorage.app",
+  messagingSenderId: "753390768491",
+  appId: "1:753390768491:web:634a3562a526d7571c3c2e",
+  measurementId: "G-8ZKYP7R3V4"
+};
+        const ARCHIVE_ID = "erp"; // Firestore 컬렉션 / Storage 폴더 구분용 (다른 학습 프로그램과 자료가 섞이지 않도록 구분)
+
+        let firebaseReady = false;
+        let archiveDb = null;
+        let archiveStorage = null;
+        try {
+          if (firebaseConfig.apiKey) {
+            const fbApp = firebase.initializeApp(firebaseConfig);
+            archiveDb = firebase.firestore();
+            archiveStorage = firebase.storage();
+            firebaseReady = true;
+          }
+        } catch (e) {
+          console.error("Firebase 초기화 오류:", e);
+          firebaseReady = false;
+        }
+
+        // --- 단원별 학습 및 퀴즈 데이터 (인사·회계·생산·물류 4개 모듈, 총 32문제) ---
+        const curriculumData = [
+          {
+            id: 1,
+            group: "인사",
+            title: "제1절. ERP 인사관리",
+            summary: [
+              "ERP 인사관리 모듈은 채용, 인사발령, 근태, 급여, 인사평가 등 인적자원 관련 업무를 통합 관리합니다.",
+              "4대보험(국민연금·건강보험·고용보험·산재보험) 정보와 연동해 급여 계산 시 공제액을 자동 산출합니다.",
+              "근태관리는 출퇴근 기록을 바탕으로 근무시간, 연장·야간·휴일근로를 집계해 급여에 반영합니다.",
+              "인사평가(고과)는 승진, 성과급 산정 등 인사 의사결정의 기초자료로 활용됩니다.",
+              "조직도와 직급체계를 시스템에 등록해두면 결재라인, 권한 부여 등이 자동으로 연결됩니다."
+            ],
+            questions: [
+              { question: "ERP 인사관리 모듈이 다루는 업무로 보기 어려운 것은?", options: ["채용관리", "근태관리", "재고자산 실사", "인사평가"], answer: 2, explanation: "재고자산 실사는 물류·회계 관리 영역이며, 인사관리 모듈은 채용·근태·평가 등 인적자원 관련 업무를 다룹니다." },
+              { question: "급여 계산 시 자동으로 공제되는 4대보험 항목이 아닌 것은?", options: ["국민연금", "건강보험", "고용보험", "재산세"], answer: 3, explanation: "재산세는 지방세로 4대보험(국민연금·건강보험·고용보험·산재보험)에 해당하지 않습니다." },
+              { question: "근태관리 시스템이 집계하는 정보로 옳은 것은?", options: ["매출채권 잔액", "근무시간·연장근로시간", "재고수량", "매입세액"], answer: 1, explanation: "근태관리는 출퇴근 기록을 바탕으로 근무시간과 연장·야간·휴일근로시간 등을 집계합니다." },
+              { question: "인사평가(고과) 결과가 활용되는 대표적 용도는?", options: ["원재료 발주", "승진·성과급 산정", "생산계획 수립", "세금계산서 발급"], answer: 1, explanation: "인사평가 결과는 승진, 성과급 산정 등 인사 관련 의사결정의 기초자료로 활용됩니다." },
+              { question: "ERP에서 조직도·직급체계를 등록해두면 얻는 이점은?", options: ["결재라인·권한이 자동으로 연결된다.", "재고가 자동으로 늘어난다.", "매출이 자동으로 증가한다.", "세율이 자동으로 낮아진다."], answer: 0, explanation: "조직도와 직급체계 정보를 시스템에 등록하면 결재라인과 접근 권한이 자동으로 연동됩니다." },
+              { question: "ERP 인사모듈과 회계모듈이 연동되는 대표적 예는?", options: ["급여 지급 데이터가 회계전표로 자동 반영되는 것", "생산계획이 자동으로 변경되는 것", "재고가 자동으로 실사되는 것", "매출채권이 자동 소멸되는 것"], answer: 0, explanation: "급여 계산 결과는 회계관리 모듈로 연동되어 관련 전표가 자동으로 생성됩니다." },
+              { question: "인사발령(부서이동, 승진 등) 정보를 ERP에 등록하는 목적으로 가장 적절한 것은?", options: ["전사적으로 최신 조직 정보를 실시간 공유하기 위해", "세금계산서를 자동 발급하기 위해", "재고를 자동으로 조정하기 위해", "생산 원가를 낮추기 위해"], answer: 0, explanation: "인사발령 정보를 실시간 등록하면 전사적으로 최신 조직 정보를 공유할 수 있습니다." },
+              { question: "다음 중 ERP 인사관리의 목적으로 가장 적절한 것은?", options: ["인적자원 관련 정보를 통합적으로 관리해 효율적인 인사 의사결정을 지원하는 것", "회사의 재고를 실사하는 것", "세무조정을 수행하는 것", "생산설비를 유지보수하는 것"], answer: 0, explanation: "ERP 인사관리는 채용부터 평가·급여까지 인적자원 정보를 통합 관리해 인사 의사결정을 지원하는 것을 목적으로 합니다." }
+            ]
+          },
+          {
+            id: 2,
+            group: "회계",
+            title: "제2절. ERP 회계관리",
+            summary: [
+              "ERP 회계관리 모듈은 전표 입력부터 총계정원장, 재무제표 작성까지 회계 전 과정을 통합 처리합니다.",
+              "구매·판매·생산 등 다른 모듈에서 거래가 발생하면 관련 데이터가 실시간으로 회계 데이터에 자동 반영(자동전기)됩니다.",
+              "예산관리 기능을 통해 부서별·계정별 예산과 실제 집행 내역을 비교·통제할 수 있습니다.",
+              "원가관리 모듈과 연동되어 제조원가, 부문별 원가배부 등의 계산을 자동화할 수 있습니다.",
+              "다중 사업장·다중 통화를 지원하는 ERP는 여러 지사·해외법인의 회계 데이터를 하나의 시스템에서 통합 관리합니다."
+            ],
+            questions: [
+              { question: "ERP 회계관리 모듈의 핵심 기능으로 보기 어려운 것은?", options: ["전표 입력 및 자동전기", "총계정원장 관리", "재무제표 작성", "근태 기록 관리"], answer: 3, explanation: "근태 기록 관리는 인사관리 모듈의 기능이며, 회계관리 모듈은 전표·원장·재무제표 관련 기능을 담당합니다." },
+              { question: "구매·판매 등 다른 모듈의 거래가 발생하면 회계 데이터에 자동으로 반영되는 것을 무엇이라 하는가?", options: ["자동전기", "수동전기", "재고실사", "원천징수"], answer: 0, explanation: "다른 모듈의 거래 데이터가 실시간으로 회계 데이터(전표 등)에 자동 반영되는 것을 자동전기라 합니다." },
+              { question: "예산관리 기능의 목적으로 가장 적절한 것은?", options: ["부서별·계정별 예산과 실제 집행을 비교·통제하기 위해", "근로소득세를 원천징수하기 위해", "재고자산을 실사하기 위해", "생산계획을 수립하기 위해"], answer: 0, explanation: "예산관리는 부서·계정별로 편성된 예산과 실제 집행 내역을 비교해 통제하는 기능입니다." },
+              { question: "원가관리 모듈과 회계관리 모듈이 연동될 때 자동화되는 대표적 계산은?", options: ["제조원가·부문별 원가배부", "신용점수 산정", "인사평가 점수", "물류창고 배치"], answer: 0, explanation: "원가관리 모듈과의 연동을 통해 제조원가 계산, 부문별 원가배부가 자동화됩니다." },
+              { question: "다중 사업장을 운영하는 기업이 ERP 회계모듈을 도입할 때 얻는 이점으로 가장 적절한 것은?", options: ["여러 지사·법인의 회계 데이터를 하나의 시스템에서 통합 관리할 수 있다.", "세율이 자동으로 낮아진다.", "재고가 자동으로 사라진다.", "급여가 자동으로 인상된다."], answer: 0, explanation: "다중 사업장·다중 통화를 지원하는 ERP는 여러 지사·법인의 데이터를 하나의 시스템에서 통합 관리할 수 있게 해줍니다." },
+              { question: "ERP 회계관리에서 실시간 데이터 반영이 가지는 장점으로 가장 적절한 것은?", options: ["경영진이 최신 재무 현황을 신속하게 파악하고 의사결정할 수 있다.", "세무조사를 피할 수 있다.", "모든 세금이 면제된다.", "회계감사가 필요 없어진다."], answer: 0, explanation: "실시간 데이터 반영을 통해 경영진이 최신 재무 현황을 신속히 파악하고 의사결정에 활용할 수 있습니다." },
+              { question: "ERP 도입 전 수작업 회계처리와 비교했을 때 ERP의 장점으로 보기 어려운 것은?", options: ["중복 입력이 줄어든다.", "데이터 정합성이 높아진다.", "실시간 정보 공유가 가능하다.", "회계 지식이 전혀 없어도 모든 판단을 시스템이 대신한다."], answer: 3, explanation: "ERP는 업무 효율을 높이는 도구일 뿐, 회계 지식 없이 시스템이 모든 판단을 대신해주는 것은 아닙니다." },
+              { question: "ERP 회계모듈에서 산출되는 대표적 산출물로 옳은 것은?", options: ["재무상태표·손익계산서 등 재무제표", "근태기록표", "BOM(자재명세서)", "창고배치도"], answer: 0, explanation: "ERP 회계관리 모듈은 최종적으로 재무상태표, 손익계산서 등 재무제표를 산출합니다." }
+            ]
+          },
+          {
+            id: 3,
+            group: "생산",
+            title: "제3절. ERP 생산관리",
+            summary: [
+              "ERP 생산관리 모듈은 생산계획 수립부터 자재소요계획, 작업지시, 재공품 관리까지 제조 전 과정을 지원합니다.",
+              "BOM(Bill of Materials, 자재명세서)은 제품 하나를 생산하는 데 필요한 원재료·부품의 구성과 수량을 정리한 자료입니다.",
+              "MRP(자재소요계획)는 생산계획과 BOM을 바탕으로 필요한 자재의 종류와 수량, 발주 시점을 자동으로 산출하는 기법입니다.",
+              "생산능력계획(CRP)은 설비·인력 등 생산능력이 계획된 생산량을 소화할 수 있는지 검토하는 과정입니다.",
+              "작업지시서가 발행되면 실제 생산 실적(투입량, 산출량, 불량 등)을 시스템에 기록하여 원가계산과 재고관리에 반영합니다."
+            ],
+            questions: [
+              { question: "제품 하나를 만드는 데 필요한 원재료·부품의 구성과 수량을 정리한 자료는?", options: ["BOM(자재명세서)", "MRP", "CRP", "WMS"], answer: 0, explanation: "BOM(자재명세서)은 제품 생산에 필요한 원재료·부품의 구성과 수량을 정리한 자료입니다." },
+              { question: "생산계획과 BOM을 바탕으로 필요한 자재의 종류·수량·발주 시점을 산출하는 기법은?", options: ["MRP(자재소요계획)", "인사평가", "원천징수", "대손세액공제"], answer: 0, explanation: "MRP는 생산계획과 BOM을 근거로 자재의 필요 수량과 발주 시점을 산출하는 기법입니다." },
+              { question: "생산능력계획(CRP)이 검토하는 내용으로 가장 적절한 것은?", options: ["설비·인력이 계획된 생산량을 소화할 수 있는지 여부", "근로소득세 원천징수 여부", "매출채권 회수 가능성", "세금계산서 발급 여부"], answer: 0, explanation: "CRP는 설비·인력 등 생산능력이 계획된 생산량을 감당할 수 있는지를 검토하는 과정입니다." },
+              { question: "작업지시서 발행 후 시스템에 기록해야 하는 정보로 옳은 것은?", options: ["투입량·산출량·불량 등 생산 실적", "임직원의 연차 사용 내역", "주주총회 의사록", "세무조정 내역"], answer: 0, explanation: "작업지시서 발행 후에는 실제 투입량·산출량·불량 등의 생산 실적을 기록해 원가계산·재고관리에 반영합니다." },
+              { question: "BOM 정보가 부정확할 경우 발생할 수 있는 문제로 가장 적절한 것은?", options: ["자재소요계획(MRP) 산출 결과가 부정확해져 자재 부족·과잉이 발생할 수 있다.", "회사의 세율이 자동으로 바뀐다.", "인사평가 결과가 왜곡된다.", "예금자보호 한도가 변경된다."], answer: 0, explanation: "BOM이 부정확하면 이를 기반으로 산출되는 MRP 결과도 부정확해져 자재 부족이나 과잉 재고 문제가 발생할 수 있습니다." },
+              { question: "ERP 생산관리 모듈이 회계관리 모듈과 연동될 때 자동화되는 대표적 계산은?", options: ["생산 실적을 바탕으로 한 제조원가 계산", "원천징수이행상황신고서 작성", "신용점수 산정", "부가가치세 면세 여부 판정"], answer: 0, explanation: "생산 실적 데이터는 회계관리 모듈과 연동되어 제조원가 계산 등에 자동으로 반영됩니다." },
+              { question: "다음 중 생산관리 업무 흐름의 순서로 가장 적절한 것은?", options: ["생산계획 → 자재소요계획(MRP) → 작업지시 → 생산실적 기록", "작업지시 → 생산계획 → 재고실사 → 세무조정", "결산 → 생산계획 → BOM 등록 → 원천징수", "급여계산 → BOM 등록 → 생산계획 → 결산"], answer: 0, explanation: "일반적으로 생산계획 수립 후 자재소요계획을 산출하고, 작업지시를 발행한 뒤 생산실적을 기록하는 흐름을 따릅니다." },
+              { question: "재공품(생산 중인 미완성 제품)에 대한 관리가 중요한 이유로 가장 적절한 것은?", options: ["정확한 제조원가 계산과 재고자산 평가를 위해", "원천징수세액을 계산하기 위해", "예금자보호 한도를 계산하기 위해", "인사고과 점수를 매기기 위해"], answer: 0, explanation: "재공품 수량과 진척도를 정확히 파악해야 정확한 제조원가 계산과 재고자산 평가가 가능합니다." }
+            ]
+          },
+          {
+            id: 4,
+            group: "물류",
+            title: "제4절. ERP 물류관리",
+            summary: [
+              "ERP 물류관리 모듈은 구매, 판매, 재고관리를 통합하여 상품·원자재의 흐름을 관리합니다.",
+              "구매관리는 발주부터 입고, 매입 관련 정산까지의 과정을 처리하며, 회계·재고 모듈과 실시간으로 연동됩니다.",
+              "판매관리는 수주부터 출고, 매출 관련 정산까지의 과정을 처리합니다.",
+              "안전재고와 발주점을 설정해두면 재고가 일정 수준 이하로 떨어질 때 자동으로 발주 시점을 알려줄 수 있습니다.",
+              "SCM(공급망관리)은 원자재 조달부터 생산, 유통, 최종 소비자에 이르는 전체 공급망을 통합적으로 관리하는 개념입니다."
+            ],
+            questions: [
+              { question: "발주부터 입고, 매입 정산까지의 과정을 처리하는 ERP 물류 기능은?", options: ["구매관리", "판매관리", "인사관리", "원가관리"], answer: 0, explanation: "구매관리는 발주, 입고, 매입 관련 정산까지의 과정을 처리하는 물류관리의 하위 기능입니다." },
+              { question: "수주부터 출고, 매출 정산까지의 과정을 처리하는 ERP 물류 기능은?", options: ["판매관리", "구매관리", "회계결산", "세무조정"], answer: 0, explanation: "판매관리는 수주, 출고, 매출 관련 정산까지의 과정을 처리하는 기능입니다." },
+              { question: "재고가 일정 수준 이하로 떨어지면 발주가 필요함을 알려주는 재고 수준을 무엇이라 하는가?", options: ["발주점", "최대재고", "매몰원가", "기회비용"], answer: 0, explanation: "발주점(재발주점)은 재고가 이 수준 이하로 떨어지면 발주가 필요함을 알려주는 기준입니다." },
+              { question: "재고 부족으로 인한 결품을 막기 위해 미리 확보해두는 최소한의 재고를 무엇이라 하는가?", options: ["안전재고", "불용재고", "재공품", "완제품"], answer: 0, explanation: "안전재고는 수요 변동이나 조달 지연 등에 대비해 미리 확보해두는 최소한의 재고입니다." },
+              { question: "원자재 조달부터 생산, 유통, 최종 소비자에 이르는 전체 흐름을 통합 관리하는 개념은?", options: ["SCM(공급망관리)", "BOM", "MRP", "CRP"], answer: 0, explanation: "SCM(공급망관리)은 원자재 조달부터 최종 소비자에 이르는 전체 공급망을 통합적으로 관리하는 개념입니다." },
+              { question: "구매관리와 회계관리 모듈이 연동될 때 자동화되는 대표적 처리는?", options: ["입고 및 매입 데이터가 회계전표로 자동 반영되는 것", "인사평가 점수가 자동 산정되는 것", "세무조정이 자동 완료되는 것", "예금자보호 한도가 자동 계산되는 것"], answer: 0, explanation: "구매(입고·매입) 데이터는 회계관리 모듈과 연동되어 관련 전표가 자동으로 반영됩니다." },
+              { question: "재고관리가 부실할 때 발생할 수 있는 문제로 보기 어려운 것은?", options: ["재고 부족으로 인한 판매 기회 상실", "과잉재고로 인한 보관비용 증가", "재고자산 평가 오류", "소득세 세율 자동 인상"], answer: 3, explanation: "소득세 세율은 법령에 따라 정해지는 것으로, 재고관리 부실과는 직접적인 관련이 없습니다." },
+              { question: "ERP 물류관리 모듈 도입의 기대효과로 가장 적절한 것은?", options: ["구매·판매·재고 정보를 실시간으로 통합 관리하여 물류 효율을 높이는 것", "모든 세금을 면제받는 것", "직원의 신용점수를 관리하는 것", "결산정리를 생략하는 것"], answer: 0, explanation: "ERP 물류관리 모듈은 구매·판매·재고 정보를 실시간으로 통합 관리해 물류 효율을 높이는 것을 목적으로 합니다." }
+            ]
+          }
+        ];
+
+        const groupColors = { "인사": "bg-violet-600", "회계": "bg-blue-600", "생산": "bg-orange-600", "물류": "bg-teal-600" };
+        const groupBorder = { "인사": "border-violet-500", "회계": "border-blue-500", "생산": "border-orange-500", "물류": "border-teal-500" };
+
+        function App() {
+          const [selectedChapter, setSelectedChapter] = useState(curriculumData[0]);
+          const [quizMode, setQuizMode] = useState(false);
+          const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
+          const [selectedOption, setSelectedOption] = useState(null);
+          const [isSubmitted, setIsSubmitted] = useState(false);
+          const [score, setScore] = useState(0);
+          const [showResult, setShowResult] = useState(false);
+          const [sidebarOpen, setSidebarOpen] = useState(true);
+
+          const [userXP, setUserXP] = useState(0);
+          const [userLevel, setUserLevel] = useState(1);
+          const [chapterRecords, setChapterRecords] = useState({});
+          const [earnedBadges, setEarnedBadges] = useState([]);
+          const [showLevelUp, setShowLevelUp] = useState(false);
+
+          // --- 자료실(Firebase) 상태 ---
+          const [archiveMode, setArchiveMode] = useState(false);
+          const [archiveFiles, setArchiveFiles] = useState([]);
+          const [archiveLoading, setArchiveLoading] = useState(false);
+          const [uploaderName, setUploaderName] = useState('');
+          const [uploading, setUploading] = useState(false);
+          const [uploadProgress, setUploadProgress] = useState(0);
+          const [uploadError, setUploadError] = useState(null);
+
+          useEffect(() => {
+            if (!archiveMode || !firebaseReady) return;
+            setArchiveLoading(true);
+            const unsub = archiveDb.collection(ARCHIVE_ID + '_files')
+              .orderBy('uploadedAt', 'desc')
+              .onSnapshot(snap => {
+                const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                setArchiveFiles(list);
+                setArchiveLoading(false);
+              }, err => {
+                console.error('자료실 목록 로드 오류:', err);
+                setArchiveLoading(false);
+              });
+            return () => unsub();
+          }, [archiveMode]);
+
+          const formatFileSize = (bytes) => {
+            if (!bytes) return '';
+            if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+          };
+
+          const handleFileUpload = (e) => {
+            const file = e.target.files[0];
+            if (!file || !firebaseReady) return;
+            setUploading(true);
+            setUploadProgress(0);
+            setUploadError(null);
+            const path = ARCHIVE_ID + '/' + Date.now() + '_' + file.name;
+            const ref = archiveStorage.ref().child(path);
+            const task = ref.put(file);
+            task.on('state_changed',
+              snap => setUploadProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),
+              err => { console.error('업로드 오류:', err); setUploadError('업로드 중 오류가 발생했어요. 다시 시도해주세요.'); setUploading(false); },
+              () => {
+                task.snapshot.ref.getDownloadURL().then(url => {
+                  return archiveDb.collection(ARCHIVE_ID + '_files').add({
+                    name: file.name,
+                    url: url,
+                    size: file.size,
+                    storagePath: path,
+                    uploader: uploaderName.trim() || '익명',
+                    uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+                  });
+                }).then(() => {
+                  setUploading(false);
+                  setUploadProgress(0);
+                  e.target.value = '';
+                }).catch(err => {
+                  console.error('저장 오류:', err);
+                  setUploadError('파일 정보를 저장하지 못했어요.');
+                  setUploading(false);
+                });
+              }
+            );
+          };
+
+          const handleFileDelete = (file) => {
+            if (!firebaseReady) return;
+            if (!window.confirm(`'${file.name}' 파일을 삭제할까요?`)) return;
+            archiveDb.collection(ARCHIVE_ID + '_files').doc(file.id).delete().catch(err => console.error(err));
+            if (file.storagePath) {
+              archiveStorage.ref().child(file.storagePath).delete().catch(err => console.error(err));
+            }
+          };
+
+          const addXP = (amount) => {
+            setUserXP(prev => {
+              const newXP = prev + amount;
+              const currentLv = Math.floor(prev / 100) + 1;
+              const newLevel = Math.floor(newXP / 100) + 1;
+              if (newLevel > currentLv) {
+                setUserLevel(newLevel);
+                setShowLevelUp(true);
+                setTimeout(() => setShowLevelUp(false), 3000);
+              }
+              return newXP;
+            });
+          };
+
+          const [gameActive, setGameActive] = useState(false);
+          const [gameStatus, setGameStatus] = useState('idle');
+          const [gameTime, setGameTime] = useState(60);
+          const [gameScore, setGameScore] = useState(0);
+          const [gameCombo, setGameCombo] = useState(0);
+          const [gameMaxCombo, setGameMaxCombo] = useState(0);
+          const [mixedQuestions, setMixedQuestions] = useState([]);
+          const [gameQIdx, setGameQIdx] = useState(0);
+          const [gameFeedback, setGameFeedback] = useState(null);
+
+          useEffect(() => {
+            if (gameStatus === 'over') {
+              if (gameScore >= 250 && !earnedBadges.includes('game_master')) {
+                setEarnedBadges(prev => [...prev, 'game_master']);
+                addXP(100);
+              }
+            }
+          }, [gameStatus, gameScore]);
+
+          useEffect(() => {
+            let timer;
+            if (gameActive && gameStatus === 'playing') {
+              timer = setInterval(() => {
+                setGameTime(prev => {
+                  if (prev <= 1) {
+                    setGameStatus('over');
+                    setGameActive(false);
+                    return 0;
+                  }
+                  return prev - 1;
+                });
+              }, 1000);
+            }
+            return () => clearInterval(timer);
+          }, [gameActive, gameStatus]);
+
+          const startGame = () => {
+            const all = curriculumData.flatMap(ch => ch.questions.map(q => ({ ...q, chapterTitle: ch.title })));
+            const shuffled = [...all].sort(() => Math.random() - 0.5);
+            setMixedQuestions(shuffled);
+            setGameQIdx(0);
+            setGameScore(0);
+            setGameCombo(0);
+            setGameMaxCombo(0);
+            setGameTime(60);
+            setGameStatus('playing');
+            setGameActive(true);
+            setGameFeedback(null);
+          };
+
+          const answerGame = (idx) => {
+            if (gameFeedback) return;
+            const q = mixedQuestions[gameQIdx % mixedQuestions.length];
+            const correct = idx === q.answer;
+            if (correct) {
+              const newCombo = gameCombo + 1;
+              setGameCombo(newCombo);
+              setGameMaxCombo(m => Math.max(m, newCombo));
+              setGameScore(s => s + 10 + Math.min(newCombo, 5) * 2);
+              setGameFeedback('correct');
+            } else {
+              setGameCombo(0);
+              setGameFeedback('wrong');
+            }
+            setTimeout(() => {
+              setGameFeedback(null);
+              setGameQIdx(i => i + 1);
+            }, 500);
+          };
+
+          const startQuiz = (chapter) => {
+            setSelectedChapter(chapter);
+            setQuizMode(true);
+            setCurrentQuestionIdx(0);
+            setSelectedOption(null);
+            setIsSubmitted(false);
+            setScore(0);
+            setShowResult(false);
+          };
+
+          const submitAnswer = () => {
+            if (selectedOption === null) return;
+            setIsSubmitted(true);
+            if (selectedOption === selectedChapter.questions[currentQuestionIdx].answer) {
+              setScore(s => s + 1);
+            }
+          };
+
+          const nextQuestion = () => {
+            if (currentQuestionIdx + 1 < selectedChapter.questions.length) {
+              setCurrentQuestionIdx(i => i + 1);
+              setSelectedOption(null);
+              setIsSubmitted(false);
+            } else {
+              const total = selectedChapter.questions.length;
+              setChapterRecords(prev => ({ ...prev, [selectedChapter.id]: Math.max(prev[selectedChapter.id] || 0, score) }));
+              addXP(score * 10);
+              if (score === total && !earnedBadges.includes('perfect_' + selectedChapter.id)) {
+                setEarnedBadges(prev => [...prev, 'perfect_' + selectedChapter.id]);
+                addXP(30);
+              }
+              setShowResult(true);
+            }
+          };
+
+          const backToSummary = () => {
+            setQuizMode(false);
+            setShowResult(false);
+          };
+
+          const currentQ = selectedChapter.questions[currentQuestionIdx];
+          const currentGameQ = mixedQuestions.length ? mixedQuestions[gameQIdx % mixedQuestions.length] : null;
+
+          return (
+            <div className="flex h-screen">
+              {/* Sidebar */}
+              <div className={`${sidebarOpen ? 'w-72' : 'w-0'} transition-all duration-200 bg-slate-900 text-slate-100 overflow-hidden flex-shrink-0 flex flex-col`}>
+                <div className="p-4 border-b border-slate-700">
+                  <h1 className="text-lg font-bold leading-snug">ERP 학습 프로그램</h1>
+                  <p className="text-xs text-slate-400 mt-1">인사 · 회계 · 생산 · 물류</p>
+                </div>
+                <div className="p-3 border-b border-slate-700 bg-slate-800/60">
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="font-semibold text-amber-300"><i className="fa-solid fa-star mr-1"></i>Lv.{userLevel}</span>
+                    <span className="text-slate-400">{userXP % 100} / 100 XP</span>
+                  </div>
+                  <div className="w-full bg-slate-700 rounded-full h-2">
+                    <div className="bg-amber-400 h-2 rounded-full transition-all" style={{ width: `${userXP % 100}%` }}></div>
+                  </div>
+                  {earnedBadges.length > 0 && (
+                    <div className="flex gap-1 mt-2 flex-wrap">
+                      {earnedBadges.map(b => (
+                        <span key={b} className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full"><i className="fa-solid fa-medal mr-0.5"></i>뱃지</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 overflow-y-auto p-2">
+                  <a href="../index.html" className="w-full text-left mb-2 px-3 py-2.5 rounded-lg bg-slate-800 border border-slate-600 font-bold text-sm flex items-center gap-2 no-underline text-slate-100">
+                    <i className="fa-solid fa-house"></i> 메인 로그인 화면으로
+                  </a>
+                  <button onClick={() => { setArchiveMode(false); setQuizMode(false); startGame(); }} className="w-full text-left mb-2 px-3 py-2.5 rounded-lg bg-gradient-to-r from-rose-600 to-orange-500 font-bold text-sm flex items-center gap-2">
+                    <i className="fa-solid fa-bolt"></i> 스피드 퀴즈 게임 모드
+                  </button>
+                  <button onClick={() => { setGameStatus('idle'); setGameActive(false); setArchiveMode(true); }} className="w-full text-left mb-3 px-3 py-2.5 rounded-lg bg-slate-700 font-bold text-sm flex items-center gap-2">
+                    <i className="fa-solid fa-folder-open"></i> 자료실 (업로드·다운로드)
+                  </button>
+                  {['인사', '회계', '생산', '물류'].map(group => (
+                    <div key={group} className="mb-2">
+                      <div className="px-2 py-1 text-[11px] font-bold text-slate-400 tracking-wide">{group}</div>
+                      {curriculumData.filter(ch => ch.group === group).map(ch => (
+                        <button
+                          key={ch.id}
+                          onClick={() => { setSelectedChapter(ch); setQuizMode(false); setGameStatus('idle'); setGameActive(false); setArchiveMode(false); }}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1 flex items-center justify-between ${selectedChapter.id === ch.id && !quizMode && gameStatus === 'idle' && !archiveMode ? 'bg-slate-700 font-bold' : 'hover:bg-slate-800'}`}
+                        >
+                          <span>{ch.title}</span>
+                          {chapterRecords[ch.id] !== undefined && (
+                            <span className="text-[10px] text-emerald-400">{chapterRecords[ch.id]}/{ch.questions.length}</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Main */}
+              <div className="flex-1 overflow-y-auto relative">
+                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="fixed top-4 left-4 z-20 bg-white shadow-md rounded-full w-9 h-9 flex items-center justify-center border" style={{ left: sidebarOpen ? '292px' : '12px' }}>
+                  <i className={`fa-solid ${sidebarOpen ? 'fa-angle-left' : 'fa-angle-right'}`}></i>
+                </button>
+
+                {showLevelUp && (
+                  <div className="fixed top-6 right-6 z-30 bg-amber-400 text-slate-900 px-5 py-3 rounded-xl shadow-xl font-bold animate-bounce">
+                    <i className="fa-solid fa-crown mr-2"></i>레벨 업! Lv.{userLevel}
+                  </div>
+                )}
+
+                <div className="max-w-3xl mx-auto p-8 pt-16">
+
+                  {archiveMode ? (
+                    <div>
+                      <h2 className="text-2xl font-bold mb-1"><i className="fa-solid fa-folder-open mr-2 text-slate-400"></i>자료실</h2>
+                      <p className="text-sm text-slate-500 mb-5">선생님과 학생 누구나 학습자료를 올리고 내려받을 수 있어요.</p>
+
+                      {!firebaseReady ? (
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-sm text-amber-700 leading-relaxed">
+                          <i className="fa-solid fa-triangle-exclamation mr-1.5"></i>
+                          자료실을 사용하려면 Firebase 설정이 필요해요. 코드 상단의 <code className="bg-amber-100 px-1 rounded">firebaseConfig</code> 값을 채워 넣으면 바로 작동합니다. (다른 학습 기능은 지금도 정상적으로 사용할 수 있어요.)
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="bg-white border rounded-xl p-5 shadow-sm mb-5">
+                            <label className="block text-xs font-bold text-slate-500 mb-1.5">올리는 사람 이름 (선택)</label>
+                            <input
+                              type="text"
+                              value={uploaderName}
+                              onChange={(e) => setUploaderName(e.target.value)}
+                              placeholder="예: 2학년 3반 김상업"
+                              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3"
+                            />
+                            <label className="block w-full text-center border-2 border-dashed border-slate-300 rounded-lg py-6 text-sm text-slate-500 cursor-pointer hover:bg-slate-50">
+                              <i className="fa-solid fa-cloud-arrow-up text-xl mb-1 block"></i>
+                              클릭해서 파일 선택
+                              <input type="file" onChange={handleFileUpload} className="hidden" disabled={uploading} />
+                            </label>
+                            {uploading && (
+                              <div className="mt-3">
+                                <div className="w-full bg-slate-200 rounded-full h-2">
+                                  <div className="bg-slate-700 h-2 rounded-full transition-all" style={{ width: `${uploadProgress}%` }}></div>
+                                </div>
+                                <p className="text-xs text-slate-400 mt-1">업로드 중... {uploadProgress}%</p>
+                              </div>
+                            )}
+                            {uploadError && <p className="text-xs text-rose-500 mt-2">{uploadError}</p>}
+                          </div>
+
+                          <div className="bg-white border rounded-xl shadow-sm divide-y">
+                            {archiveLoading ? (
+                              <p className="text-sm text-slate-400 p-5 text-center">불러오는 중...</p>
+                            ) : archiveFiles.length === 0 ? (
+                              <p className="text-sm text-slate-400 p-5 text-center">아직 올라온 자료가 없어요.</p>
+                            ) : (
+                              archiveFiles.map(f => (
+                                <div key={f.id} className="flex items-center justify-between px-4 py-3 gap-3">
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-slate-800 truncate">{f.name}</p>
+                                    <p className="text-xs text-slate-400">{f.uploader} · {formatFileSize(f.size)}</p>
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    <a href={f.url} target="_blank" rel="noreferrer" className="text-xs font-bold bg-slate-800 text-white px-3 py-1.5 rounded-lg">
+                                      <i className="fa-solid fa-download mr-1"></i>받기
+                                    </a>
+                                    <button onClick={() => handleFileDelete(f)} className="text-xs text-slate-400 hover:text-rose-500 px-2 py-1.5">
+                                      <i className="fa-solid fa-trash"></i>
+                                    </button>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : gameActive || gameStatus === 'over' || gameStatus === 'playing' ? (
+                    <div>
+                      {gameStatus === 'playing' && currentGameQ && (
+                        <div>
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="text-sm font-bold text-rose-600"><i className="fa-solid fa-bolt mr-1"></i>스피드 퀴즈</div>
+                            <div className="flex gap-4 text-sm font-bold">
+                              <span>⏱ {gameTime}초</span>
+                              <span>점수 {gameScore}</span>
+                              <span className="text-orange-500">콤보 x{gameCombo}</span>
+                            </div>
+                          </div>
+                          <div className="bg-white border rounded-xl p-6 shadow-sm">
+                            <p className="text-xs text-slate-400 mb-1">{currentGameQ.chapterTitle}</p>
+                            <p className="font-bold text-lg mb-4">{currentGameQ.question}</p>
+                            <div className="grid grid-cols-1 gap-2">
+                              {currentGameQ.options.map((opt, idx) => (
+                                <button key={idx} onClick={() => answerGame(idx)}
+                                  className={`text-left px-4 py-3 rounded-lg border text-sm transition-colors ${gameFeedback && idx === currentGameQ.answer ? 'bg-emerald-100 border-emerald-400' : gameFeedback === 'wrong' ? 'border-slate-200' : 'border-slate-200 hover:bg-slate-50'}`}>
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {gameStatus === 'over' && (
+                        <div className="text-center bg-white border rounded-xl p-10 shadow-sm">
+                          <i className="fa-solid fa-flag-checkered text-4xl text-orange-500 mb-3"></i>
+                          <h2 className="text-2xl font-bold mb-2">게임 종료!</h2>
+                          <p className="text-slate-500 mb-1">최종 점수 <span className="font-bold text-slate-900">{gameScore}</span></p>
+                          <p className="text-slate-500 mb-6">최고 콤보 <span className="font-bold text-slate-900">x{gameMaxCombo}</span></p>
+                          <div className="flex gap-3 justify-center">
+                            <button onClick={startGame} className="px-5 py-2.5 rounded-lg bg-rose-600 text-white font-bold text-sm">다시 도전</button>
+                            <button onClick={() => setGameStatus('idle')} className="px-5 py-2.5 rounded-lg bg-slate-200 text-slate-700 font-bold text-sm">단원 학습으로</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : !quizMode ? (
+                    <div>
+                      <span className={`inline-block text-[11px] font-bold text-white px-2.5 py-1 rounded-full mb-3 ${groupColors[selectedChapter.group]}`}>{selectedChapter.group}</span>
+                      <h2 className="text-2xl font-bold mb-5">{selectedChapter.title}</h2>
+                      <div className="bg-white border rounded-xl p-6 shadow-sm mb-6">
+                        <h3 className="font-bold text-slate-700 mb-3 text-sm"><i className="fa-solid fa-book-open mr-1.5 text-slate-400"></i>핵심 개념 요약</h3>
+                        <ul className="space-y-2.5">
+                          {selectedChapter.summary.map((s, i) => (
+                            <li key={i} className="text-sm text-slate-600 flex gap-2 leading-relaxed">
+                              <span className="text-slate-300 font-bold">{i + 1}.</span>{s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <button onClick={() => startQuiz(selectedChapter)} className={`w-full py-3.5 rounded-xl font-bold text-white shadow-sm ${groupColors[selectedChapter.group]}`}>
+                        <i className="fa-solid fa-pen-to-square mr-2"></i>이 단원 퀴즈 풀기 ({selectedChapter.questions.length}문제)
+                      </button>
+                    </div>
+                  ) : showResult ? (
+                    <div className="text-center bg-white border rounded-xl p-10 shadow-sm">
+                      <i className="fa-solid fa-trophy text-4xl text-amber-400 mb-3"></i>
+                      <h2 className="text-2xl font-bold mb-2">퀴즈 완료!</h2>
+                      <p className="text-slate-500 mb-1">{selectedChapter.title}</p>
+                      <p className="text-3xl font-bold my-4">{score} <span className="text-slate-400 text-lg">/ {selectedChapter.questions.length}</span></p>
+                      <p className="text-sm text-amber-600 font-semibold mb-6">+{score * 10} XP 획득</p>
+                      <div className="flex gap-3 justify-center">
+                        <button onClick={() => startQuiz(selectedChapter)} className="px-5 py-2.5 rounded-lg bg-slate-800 text-white font-bold text-sm">다시 풀기</button>
+                        <button onClick={backToSummary} className="px-5 py-2.5 rounded-lg bg-slate-200 text-slate-700 font-bold text-sm">개념 요약으로</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-xs font-bold text-slate-400">{currentQuestionIdx + 1} / {selectedChapter.questions.length}</span>
+                        <div className="w-40 bg-slate-200 rounded-full h-1.5">
+                          <div className={`h-1.5 rounded-full ${groupColors[selectedChapter.group]}`} style={{ width: `${((currentQuestionIdx + 1) / selectedChapter.questions.length) * 100}%` }}></div>
+                        </div>
+                      </div>
+                      <div className="bg-white border rounded-xl p-6 shadow-sm">
+                        <p className="font-bold text-lg mb-5">{currentQ.question}</p>
+                        <div className="space-y-2.5">
+                          {currentQ.options.map((opt, idx) => {
+                            let cls = 'border-slate-200 hover:bg-slate-50';
+                            if (isSubmitted) {
+                              if (idx === currentQ.answer) cls = 'bg-emerald-100 border-emerald-400';
+                              else if (idx === selectedOption) cls = 'bg-rose-100 border-rose-400';
+                            } else if (idx === selectedOption) {
+                              cls = `border-2 ${groupBorder[selectedChapter.group]} bg-slate-50`;
+                            }
+                            return (
+                              <button key={idx} disabled={isSubmitted} onClick={() => setSelectedOption(idx)}
+                                className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-colors ${cls}`}>
+                                {opt}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {isSubmitted && (
+                          <div className="mt-4 p-4 bg-slate-50 rounded-lg text-sm text-slate-600 leading-relaxed">
+                            <i className="fa-solid fa-circle-info mr-1.5 text-slate-400"></i>{currentQ.explanation}
+                          </div>
+                        )}
+                        <div className="mt-5 flex justify-end">
+                          {!isSubmitted ? (
+                            <button onClick={submitAnswer} disabled={selectedOption === null} className={`px-6 py-2.5 rounded-lg font-bold text-white text-sm disabled:opacity-40 ${groupColors[selectedChapter.group]}`}>제출하기</button>
+                          ) : (
+                            <button onClick={nextQuestion} className="px-6 py-2.5 rounded-lg font-bold text-white text-sm bg-slate-800">
+                              {currentQuestionIdx + 1 < selectedChapter.questions.length ? '다음 문제' : '결과 보기'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>

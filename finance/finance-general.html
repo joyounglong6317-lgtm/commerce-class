@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>금융일반 학습 프로그램</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel (브라우저에서 JSX를 컴파일하기 위함) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script>
+        Babel.registerPreset('react-classic', {
+            presets: [
+                [Babel.availablePresets['react'], { runtime: 'classic' }]
+            ]
+        });
+    </script>
+
+    <!-- Firebase (자료실: 파일 업로드/보관) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+    <style>
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 overflow-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="env,react-classic">
+        const { useState, useEffect } = React;
+
+        // --- Firebase 자료실 설정 ---
+        // 아래 firebaseConfig 값을 Firebase 콘솔(프로젝트 설정 > 내 앱)에서 복사해 붙여넣으세요.
+        // 값을 채워 넣기 전에는 자료실이 "설정 필요" 상태로 표시되고, 나머지 학습 기능은 정상 작동합니다.
+        const firebaseConfig = {
+  apiKey: "AIzaSyDLEHF5jWor457zWYXL57jOkcJcPJsQfNU",
+  authDomain: "accounting-960b5.firebaseapp.com",
+  projectId: "accounting-960b5",
+  storageBucket: "accounting-960b5.firebasestorage.app",
+  messagingSenderId: "753390768491",
+  appId: "1:753390768491:web:634a3562a526d7571c3c2e",
+  measurementId: "G-8ZKYP7R3V4"
+};
+        const ARCHIVE_ID = "financegeneral"; // Firestore 컬렉션 / Storage 폴더 구분용 (다른 학습 프로그램과 자료가 섞이지 않도록 구분)
+
+        let firebaseReady = false;
+        let archiveDb = null;
+        let archiveStorage = null;
+        try {
+          if (firebaseConfig.apiKey) {
+            const fbApp = firebase.initializeApp(firebaseConfig);
+            archiveDb = firebase.firestore();
+            archiveStorage = firebase.storage();
+            firebaseReady = true;
+          }
+        } catch (e) {
+          console.error("Firebase 초기화 오류:", e);
+          firebaseReady = false;
+        }
+
+        // --- 단원별 학습 및 퀴즈 데이터 (특성화고 금융일반 6단원, 총 36문제) ---
+        const curriculumData = [
+          {
+            id: 1,
+            title: "제1절. 금융과 금융시장의 이해",
+            summary: [
+              "금융이란 자금이 부족한 경제주체와 여유 있는 경제주체 사이에 자금을 융통하는 활동입니다.",
+              "금융시장은 자금이 직접 거래되는 직접금융시장(주식·채권시장)과 은행 등을 통해 거래되는 간접금융시장으로 구분됩니다.",
+              "금융회사의 종류: 은행, 저축은행, 증권회사, 보험회사, 신용협동조합·새마을금고 등 상호금융회사, 카드회사 등",
+              "한국은행은 우리나라의 중앙은행으로 통화신용정책(기준금리 결정 등)을 수행하고 물가안정을 목표로 합니다.",
+              "금융의 기능: 자금의 중개, 위험 분산, 결제 수단 제공, 자원의 효율적 배분 등이 있습니다."
+            ],
+            questions: [
+              { question: "자금 공급자가 주식·채권을 직접 매입해 자금이 이동하는 시장을 무엇이라 하는가?", options: ["간접금융시장", "직접금융시장", "외환시장", "노동시장"], answer: 1, explanation: "직접금융시장은 자금 수요자가 주식·채권 등을 발행해 자금 공급자로부터 직접 자금을 조달하는 시장입니다." },
+              { question: "우리나라의 중앙은행으로 기준금리를 결정하는 기관은?", options: ["금융감독원", "한국은행", "예금보험공사", "국세청"], answer: 1, explanation: "한국은행은 우리나라의 중앙은행으로 통화신용정책을 수행하며 기준금리를 결정합니다." },
+              { question: "은행을 통해 예금과 대출이 이루어지는 금융 형태를 무엇이라 하는가?", options: ["직접금융", "간접금융", "국제금융", "실물금융"], answer: 1, explanation: "은행 등 금융중개기관을 통해 자금이 이동하는 것을 간접금융이라 합니다." },
+              { question: "다음 중 금융회사로 보기 어려운 것은?", options: ["시중은행", "증권회사", "보험회사", "제조업 공장"], answer: 3, explanation: "제조업 공장은 실물을 생산하는 기업으로 금융회사가 아닙니다." },
+              { question: "금융의 기능으로 보기 어려운 것은?", options: ["자금의 중개", "위험의 분산", "농산물의 직접 생산", "결제 수단 제공"], answer: 2, explanation: "농산물의 직접 생산은 실물 생산 활동이며 금융의 기능에 해당하지 않습니다." },
+              { question: "한국은행의 주된 정책 목표로 가장 적절한 것은?", options: ["물가안정", "특정 기업의 이윤 극대화", "지방자치단체 예산 편성", "개인 소득세 부과"], answer: 0, explanation: "한국은행은 통화신용정책을 통해 물가안정을 도모하는 것을 주된 목표로 합니다." }
+            ]
+          },
+          {
+            id: 2,
+            title: "제2절. 예금과 저축",
+            summary: [
+              "예금은 안전성이 높은 대표적인 저축 수단이며, 요구불예금(수시입출금)과 저축성예금(정기예금·정기적금 등)으로 구분됩니다.",
+              "단리는 원금에 대해서만 이자가 붙는 방식이고, 복리는 이자에도 다시 이자가 붙는 방식으로 기간이 길수록 복리의 효과가 커집니다.",
+              "예금자보호제도는 금융회사가 파산 등으로 예금을 지급하지 못할 때 예금보험공사가 예금을 대신 지급해주는 제도입니다.",
+              "2025년 9월부터 예금자보호 한도가 기존 1인당 5천만원에서 1인당·1금융회사당 원금과 이자를 합쳐 1억원으로 상향되었습니다.",
+              "저축의 3요소로 안전성, 수익성, 유동성을 들 수 있으며, 세 가지를 모두 완벽히 만족하는 상품은 찾기 어려워 상황에 맞게 균형을 고려해야 합니다."
+            ],
+            questions: [
+              { question: "이자에 대해서도 다시 이자가 붙는 계산 방식은?", options: ["단리", "복리", "고정금리", "표면금리"], answer: 1, explanation: "복리는 발생한 이자가 원금에 합산되어 다음 기간의 이자 계산에도 반영되는 방식입니다." },
+              { question: "2025년 9월 이후 예금자보호 한도로 옳은 것은?", options: ["1인당 5천만원", "1인당·1금융회사당 원금과 이자를 합쳐 1억원", "전 금융회사 합산 5천만원", "한도 없이 전액 보호"], answer: 1, explanation: "2025년 9월 1일부터 예금자보호 한도가 1인당·1금융회사당 원금과 소정의 이자를 합쳐 1억원으로 상향되었습니다." },
+              { question: "필요할 때 쉽게 현금화할 수 있는 정도를 뜻하는 저축의 요소는?", options: ["안전성", "수익성", "유동성", "확장성"], answer: 2, explanation: "유동성은 자산을 필요할 때 손실 없이 얼마나 쉽게 현금화할 수 있는지를 나타내는 요소입니다." },
+              { question: "수시로 입금과 출금이 자유로운 예금 상품은?", options: ["정기예금", "정기적금", "요구불예금", "채권"], answer: 2, explanation: "요구불예금은 예금주가 원할 때 언제든 입출금이 가능한 예금입니다." },
+              { question: "예금자보호제도를 운영하는 기관은?", options: ["금융감독원", "예금보험공사", "국세청", "한국은행"], answer: 1, explanation: "예금보험공사는 금융회사의 파산 등에 대비해 예금자보호제도를 운영하는 기관입니다." },
+              { question: "동일한 이자율일 때 저축기간이 길어질수록 단리와 복리의 최종 수령액 차이는 어떻게 되는가?", options: ["차이가 점점 줄어든다.", "차이가 점점 커진다.", "항상 동일하다.", "복리가 항상 더 적다."], answer: 1, explanation: "복리는 이자에 이자가 붙는 구조이므로 기간이 길어질수록 단리와의 차이가 점점 커집니다." }
+            ]
+          },
+          {
+            id: 3,
+            title: "제3절. 신용과 부채관리",
+            summary: [
+              "신용이란 미래에 갚을 것을 약속하고 현재 재화·서비스·자금을 사용할 수 있는 능력을 의미합니다.",
+              "개인신용평점(신용점수)은 금융거래 이력을 바탕으로 산출되며, 연체 이력이나 과도한 대출은 신용점수를 낮추는 요인이 됩니다.",
+              "신용카드는 결제 시점과 대금 결제 시점이 다른 후불 결제 수단으로, 무분별한 사용은 과소비와 연체로 이어질 수 있습니다.",
+              "대출 이자율은 신용점수, 담보 유무, 대출 기간 등에 따라 달라지며, 신용점수가 낮을수록 일반적으로 높은 금리가 적용됩니다.",
+              "과도한 부채로 상환이 어려운 경우 개인워크아웃, 개인회생 등 채무조정 제도를 통해 도움을 받을 수 있습니다."
+            ],
+            questions: [
+              { question: "신용에 대한 설명으로 가장 적절한 것은?", options: ["현금을 즉시 지불하는 능력", "미래에 갚을 것을 약속하고 현재 재화·서비스를 이용할 수 있는 능력", "저축한 금액의 총합", "세금을 납부하는 의무"], answer: 1, explanation: "신용은 장래의 상환을 약속하고 현재 자금이나 재화·서비스를 이용할 수 있는 능력을 말합니다." },
+              { question: "신용점수를 낮추는 요인으로 가장 적절한 것은?", options: ["꾸준한 저축", "연체 이력", "정기적인 소득 증가", "보험 가입"], answer: 1, explanation: "대출금이나 카드대금 연체 이력은 신용점수를 낮추는 대표적인 요인입니다." },
+              { question: "신용카드 결제의 특징으로 옳은 것은?", options: ["구매 시점에 즉시 현금이 인출된다.", "구매 시점과 대금 결제 시점이 달라 후불로 대금이 청구된다.", "현금영수증과 동일한 개념이다.", "저축성 상품의 일종이다."], answer: 1, explanation: "신용카드는 물품 구매와 실제 대금 결제 시점이 다른 후불 결제 수단입니다." },
+              { question: "일반적으로 신용점수가 낮은 사람에게 적용되는 대출금리의 경향은?", options: ["더 낮은 금리가 적용된다.", "더 높은 금리가 적용된다.", "금리와 신용점수는 무관하다.", "대출 자체가 불가능하다."], answer: 1, explanation: "신용점수가 낮을수록 상환 위험이 크다고 평가되어 일반적으로 더 높은 금리가 적용됩니다." },
+              { question: "과도한 부채로 상환이 어려운 개인을 돕기 위한 제도로 옳은 것은?", options: ["개인워크아웃·개인회생", "예금자보호제도", "청약통장", "국민연금"], answer: 0, explanation: "개인워크아웃, 개인회생 등은 과도한 채무로 어려움을 겪는 개인의 채무를 조정해주는 제도입니다." },
+              { question: "건전한 신용 관리 습관으로 가장 적절한 것은?", options: ["소득 범위를 넘어선 카드 사용", "결제일을 넘긴 연체 반복", "상환 계획을 세운 계획적인 지출과 정해진 기한 내 상환", "신용조회를 아예 하지 않는 것"], answer: 2, explanation: "소득과 지출 계획을 세우고 기한 내에 상환하는 습관이 건전한 신용 관리의 핵심입니다." }
+            ]
+          },
+          {
+            id: 4,
+            title: "제4절. 투자와 자산관리",
+            summary: [
+              "투자는 미래의 수익을 기대하고 자금을 주식·채권·부동산 등에 투입하는 행위로, 저축보다 높은 수익을 기대할 수 있는 대신 원금 손실 위험이 있습니다.",
+              "주식은 기업에 대한 소유 지분을 나타내는 증권으로, 시세차익과 배당을 통해 수익을 얻을 수 있으나 가격 변동성이 큽니다.",
+              "채권은 발행자(정부·기업 등)에게 자금을 빌려주고 정해진 이자와 만기에 원금을 받기로 한 증권으로, 일반적으로 주식보다 안전성이 높습니다.",
+              "펀드는 여러 투자자의 자금을 모아 전문 운용사가 대신 운용해주는 간접투자 상품입니다.",
+              "분산투자는 여러 자산에 나누어 투자함으로써 특정 자산의 가격 하락으로 인한 위험을 줄이는 전략입니다."
+            ],
+            questions: [
+              { question: "일반적으로 저축과 투자를 비교했을 때 옳은 설명은?", options: ["저축이 투자보다 기대수익률이 높다.", "투자는 저축보다 높은 수익을 기대할 수 있는 대신 원금 손실 위험이 있다.", "저축과 투자는 위험 수준이 완전히 동일하다.", "투자는 원금 손실이 절대 발생하지 않는다."], answer: 1, explanation: "투자는 저축보다 높은 수익을 기대할 수 있지만 그만큼 원금 손실 가능성이라는 위험을 동반합니다." },
+              { question: "기업에 대한 소유 지분을 나타내는 증권은?", options: ["채권", "주식", "예금증서", "보험증권"], answer: 1, explanation: "주식은 주식회사에 대한 소유 지분을 나타내는 증권으로, 주주는 배당과 시세차익을 기대할 수 있습니다." },
+              { question: "정부나 기업에 자금을 빌려주고 정해진 이자와 만기 원금을 받기로 한 증권은?", options: ["주식", "채권", "펀드", "신용카드"], answer: 1, explanation: "채권은 발행자에게 자금을 빌려주는 대가로 이자와 만기 시 원금 상환을 약속받는 증권입니다." },
+              { question: "여러 투자자의 자금을 모아 전문가가 대신 운용해주는 간접투자 상품은?", options: ["예금", "펀드", "적금", "보험"], answer: 1, explanation: "펀드는 다수 투자자의 자금을 모아 전문 운용사가 주식·채권 등에 대신 투자·운용하는 간접투자 상품입니다." },
+              { question: "여러 자산에 나누어 투자하여 위험을 낮추는 전략을 무엇이라 하는가?", options: ["집중투자", "분산투자", "단기매매", "레버리지투자"], answer: 1, explanation: "분산투자는 여러 자산·종목에 나누어 투자함으로써 특정 자산의 손실이 전체에 미치는 영향을 줄이는 전략입니다." },
+              { question: "일반적으로 주식과 채권의 위험·수익 관계를 비교한 설명으로 옳은 것은?", options: ["주식은 채권보다 안전성이 높다.", "채권은 일반적으로 주식보다 안전성이 높고 기대수익률은 상대적으로 낮은 편이다.", "주식과 채권의 위험은 항상 동일하다.", "채권은 원금 손실 위험이 전혀 없다."], answer: 1, explanation: "채권은 정해진 이자와 원금 상환이 약속되어 있어 일반적으로 주식보다 안전성이 높은 대신 기대수익률은 상대적으로 낮은 편입니다." }
+            ]
+          },
+          {
+            id: 5,
+            title: "제5절. 보험과 위험관리",
+            summary: [
+              "보험은 다수의 가입자가 보험료를 나누어 내고, 실제 사고나 위험이 발생한 가입자에게 보험금을 지급하는 위험분산 제도입니다.",
+              "보험은 크게 사람의 생명·건강을 대상으로 하는 생명보험과 재산상의 손해를 보장하는 손해보험으로 나뉩니다.",
+              "국민건강보험, 국민연금, 고용보험, 산재보험은 국가가 운영하는 사회보험으로 일정 요건에 해당하면 가입이 의무화됩니다.",
+              "보험 가입 시 보장 범위, 보험료, 면책사항(보장하지 않는 경우) 등을 꼼꼼히 확인하는 것이 중요합니다.",
+              "위험관리의 방법에는 위험 회피, 위험 감소, 위험 보유, 위험 전가(보험 가입 등)가 있습니다."
+            ],
+            questions: [
+              { question: "보험의 기본 원리로 가장 적절한 것은?", options: ["소수의 가입자가 전체 위험을 부담한다.", "다수의 가입자가 보험료를 나누어 내고, 실제 위험이 발생한 가입자에게 보험금을 지급한다.", "가입자 전원에게 동일한 금액의 보험금을 지급한다.", "보험료를 낸 사람만 사고가 발생한다."], answer: 1, explanation: "보험은 다수가 보험료를 分담하여 실제 위험이 발생한 소수에게 보험금을 지급하는 위험분산(대수의 법칙) 원리에 기반합니다." },
+              { question: "사람의 생명이나 건강을 보장 대상으로 하는 보험은?", options: ["손해보험", "생명보험", "화재보험", "자동차보험(대물)"], answer: 1, explanation: "생명보험은 사람의 생존·사망 등을 보험사고로 하여 생명·건강을 보장하는 보험입니다." },
+              { question: "다음 중 국가가 운영하는 사회보험에 해당하지 않는 것은?", options: ["국민건강보험", "국민연금", "고용보험", "민간 종신보험"], answer: 3, explanation: "민간 종신보험은 민간 보험회사가 판매하는 상품이며, 국민건강보험·국민연금·고용보험·산재보험은 국가가 운영하는 사회보험입니다." },
+              { question: "보험 가입 시 반드시 확인해야 할 사항으로 거리가 먼 것은?", options: ["보장 범위", "보험료 수준", "면책사항", "가입자의 취미와 무관한 상품 디자인"], answer: 3, explanation: "보험 가입 시에는 보장 범위, 보험료, 면책사항 등 실질적 내용을 확인해야 하며 상품 디자인은 핵심 고려사항이 아닙니다." },
+              { question: "위험관리 방법 중 보험 가입은 어디에 해당하는가?", options: ["위험 회피", "위험 보유", "위험 전가", "위험 무시"], answer: 2, explanation: "보험 가입은 자신이 부담할 위험을 보험회사에 넘기는 위험 전가에 해당합니다." },
+              { question: "재산상의 손해를 보장하는 보험으로 옳은 것은?", options: ["종신보험", "화재보험", "연금보험", "치아보험(생명보험 분류상)"], answer: 1, explanation: "화재보험은 화재로 인한 재산상 손해를 보장하는 대표적인 손해보험입니다." }
+            ]
+          },
+          {
+            id: 6,
+            title: "제6절. 은퇴설계와 세금",
+            summary: [
+              "우리나라의 노후소득보장은 국민연금(공적연금), 퇴직연금, 개인연금의 3층 연금체계로 이루어져 있습니다.",
+              "국민연금은 일정 소득이 있는 국민이 의무적으로 가입해 보험료를 납부하고, 노령·장애·유족 등의 사유가 발생하면 연금을 받는 사회보험입니다.",
+              "퇴직연금은 회사가 근로자의 퇴직급여를 사외 금융회사에 적립·운용하여 퇴직 시 지급하는 제도로 DB형과 DC형으로 구분됩니다.",
+              "개인연금(연금저축, IRP 등)은 개인이 스스로 노후자금을 준비하기 위해 가입하는 상품으로 세제 혜택이 주어지기도 합니다.",
+              "소득이 있는 곳에는 세금이 따르며, 근로소득세는 급여 지급 시 원천징수되고 이자·배당소득에도 소득세가 부과되는 등 금융생활과 세금은 밀접한 관계를 가집니다."
+            ],
+            questions: [
+              { question: "우리나라 노후소득보장 체계를 흔히 몇 층 구조로 설명하는가?", options: ["1층 구조", "2층 구조", "3층 구조", "5층 구조"], answer: 2, explanation: "국민연금(공적연금)-퇴직연금-개인연금으로 이어지는 3층 연금체계로 흔히 설명합니다." },
+              { question: "일정 소득이 있는 국민이 의무적으로 가입해야 하는 공적연금은?", options: ["개인연금", "국민연금", "퇴직연금(DC형)", "저축보험"], answer: 1, explanation: "국민연금은 일정 요건의 국민이 의무적으로 가입하는 대표적인 공적연금(사회보험)입니다." },
+              { question: "회사가 근로자의 퇴직급여를 사외 금융회사에 적립·운용해 퇴직 시 지급하는 제도는?", options: ["국민연금", "퇴직연금", "고용보험", "산재보험"], answer: 1, explanation: "퇴직연금은 퇴직급여를 사외 금융회사에 적립·운용하는 제도로 DB형(확정급여형)과 DC형(확정기여형)으로 나뉩니다." },
+              { question: "개인이 스스로 노후자금을 마련하기 위해 가입하는 대표적 상품으로 옳은 것은?", options: ["연금저축·IRP", "신용카드", "당좌예금", "자동차보험"], answer: 0, explanation: "연금저축, IRP(개인형퇴직연금) 등은 개인이 스스로 노후자금을 준비하는 대표적인 개인연금 상품입니다." },
+              { question: "근로소득에 대한 세금 처리 방식으로 옳은 것은?", options: ["연말에 근로자가 직접 세무서에 방문해 납부한다.", "급여 지급 시 회사가 원천징수한다.", "전혀 과세되지 않는다.", "국민연금공단이 대신 징수한다."], answer: 1, explanation: "근로소득세는 급여 지급 시 회사(원천징수의무자)가 원천징수하여 세무서에 납부합니다." },
+              { question: "퇴직연금 DB형(확정급여형)의 특징으로 가장 적절한 것은?", options: ["근로자가 직접 운용하고 운용 성과에 따라 퇴직급여가 달라진다.", "회사가 운용하며 근로자가 받을 퇴직급여 수준이 사전에 확정되어 있다.", "국가가 전액 지급을 보장하는 공적연금이다.", "가입이 불가능한 제도이다."], answer: 1, explanation: "DB형은 회사가 적립금을 운용하고, 근로자가 퇴직 시 받을 급여 수준이 근속연수와 평균임금 등에 따라 사전에 확정되는 방식입니다." }
+            ]
+          }
+        ];
+
+        const THEME = "bg-blue-700";
+        const THEME_BORDER = "border-blue-500";
+
+        function App() {
+          const [selectedChapter, setSelectedChapter] = useState(curriculumData[0]);
+          const [quizMode, setQuizMode] = useState(false);
+          const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
+          const [selectedOption, setSelectedOption] = useState(null);
+          const [isSubmitted, setIsSubmitted] = useState(false);
+          const [score, setScore] = useState(0);
+          const [showResult, setShowResult] = useState(false);
+          const [sidebarOpen, setSidebarOpen] = useState(true);
+
+          const [userXP, setUserXP] = useState(0);
+          const [userLevel, setUserLevel] = useState(1);
+          const [chapterRecords, setChapterRecords] = useState({});
+          const [earnedBadges, setEarnedBadges] = useState([]);
+          const [showLevelUp, setShowLevelUp] = useState(false);
+
+          // --- 자료실(Firebase) 상태 ---
+          const [archiveMode, setArchiveMode] = useState(false);
+          const [archiveFiles, setArchiveFiles] = useState([]);
+          const [archiveLoading, setArchiveLoading] = useState(false);
+          const [uploaderName, setUploaderName] = useState('');
+          const [uploading, setUploading] = useState(false);
+          const [uploadProgress, setUploadProgress] = useState(0);
+          const [uploadError, setUploadError] = useState(null);
+
+          useEffect(() => {
+            if (!archiveMode || !firebaseReady) return;
+            setArchiveLoading(true);
+            const unsub = archiveDb.collection(ARCHIVE_ID + '_files')
+              .orderBy('uploadedAt', 'desc')
+              .onSnapshot(snap => {
+                const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                setArchiveFiles(list);
+                setArchiveLoading(false);
+              }, err => {
+                console.error('자료실 목록 로드 오류:', err);
+                setArchiveLoading(false);
+              });
+            return () => unsub();
+          }, [archiveMode]);
+
+          const formatFileSize = (bytes) => {
+            if (!bytes) return '';
+            if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+          };
+
+          const handleFileUpload = (e) => {
+            const file = e.target.files[0];
+            if (!file || !firebaseReady) return;
+            setUploading(true);
+            setUploadProgress(0);
+            setUploadError(null);
+            const path = ARCHIVE_ID + '/' + Date.now() + '_' + file.name;
+            const ref = archiveStorage.ref().child(path);
+            const task = ref.put(file);
+            task.on('state_changed',
+              snap => setUploadProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),
+              err => { console.error('업로드 오류:', err); setUploadError('업로드 중 오류가 발생했어요. 다시 시도해주세요.'); setUploading(false); },
+              () => {
+                task.snapshot.ref.getDownloadURL().then(url => {
+                  return archiveDb.collection(ARCHIVE_ID + '_files').add({
+                    name: file.name,
+                    url: url,
+                    size: file.size,
+                    storagePath: path,
+                    uploader: uploaderName.trim() || '익명',
+                    uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+                  });
+                }).then(() => {
+                  setUploading(false);
+                  setUploadProgress(0);
+                  e.target.value = '';
+                }).catch(err => {
+                  console.error('저장 오류:', err);
+                  setUploadError('파일 정보를 저장하지 못했어요.');
+                  setUploading(false);
+                });
+              }
+            );
+          };
+
+          const handleFileDelete = (file) => {
+            if (!firebaseReady) return;
+            if (!window.confirm(`'${file.name}' 파일을 삭제할까요?`)) return;
+            archiveDb.collection(ARCHIVE_ID + '_files').doc(file.id).delete().catch(err => console.error(err));
+            if (file.storagePath) {
+              archiveStorage.ref().child(file.storagePath).delete().catch(err => console.error(err));
+            }
+          };
+
+          const addXP = (amount) => {
+            setUserXP(prev => {
+              const newXP = prev + amount;
+              const currentLv = Math.floor(prev / 100) + 1;
+              const newLevel = Math.floor(newXP / 100) + 1;
+              if (newLevel > currentLv) {
+                setUserLevel(newLevel);
+                setShowLevelUp(true);
+                setTimeout(() => setShowLevelUp(false), 3000);
+              }
+              return newXP;
+            });
+          };
+
+          const [gameActive, setGameActive] = useState(false);
+          const [gameStatus, setGameStatus] = useState('idle');
+          const [gameTime, setGameTime] = useState(60);
+          const [gameScore, setGameScore] = useState(0);
+          const [gameCombo, setGameCombo] = useState(0);
+          const [gameMaxCombo, setGameMaxCombo] = useState(0);
+          const [mixedQuestions, setMixedQuestions] = useState([]);
+          const [gameQIdx, setGameQIdx] = useState(0);
+          const [gameFeedback, setGameFeedback] = useState(null);
+
+          useEffect(() => {
+            if (gameStatus === 'over') {
+              if (gameScore >= 250 && !earnedBadges.includes('game_master')) {
+                setEarnedBadges(prev => [...prev, 'game_master']);
+                addXP(100);
+              }
+            }
+          }, [gameStatus, gameScore]);
+
+          useEffect(() => {
+            let timer;
+            if (gameActive && gameStatus === 'playing') {
+              timer = setInterval(() => {
+                setGameTime(prev => {
+                  if (prev <= 1) {
+                    setGameStatus('over');
+                    setGameActive(false);
+                    return 0;
+                  }
+                  return prev - 1;
+                });
+              }, 1000);
+            }
+            return () => clearInterval(timer);
+          }, [gameActive, gameStatus]);
+
+          const startGame = () => {
+            const all = curriculumData.flatMap(ch => ch.questions.map(q => ({ ...q, chapterTitle: ch.title })));
+            const shuffled = [...all].sort(() => Math.random() - 0.5);
+            setMixedQuestions(shuffled);
+            setGameQIdx(0);
+            setGameScore(0);
+            setGameCombo(0);
+            setGameMaxCombo(0);
+            setGameTime(60);
+            setGameStatus('playing');
+            setGameActive(true);
+            setGameFeedback(null);
+          };
+
+          const answerGame = (idx) => {
+            if (gameFeedback) return;
+            const q = mixedQuestions[gameQIdx % mixedQuestions.length];
+            const correct = idx === q.answer;
+            if (correct) {
+              const newCombo = gameCombo + 1;
+              setGameCombo(newCombo);
+              setGameMaxCombo(m => Math.max(m, newCombo));
+              setGameScore(s => s + 10 + Math.min(newCombo, 5) * 2);
+              setGameFeedback('correct');
+            } else {
+              setGameCombo(0);
+              setGameFeedback('wrong');
+            }
+            setTimeout(() => {
+              setGameFeedback(null);
+              setGameQIdx(i => i + 1);
+            }, 500);
+          };
+
+          const startQuiz = (chapter) => {
+            setSelectedChapter(chapter);
+            setQuizMode(true);
+            setCurrentQuestionIdx(0);
+            setSelectedOption(null);
+            setIsSubmitted(false);
+            setScore(0);
+            setShowResult(false);
+          };
+
+          const submitAnswer = () => {
+            if (selectedOption === null) return;
+            setIsSubmitted(true);
+            if (selectedOption === selectedChapter.questions[currentQuestionIdx].answer) {
+              setScore(s => s + 1);
+            }
+          };
+
+          const nextQuestion = () => {
+            if (currentQuestionIdx + 1 < selectedChapter.questions.length) {
+              setCurrentQuestionIdx(i => i + 1);
+              setSelectedOption(null);
+              setIsSubmitted(false);
+            } else {
+              const total = selectedChapter.questions.length;
+              setChapterRecords(prev => ({ ...prev, [selectedChapter.id]: Math.max(prev[selectedChapter.id] || 0, score) }));
+              addXP(score * 10);
+              if (score === total && !earnedBadges.includes('perfect_' + selectedChapter.id)) {
+                setEarnedBadges(prev => [...prev, 'perfect_' + selectedChapter.id]);
+                addXP(30);
+              }
+              setShowResult(true);
+            }
+          };
+
+          const backToSummary = () => {
+            setQuizMode(false);
+            setShowResult(false);
+          };
+
+          const currentQ = selectedChapter.questions[currentQuestionIdx];
+          const currentGameQ = mixedQuestions.length ? mixedQuestions[gameQIdx % mixedQuestions.length] : null;
+
+          return (
+            <div className="flex h-screen">
+              {/* Sidebar */}
+              <div className={`${sidebarOpen ? 'w-72' : 'w-0'} transition-all duration-200 bg-slate-900 text-slate-100 overflow-hidden flex-shrink-0 flex flex-col`}>
+                <div className="p-4 border-b border-slate-700">
+                  <h1 className="text-lg font-bold leading-snug">금융일반<br/>학습 프로그램</h1>
+                  <p className="text-xs text-slate-400 mt-1">특성화고 금융일반 교과 대비</p>
+                </div>
+                <div className="p-3 border-b border-slate-700 bg-slate-800/60">
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="font-semibold text-amber-300"><i className="fa-solid fa-star mr-1"></i>Lv.{userLevel}</span>
+                    <span className="text-slate-400">{userXP % 100} / 100 XP</span>
+                  </div>
+                  <div className="w-full bg-slate-700 rounded-full h-2">
+                    <div className="bg-amber-400 h-2 rounded-full transition-all" style={{ width: `${userXP % 100}%` }}></div>
+                  </div>
+                  {earnedBadges.length > 0 && (
+                    <div className="flex gap-1 mt-2 flex-wrap">
+                      {earnedBadges.map(b => (
+                        <span key={b} className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full"><i className="fa-solid fa-medal mr-0.5"></i>뱃지</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 overflow-y-auto p-2">
+                  <a href="../index.html" className="w-full text-left mb-2 px-3 py-2.5 rounded-lg bg-slate-800 border border-slate-600 font-bold text-sm flex items-center gap-2 no-underline text-slate-100">
+                    <i className="fa-solid fa-house"></i> 메인 로그인 화면으로
+                  </a>
+                  <button onClick={() => { setArchiveMode(false); setQuizMode(false); startGame(); }} className="w-full text-left mb-2 px-3 py-2.5 rounded-lg bg-gradient-to-r from-rose-600 to-orange-500 font-bold text-sm flex items-center gap-2">
+                    <i className="fa-solid fa-bolt"></i> 스피드 퀴즈 게임 모드
+                  </button>
+                  <button onClick={() => { setGameStatus('idle'); setGameActive(false); setArchiveMode(true); }} className="w-full text-left mb-3 px-3 py-2.5 rounded-lg bg-slate-700 font-bold text-sm flex items-center gap-2">
+                    <i className="fa-solid fa-folder-open"></i> 자료실 (업로드·다운로드)
+                  </button>
+                  <div className="px-2 py-1 text-[11px] font-bold text-slate-400 tracking-wide">금융일반</div>
+                  {curriculumData.map(ch => (
+                    <button
+                      key={ch.id}
+                      onClick={() => { setSelectedChapter(ch); setQuizMode(false); setGameStatus('idle'); setGameActive(false); setArchiveMode(false); }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1 flex items-center justify-between ${selectedChapter.id === ch.id && !quizMode && gameStatus === 'idle' ? 'bg-slate-700 font-bold' : 'hover:bg-slate-800'}`}
+                    >
+                      <span>{ch.title}</span>
+                      {chapterRecords[ch.id] !== undefined && (
+                        <span className="text-[10px] text-emerald-400">{chapterRecords[ch.id]}/{ch.questions.length}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Main */}
+              <div className="flex-1 overflow-y-auto relative">
+                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="fixed top-4 left-4 z-20 bg-white shadow-md rounded-full w-9 h-9 flex items-center justify-center border" style={{ left: sidebarOpen ? '292px' : '12px' }}>
+                  <i className={`fa-solid ${sidebarOpen ? 'fa-angle-left' : 'fa-angle-right'}`}></i>
+                </button>
+
+                {showLevelUp && (
+                  <div className="fixed top-6 right-6 z-30 bg-amber-400 text-slate-900 px-5 py-3 rounded-xl shadow-xl font-bold animate-bounce">
+                    <i className="fa-solid fa-crown mr-2"></i>레벨 업! Lv.{userLevel}
+                  </div>
+                )}
+
+                <div className="max-w-3xl mx-auto p-8 pt-16">
+
+                  {archiveMode ? (
+                    <div>
+                      <h2 className="text-2xl font-bold mb-1"><i className="fa-solid fa-folder-open mr-2 text-slate-400"></i>자료실</h2>
+                      <p className="text-sm text-slate-500 mb-5">선생님과 학생 누구나 학습자료를 올리고 내려받을 수 있어요.</p>
+
+                      {!firebaseReady ? (
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-sm text-amber-700 leading-relaxed">
+                          <i className="fa-solid fa-triangle-exclamation mr-1.5"></i>
+                          자료실을 사용하려면 Firebase 설정이 필요해요. 코드 상단의 <code className="bg-amber-100 px-1 rounded">firebaseConfig</code> 값을 채워 넣으면 바로 작동합니다. (다른 학습 기능은 지금도 정상적으로 사용할 수 있어요.)
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="bg-white border rounded-xl p-5 shadow-sm mb-5">
+                            <label className="block text-xs font-bold text-slate-500 mb-1.5">올리는 사람 이름 (선택)</label>
+                            <input
+                              type="text"
+                              value={uploaderName}
+                              onChange={(e) => setUploaderName(e.target.value)}
+                              placeholder="예: 2학년 3반 김상업"
+                              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3"
+                            />
+                            <label className="block w-full text-center border-2 border-dashed border-slate-300 rounded-lg py-6 text-sm text-slate-500 cursor-pointer hover:bg-slate-50">
+                              <i className="fa-solid fa-cloud-arrow-up text-xl mb-1 block"></i>
+                              클릭해서 파일 선택
+                              <input type="file" onChange={handleFileUpload} className="hidden" disabled={uploading} />
+                            </label>
+                            {uploading && (
+                              <div className="mt-3">
+                                <div className="w-full bg-slate-200 rounded-full h-2">
+                                  <div className="bg-slate-700 h-2 rounded-full transition-all" style={{ width: `${uploadProgress}%` }}></div>
+                                </div>
+                                <p className="text-xs text-slate-400 mt-1">업로드 중... {uploadProgress}%</p>
+                              </div>
+                            )}
+                            {uploadError && <p className="text-xs text-rose-500 mt-2">{uploadError}</p>}
+                          </div>
+
+                          <div className="bg-white border rounded-xl shadow-sm divide-y">
+                            {archiveLoading ? (
+                              <p className="text-sm text-slate-400 p-5 text-center">불러오는 중...</p>
+                            ) : archiveFiles.length === 0 ? (
+                              <p className="text-sm text-slate-400 p-5 text-center">아직 올라온 자료가 없어요.</p>
+                            ) : (
+                              archiveFiles.map(f => (
+                                <div key={f.id} className="flex items-center justify-between px-4 py-3 gap-3">
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-slate-800 truncate">{f.name}</p>
+                                    <p className="text-xs text-slate-400">{f.uploader} · {formatFileSize(f.size)}</p>
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    <a href={f.url} target="_blank" rel="noreferrer" className="text-xs font-bold bg-slate-800 text-white px-3 py-1.5 rounded-lg">
+                                      <i className="fa-solid fa-download mr-1"></i>받기
+                                    </a>
+                                    <button onClick={() => handleFileDelete(f)} className="text-xs text-slate-400 hover:text-rose-500 px-2 py-1.5">
+                                      <i className="fa-solid fa-trash"></i>
+                                    </button>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : gameActive || gameStatus === 'over' || gameStatus === 'playing' ? (
+                    <div>
+                      {gameStatus === 'playing' && currentGameQ && (
+                        <div>
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="text-sm font-bold text-rose-600"><i className="fa-solid fa-bolt mr-1"></i>스피드 퀴즈</div>
+                            <div className="flex gap-4 text-sm font-bold">
+                              <span>⏱ {gameTime}초</span>
+                              <span>점수 {gameScore}</span>
+                              <span className="text-orange-500">콤보 x{gameCombo}</span>
+                            </div>
+                          </div>
+                          <div className="bg-white border rounded-xl p-6 shadow-sm">
+                            <p className="text-xs text-slate-400 mb-1">{currentGameQ.chapterTitle}</p>
+                            <p className="font-bold text-lg mb-4">{currentGameQ.question}</p>
+                            <div className="grid grid-cols-1 gap-2">
+                              {currentGameQ.options.map((opt, idx) => (
+                                <button key={idx} onClick={() => answerGame(idx)}
+                                  className={`text-left px-4 py-3 rounded-lg border text-sm transition-colors ${gameFeedback && idx === currentGameQ.answer ? 'bg-emerald-100 border-emerald-400' : gameFeedback === 'wrong' ? 'border-slate-200' : 'border-slate-200 hover:bg-slate-50'}`}>
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {gameStatus === 'over' && (
+                        <div className="text-center bg-white border rounded-xl p-10 shadow-sm">
+                          <i className="fa-solid fa-flag-checkered text-4xl text-orange-500 mb-3"></i>
+                          <h2 className="text-2xl font-bold mb-2">게임 종료!</h2>
+                          <p className="text-slate-500 mb-1">최종 점수 <span className="font-bold text-slate-900">{gameScore}</span></p>
+                          <p className="text-slate-500 mb-6">최고 콤보 <span className="font-bold text-slate-900">x{gameMaxCombo}</span></p>
+                          <div className="flex gap-3 justify-center">
+                            <button onClick={startGame} className="px-5 py-2.5 rounded-lg bg-rose-600 text-white font-bold text-sm">다시 도전</button>
+                            <button onClick={() => setGameStatus('idle')} className="px-5 py-2.5 rounded-lg bg-slate-200 text-slate-700 font-bold text-sm">단원 학습으로</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : !quizMode ? (
+                    <div>
+                      <span className={`inline-block text-[11px] font-bold text-white px-2.5 py-1 rounded-full mb-3 ${THEME}`}>금융일반</span>
+                      <h2 className="text-2xl font-bold mb-5">{selectedChapter.title}</h2>
+                      <div className="bg-white border rounded-xl p-6 shadow-sm mb-6">
+                        <h3 className="font-bold text-slate-700 mb-3 text-sm"><i className="fa-solid fa-book-open mr-1.5 text-slate-400"></i>핵심 개념 요약</h3>
+                        <ul className="space-y-2.5">
+                          {selectedChapter.summary.map((s, i) => (
+                            <li key={i} className="text-sm text-slate-600 flex gap-2 leading-relaxed">
+                              <span className="text-slate-300 font-bold">{i + 1}.</span>{s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <button onClick={() => startQuiz(selectedChapter)} className={`w-full py-3.5 rounded-xl font-bold text-white shadow-sm ${THEME}`}>
+                        <i className="fa-solid fa-pen-to-square mr-2"></i>이 단원 퀴즈 풀기 ({selectedChapter.questions.length}문제)
+                      </button>
+                    </div>
+                  ) : showResult ? (
+                    <div className="text-center bg-white border rounded-xl p-10 shadow-sm">
+                      <i className="fa-solid fa-trophy text-4xl text-amber-400 mb-3"></i>
+                      <h2 className="text-2xl font-bold mb-2">퀴즈 완료!</h2>
+                      <p className="text-slate-500 mb-1">{selectedChapter.title}</p>
+                      <p className="text-3xl font-bold my-4">{score} <span className="text-slate-400 text-lg">/ {selectedChapter.questions.length}</span></p>
+                      <p className="text-sm text-amber-600 font-semibold mb-6">+{score * 10} XP 획득</p>
+                      <div className="flex gap-3 justify-center">
+                        <button onClick={() => startQuiz(selectedChapter)} className="px-5 py-2.5 rounded-lg bg-blue-700 text-white font-bold text-sm">다시 풀기</button>
+                        <button onClick={backToSummary} className="px-5 py-2.5 rounded-lg bg-slate-200 text-slate-700 font-bold text-sm">개념 요약으로</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-xs font-bold text-slate-400">{currentQuestionIdx + 1} / {selectedChapter.questions.length}</span>
+                        <div className="w-40 bg-slate-200 rounded-full h-1.5">
+                          <div className={`h-1.5 rounded-full ${THEME}`} style={{ width: `${((currentQuestionIdx + 1) / selectedChapter.questions.length) * 100}%` }}></div>
+                        </div>
+                      </div>
+                      <div className="bg-white border rounded-xl p-6 shadow-sm">
+                        <p className="font-bold text-lg mb-5">{currentQ.question}</p>
+                        <div className="space-y-2.5">
+                          {currentQ.options.map((opt, idx) => {
+                            let cls = 'border-slate-200 hover:bg-slate-50';
+                            if (isSubmitted) {
+                              if (idx === currentQ.answer) cls = 'bg-emerald-100 border-emerald-400';
+                              else if (idx === selectedOption) cls = 'bg-rose-100 border-rose-400';
+                            } else if (idx === selectedOption) {
+                              cls = `border-2 ${THEME_BORDER} bg-slate-50`;
+                            }
+                            return (
+                              <button key={idx} disabled={isSubmitted} onClick={() => setSelectedOption(idx)}
+                                className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-colors ${cls}`}>
+                                {opt}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {isSubmitted && (
+                          <div className="mt-4 p-4 bg-slate-50 rounded-lg text-sm text-slate-600 leading-relaxed">
+                            <i className="fa-solid fa-circle-info mr-1.5 text-slate-400"></i>{currentQ.explanation}
+                          </div>
+                        )}
+                        <div className="mt-5 flex justify-end">
+                          {!isSubmitted ? (
+                            <button onClick={submitAnswer} disabled={selectedOption === null} className={`px-6 py-2.5 rounded-lg font-bold text-white text-sm disabled:opacity-40 ${THEME}`}>제출하기</button>
+                          ) : (
+                            <button onClick={nextQuestion} className="px-6 py-2.5 rounded-lg font-bold text-white text-sm bg-slate-800">
+                              {currentQuestionIdx + 1 < selectedChapter.questions.length ? '다음 문제' : '결과 보기'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>

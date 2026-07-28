@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전산세무 2급 세무실무 학습 프로그램</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel (브라우저에서 JSX를 컴파일하기 위함) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script>
+        Babel.registerPreset('react-classic', {
+            presets: [
+                [Babel.availablePresets['react'], { runtime: 'classic' }]
+            ]
+        });
+    </script>
+
+    <!-- Firebase (자료실: 파일 업로드/보관) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+    <style>
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 overflow-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="env,react-classic">
+        const { useState, useEffect } = React;
+
+        // --- Firebase 자료실 설정 ---
+        // 아래 firebaseConfig 값을 Firebase 콘솔(프로젝트 설정 > 내 앱)에서 복사해 붙여넣으세요.
+        // 값을 채워 넣기 전에는 자료실이 "설정 필요" 상태로 표시되고, 나머지 학습 기능은 정상 작동합니다.
+        const firebaseConfig = {
+  apiKey: "AIzaSyDLEHF5jWor457zWYXL57jOkcJcPJsQfNU",
+  authDomain: "accounting-960b5.firebaseapp.com",
+  projectId: "accounting-960b5",
+  storageBucket: "accounting-960b5.firebasestorage.app",
+  messagingSenderId: "753390768491",
+  appId: "1:753390768491:web:634a3562a526d7571c3c2e",
+  measurementId: "G-8ZKYP7R3V4"
+};
+        const ARCHIVE_ID = "taxpractice"; // Firestore 컬렉션 / Storage 폴더 구분용 (다른 학습 프로그램과 자료가 섞이지 않도록 구분)
+
+        let firebaseReady = false;
+        let archiveDb = null;
+        let archiveStorage = null;
+        try {
+          if (firebaseConfig.apiKey) {
+            const fbApp = firebase.initializeApp(firebaseConfig);
+            archiveDb = firebase.firestore();
+            archiveStorage = firebase.storage();
+            firebaseReady = true;
+          }
+        } catch (e) {
+          console.error("Firebase 초기화 오류:", e);
+          firebaseReady = false;
+        }
+
+        // --- 단원별 학습 및 퀴즈 데이터 (전산세무2급 세무실무 5단원, 총 30문제) ---
+        const curriculumData = [
+          {
+            id: 1,
+            title: "제1절. 전산세무2급 실무 개요",
+            summary: [
+              "전산세무2급은 이론(객관식 15문항)과 실무수행(전산세무회계프로그램 입력)으로 구성됩니다.",
+              "실무 범위는 재무회계, 원가회계, 부가가치세, 원천징수, 법인세 세무조정까지 아우릅니다.",
+              "실무시험은 실제 전산세무회계 프로그램(예: KcLep 등)에서 전표입력·신고서 작성·세무조정을 수행하는 방식으로 진행됩니다.",
+              "일반전표는 부가가치세와 무관한 거래(급여, 이자비용 등)에, 매입매출전표는 부가가치세가 관련된 거래에 입력합니다.",
+              "채점은 입력된 데이터를 프로그램이 자동으로 채점하는 방식이 일반적이므로, 정확한 계정과목·거래처·금액 입력이 중요합니다."
+            ],
+            questions: [
+              { question: "전산세무2급 시험의 구성으로 옳은 것은?", options: ["실기 전용 시험", "이론(객관식)과 실무수행으로 구성", "면접과 실기로 구성", "논술형 필기만 실시"], answer: 1, explanation: "전산세무2급은 이론(객관식) 문제와 전산세무회계 프로그램을 활용한 실무수행 문제로 구성됩니다." },
+              { question: "부가가치세가 관련된 거래를 입력할 때 사용하는 전표는?", options: ["일반전표", "매입매출전표", "결산전표", "대체전표만 사용"], answer: 1, explanation: "부가가치세가 관련된 거래(세금계산서 수수 등)는 매입매출전표에 입력하며, 부가가치세와 무관한 거래는 일반전표에 입력합니다." },
+              { question: "급여 지급, 이자비용 지급처럼 부가가치세와 무관한 거래를 입력하는 전표는?", options: ["매입매출전표", "일반전표", "수정세금계산서", "지급명세서"], answer: 1, explanation: "부가가치세와 관련 없는 거래는 일반전표에 입력합니다." },
+              { question: "전산세무2급 실무수행이 다루는 영역으로 옳지 않은 것은?", options: ["부가가치세", "원천징수", "법인세 세무조정", "형사소송 서류 작성"], answer: 3, explanation: "전산세무2급 실무수행은 재무회계·원가회계·부가가치세·원천징수·법인세 세무조정을 다루며, 형사소송 서류 작성과는 무관합니다." },
+              { question: "전산세무회계 프로그램에서 전표 입력 시 가장 중요하게 확인해야 할 요소로 거리가 먼 것은?", options: ["계정과목", "거래처", "금액", "글꼴 색상"], answer: 3, explanation: "채점은 계정과목·거래처·금액 등 데이터 값을 기준으로 이루어지므로 글꼴 색상은 채점과 무관합니다." },
+              { question: "전산세무2급 자격이 실무적으로 유용한 이유로 가장 적절한 것은?", options: ["이론만 암기하면 되기 때문", "실제 기업 회계·세무 실무에서 사용하는 프로그램 조작 능력을 검증하기 때문", "회계와 무관한 일반 사무 능력만 평가하기 때문", "세무사 자격을 자동으로 부여하기 때문"], answer: 1, explanation: "전산세무2급은 실제 실무에서 쓰이는 전산세무회계 프로그램의 조작 능력과 세무 지식을 함께 검증하는 자격입니다." }
+            ]
+          },
+          {
+            id: 2,
+            title: "제2절. 원천징수 실무",
+            summary: [
+              "원천징수란 소득을 지급하는 자(원천징수의무자)가 그 소득을 지급할 때 세금을 미리 징수하여 국가에 납부하는 제도입니다.",
+              "원천징수 대상소득 예시: 근로소득, 사업소득(프리랜서 등), 기타소득, 이자·배당소득, 퇴직소득 등",
+              "원천징수의무자는 원칙적으로 매월 원천징수한 세액을 다음 달 10일까지 원천징수이행상황신고서와 함께 신고·납부해야 합니다.",
+              "지급명세서는 소득을 지급한 다음 연도에 제출하며, 근로소득 지급명세서의 경우 다음 해 3월 10일까지 제출하는 것이 원칙입니다.",
+              "상시고용인원 20인 이하 등 요건을 갖춘 소규모 사업자는 반기별 납부(반기납)를 신청할 수 있습니다."
+            ],
+            questions: [
+              { question: "원천징수제도의 목적으로 가장 적절한 것은?", options: ["소득자의 세부담을 완전히 면제하기 위해", "소득 지급 시점에 세금을 미리 징수하여 국가의 세수를 조기에 확보하고 탈세를 방지하기 위해", "사업자의 회계처리를 단순화하기 위해서만", "부가가치세 환급을 촉진하기 위해"], answer: 1, explanation: "원천징수는 소득 지급 시 세금을 미리 징수함으로써 조기 세수 확보와 탈세 방지 효과를 가집니다." },
+              { question: "원천징수이행상황신고서의 원칙적인 제출(신고·납부) 기한은?", options: ["다음 달 10일까지", "다음 달 25일까지", "다음 해 3월 10일까지", "다음 해 5월 31일까지"], answer: 0, explanation: "원천징수의무자는 원칙적으로 매월 원천징수한 세액을 다음 달 10일까지 신고·납부합니다." },
+              { question: "근로소득 지급명세서의 원칙적인 제출기한은?", options: ["지급일이 속하는 달의 다음 달 10일까지", "다음 해 3월 10일까지", "다음 해 5월 31일까지", "지급 즉시"], answer: 1, explanation: "근로소득 지급명세서는 원칙적으로 다음 해 3월 10일까지 제출합니다." },
+              { question: "소규모 사업자가 매월이 아닌 반기별로 원천징수세액을 신고·납부할 수 있는 제도를 무엇이라 하는가?", options: ["예정신고", "반기별납부(반기납)", "수정신고", "기한후신고"], answer: 1, explanation: "상시고용인원 요건 등을 충족하고 신청한 소규모 사업자는 반기별납부 제도를 이용해 6개월 단위로 원천징수세액을 신고·납부할 수 있습니다." },
+              { question: "다음 중 원천징수 대상소득으로 보기 어려운 것은?", options: ["근로소득", "사업소득 중 프리랜서 용역대가", "기타소득", "회사가 보유한 토지의 취득세"], answer: 3, explanation: "취득세는 지방세로서 원천징수 대상소득과는 성격이 다른 별도의 세목입니다." },
+              { question: "원천징수의무자에 해당하는 자로 옳은 것은?", options: ["소득을 지급받는 근로자 본인", "소득을 지급하는 회사(사업자)", "국세청 직원", "세무사만 해당"], answer: 1, explanation: "원천징수의무자는 소득을 지급하는 자(회사·사업자)이며, 지급 시 세액을 원천징수하여 신고·납부할 의무를 집니다." }
+            ]
+          },
+          {
+            id: 3,
+            title: "제3절. 부가가치세 실무 (전표입력·신고서)",
+            summary: [
+              "매입매출전표 입력 시 유형(과세매출/면세매출/영세율매출, 과세매입/면세매입 등)을 정확히 선택해야 부가가치세신고서에 자동 반영됩니다.",
+              "세금계산서를 수취·발급한 거래는 반드시 거래처와 공급가액·세액을 정확히 입력해야 매입세액·매출세액이 정상적으로 집계됩니다.",
+              "부가가치세신고서는 매출세액·매입세액·경감공제세액·가산세 등을 반영하여 최종 납부(환급)세액을 계산하는 서식입니다.",
+              "신용카드매출전표 발행분, 현금영수증 발행분 등은 별도의 유형으로 구분하여 입력합니다.",
+              "부가가치세 실무에서는 공급가액과 부가가치세액의 계산 오류, 유형 선택 오류가 채점 감점의 주요 원인이 됩니다."
+            ],
+            questions: [
+              { question: "매입매출전표 입력 시 '유형'을 정확히 선택해야 하는 이유로 가장 적절한 것은?", options: ["화면 색상을 결정하기 때문", "입력 내용이 부가가치세신고서에 자동으로 반영되기 때문", "급여 계산에 영향을 주기 때문", "법인세와는 무관하기 때문에 상관없다"], answer: 1, explanation: "매입매출전표의 유형(과세매출, 면세매입 등)에 따라 부가가치세신고서의 각 항목에 자동으로 집계되므로 정확한 선택이 중요합니다." },
+              { question: "세금계산서 수취 거래를 매입매출전표에 입력할 때 반드시 함께 입력해야 하는 것은?", options: ["거래처명과 공급가액·세액", "직원 사번", "재고자산 실사일자", "감가상각 내용연수"], answer: 0, explanation: "세금계산서 관련 거래는 거래처, 공급가액, 부가가치세액을 정확히 입력해야 매입세액·매출세액이 올바르게 집계됩니다." },
+              { question: "부가가치세신고서에서 최종적으로 산출하는 값은?", options: ["당기순이익", "납부(환급)세액", "매출원가", "감가상각누계액"], answer: 1, explanation: "부가가치세신고서는 매출세액에서 매입세액 등을 차감·가감하여 최종 납부세액 또는 환급세액을 산출하는 서식입니다." },
+              { question: "신용카드로 매출이 발생한 경우 매입매출전표 입력 시 고려할 사항은?", options: ["신용카드매출 관련 별도 유형으로 구분하여 입력한다.", "무조건 일반전표로 입력한다.", "입력하지 않아도 무방하다.", "면세매출로만 처리한다."], answer: 0, explanation: "신용카드매출전표 발행분은 과세유형 중에서도 신용카드 관련 유형으로 구분해 입력해야 정확히 집계됩니다." },
+              { question: "부가가치세 실무 채점에서 감점이 발생하기 쉬운 대표적 오류는?", options: ["글자 폰트 선택 오류", "유형 선택 오류 및 공급가액·세액 입력 오류", "메뉴 순서 오류", "저장 파일명 오류"], answer: 1, explanation: "매입매출 유형을 잘못 선택하거나 공급가액·세액을 잘못 입력하는 것이 가장 흔한 감점 원인입니다." },
+              { question: "면세 재화를 매입한 거래를 매입매출전표에 입력할 때 선택해야 하는 유형은?", options: ["과세매입", "면세매입", "영세매출", "불공제매입만 존재"], answer: 1, explanation: "면세 재화·용역을 매입한 경우에는 면세매입 유형으로 입력해야 부가가치세신고서에 올바르게 반영됩니다." }
+            ]
+          },
+          {
+            id: 4,
+            title: "제4절. 결산정리 실무",
+            summary: [
+              "결산정리는 기말 시점에 정확한 재무제표 작성을 위해 수행하는 일련의 정리분개 과정입니다.",
+              "대표적 결산정리사항: 감가상각비 계상, 대손충당금 설정, 재고자산 실사 및 매출원가 확정, 미지급비용·미수수익·선급비용·선수수익 계상 등",
+              "결산 시 전산세무회계 프로그램에서는 '결산자료입력' 메뉴 등을 통해 일괄 반영하거나 일반전표로 직접 입력하는 방식을 사용합니다.",
+              "결산정리 후에는 손익계산서와 재무상태표가 확정되고, 법인의 경우 이를 기초로 법인세 세무조정을 진행합니다.",
+              "결산정리를 누락하면 재무제표가 실제 경영성과·재무상태를 왜곡하여 나타낼 수 있습니다."
+            ],
+            questions: [
+              { question: "결산정리의 목적으로 가장 적절한 것은?", options: ["세금을 줄이기 위한 임의 조정", "기말 시점의 정확한 재무제표 작성", "매출을 부풀리기 위한 절차", "직원 급여 재계산"], answer: 1, explanation: "결산정리는 발생주의에 따라 기말 시점의 재무상태와 경영성과를 정확히 나타내기 위한 정리분개 과정입니다." },
+              { question: "다음 중 대표적인 결산정리사항이 아닌 것은?", options: ["감가상각비 계상", "대손충당금 설정", "미지급비용 계상", "신규 사업자등록 신청"], answer: 3, explanation: "신규 사업자등록 신청은 결산정리사항이 아니라 사업 개시 시점의 절차입니다." },
+              { question: "재고자산 실사 결과를 반영하여 확정하는 결산정리 항목은?", options: ["매출원가", "이자수익", "임차보증금", "자본잉여금"], answer: 0, explanation: "기말 재고자산 실사를 통해 기말재고액을 확정하고, 이를 반영하여 매출원가를 계산합니다." },
+              { question: "당기에 속하지만 아직 지급하지 않은 비용을 결산 시 계상하는 계정은?", options: ["선급비용", "미지급비용", "선수수익", "미수수익"], answer: 1, explanation: "당기 발생했으나 아직 지급하지 않은 비용은 미지급비용으로 계상합니다." },
+              { question: "결산정리를 누락했을 때 발생할 수 있는 문제로 가장 적절한 것은?", options: ["재무제표가 실제 경영성과·재무상태를 왜곡되게 나타낼 수 있다.", "부가가치세 신고서식이 자동으로 삭제된다.", "회사의 사업자등록이 취소된다.", "아무 영향이 없다."], answer: 0, explanation: "결산정리를 누락하면 발생주의에 따른 정확한 손익과 재무상태가 반영되지 않아 재무제표가 왜곡될 수 있습니다." },
+              { question: "전산세무회계 프로그램에서 결산정리 사항을 일괄 반영할 때 흔히 활용하는 메뉴는?", options: ["결산자료입력", "매입매출전표입력", "원천징수이행상황신고서", "사업자등록신청서"], answer: 0, explanation: "많은 전산세무회계 프로그램에서 감가상각비, 대손충당금 등 결산정리사항을 '결산자료입력' 메뉴를 통해 일괄 반영할 수 있습니다." }
+            ]
+          },
+          {
+            id: 5,
+            title: "제5절. 법인세 세무조정 기초",
+            summary: [
+              "법인세 세무조정은 기업회계기준에 따른 당기순이익을 세법 기준의 각사업연도소득금액으로 조정하는 절차입니다.",
+              "익금산입·손금불산입은 각사업연도소득금액을 증가시키는 조정이고, 익금불산입·손금산입은 감소시키는 조정입니다.",
+              "대표적 손금불산입 항목: 법인세비용, 벌금·과태료, 임원상여금 한도초과액, 접대비 한도초과액 등",
+              "세무조정 결과는 소득금액조정합계표에 정리하며, 최종적으로 각사업연도소득금액을 산출해 법인세 과세표준과 세액을 계산합니다.",
+              "자본금과 적립금조정명세서(을)는 유보(일시적 차이)로 처리된 세무조정 항목을 관리하는 서식입니다."
+            ],
+            questions: [
+              { question: "법인세 세무조정의 목적으로 가장 적절한 것은?", options: ["기업회계상 당기순이익을 세법 기준 소득금액으로 조정하기 위해", "부가가치세 신고서를 작성하기 위해", "근로소득 원천징수세액을 계산하기 위해", "재고자산을 실사하기 위해"], answer: 0, explanation: "세무조정은 기업회계기준에 따라 산출된 당기순이익을 세법의 익금·손금 기준에 맞게 조정하여 각사업연도소득금액을 구하는 절차입니다." },
+              { question: "각사업연도소득금액을 증가시키는 세무조정 항목으로 옳은 것은?", options: ["익금불산입", "손금산입", "손금불산입", "이월결손금 공제"], answer: 2, explanation: "손금불산입은 기업회계상 비용으로 처리했지만 세법상 손금으로 인정하지 않아 소득금액을 증가시키는 조정입니다." },
+              { question: "다음 중 손금불산입 항목으로 가장 적절한 것은?", options: ["원재료 매입액", "종업원 급여", "벌금·과태료", "정상적인 감가상각비"], answer: 2, explanation: "벌금·과태료는 세법상 손금으로 인정되지 않는 대표적인 손금불산입 항목입니다." },
+              { question: "세무조정 내용을 정리하는 대표 서식은?", options: ["소득금액조정합계표", "부가가치세신고서", "원천징수이행상황신고서", "재고자산수불부"], answer: 0, explanation: "익금산입·손금불산입, 손금산입·익금불산입 등의 세무조정 내역은 소득금액조정합계표에 정리합니다." },
+              { question: "일시적 차이(유보)로 처리된 세무조정 항목을 관리하는 서식은?", options: ["자본금과 적립금조정명세서(을)", "매입매출장", "지급명세서", "결산자료입력"], answer: 0, explanation: "유보로 처리된 세무조정 항목은 자본금과 적립금조정명세서(을) 서식을 통해 이후 연도까지 관리합니다." },
+              { question: "익금산입·손금불산입과 익금불산입·손금산입의 관계를 옳게 설명한 것은?", options: ["둘 다 소득금액을 증가시킨다.", "익금산입·손금불산입은 소득금액을 증가, 익금불산입·손금산입은 소득금액을 감소시킨다.", "둘 다 소득금액과 무관하다.", "익금불산입·손금산입이 소득금액을 증가시킨다."], answer: 1, explanation: "익금산입·손금불산입은 소득금액을 늘리는 가산조정이고, 익금불산입·손금산입은 소득금액을 줄이는 차감조정입니다." }
+            ]
+          }
+        ];
+
+        const THEME = "bg-amber-600";
+        const THEME_BORDER = "border-amber-500";
+
+        function App() {
+          const [selectedChapter, setSelectedChapter] = useState(curriculumData[0]);
+          const [quizMode, setQuizMode] = useState(false);
+          const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
+          const [selectedOption, setSelectedOption] = useState(null);
+          const [isSubmitted, setIsSubmitted] = useState(false);
+          const [score, setScore] = useState(0);
+          const [showResult, setShowResult] = useState(false);
+          const [sidebarOpen, setSidebarOpen] = useState(true);
+
+          const [userXP, setUserXP] = useState(0);
+          const [userLevel, setUserLevel] = useState(1);
+          const [chapterRecords, setChapterRecords] = useState({});
+          const [earnedBadges, setEarnedBadges] = useState([]);
+          const [showLevelUp, setShowLevelUp] = useState(false);
+
+          // --- 자료실(Firebase) 상태 ---
+          const [archiveMode, setArchiveMode] = useState(false);
+          const [archiveFiles, setArchiveFiles] = useState([]);
+          const [archiveLoading, setArchiveLoading] = useState(false);
+          const [uploaderName, setUploaderName] = useState('');
+          const [uploading, setUploading] = useState(false);
+          const [uploadProgress, setUploadProgress] = useState(0);
+          const [uploadError, setUploadError] = useState(null);
+
+          useEffect(() => {
+            if (!archiveMode || !firebaseReady) return;
+            setArchiveLoading(true);
+            const unsub = archiveDb.collection(ARCHIVE_ID + '_files')
+              .orderBy('uploadedAt', 'desc')
+              .onSnapshot(snap => {
+                const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                setArchiveFiles(list);
+                setArchiveLoading(false);
+              }, err => {
+                console.error('자료실 목록 로드 오류:', err);
+                setArchiveLoading(false);
+              });
+            return () => unsub();
+          }, [archiveMode]);
+
+          const formatFileSize = (bytes) => {
+            if (!bytes) return '';
+            if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+          };
+
+          const handleFileUpload = (e) => {
+            const file = e.target.files[0];
+            if (!file || !firebaseReady) return;
+            setUploading(true);
+            setUploadProgress(0);
+            setUploadError(null);
+            const path = ARCHIVE_ID + '/' + Date.now() + '_' + file.name;
+            const ref = archiveStorage.ref().child(path);
+            const task = ref.put(file);
+            task.on('state_changed',
+              snap => setUploadProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),
+              err => { console.error('업로드 오류:', err); setUploadError('업로드 중 오류가 발생했어요. 다시 시도해주세요.'); setUploading(false); },
+              () => {
+                task.snapshot.ref.getDownloadURL().then(url => {
+                  return archiveDb.collection(ARCHIVE_ID + '_files').add({
+                    name: file.name,
+                    url: url,
+                    size: file.size,
+                    storagePath: path,
+                    uploader: uploaderName.trim() || '익명',
+                    uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+                  });
+                }).then(() => {
+                  setUploading(false);
+                  setUploadProgress(0);
+                  e.target.value = '';
+                }).catch(err => {
+                  console.error('저장 오류:', err);
+                  setUploadError('파일 정보를 저장하지 못했어요.');
+                  setUploading(false);
+                });
+              }
+            );
+          };
+
+          const handleFileDelete = (file) => {
+            if (!firebaseReady) return;
+            if (!window.confirm(`'${file.name}' 파일을 삭제할까요?`)) return;
+            archiveDb.collection(ARCHIVE_ID + '_files').doc(file.id).delete().catch(err => console.error(err));
+            if (file.storagePath) {
+              archiveStorage.ref().child(file.storagePath).delete().catch(err => console.error(err));
+            }
+          };
+
+          const addXP = (amount) => {
+            setUserXP(prev => {
+              const newXP = prev + amount;
+              const currentLv = Math.floor(prev / 100) + 1;
+              const newLevel = Math.floor(newXP / 100) + 1;
+              if (newLevel > currentLv) {
+                setUserLevel(newLevel);
+                setShowLevelUp(true);
+                setTimeout(() => setShowLevelUp(false), 3000);
+              }
+              return newXP;
+            });
+          };
+
+          const [gameActive, setGameActive] = useState(false);
+          const [gameStatus, setGameStatus] = useState('idle');
+          const [gameTime, setGameTime] = useState(60);
+          const [gameScore, setGameScore] = useState(0);
+          const [gameCombo, setGameCombo] = useState(0);
+          const [gameMaxCombo, setGameMaxCombo] = useState(0);
+          const [mixedQuestions, setMixedQuestions] = useState([]);
+          const [gameQIdx, setGameQIdx] = useState(0);
+          const [gameFeedback, setGameFeedback] = useState(null);
+
+          useEffect(() => {
+            if (gameStatus === 'over') {
+              if (gameScore >= 200 && !earnedBadges.includes('game_master')) {
+                setEarnedBadges(prev => [...prev, 'game_master']);
+                addXP(100);
+              }
+            }
+          }, [gameStatus, gameScore]);
+
+          useEffect(() => {
+            let timer;
+            if (gameActive && gameStatus === 'playing') {
+              timer = setInterval(() => {
+                setGameTime(prev => {
+                  if (prev <= 1) {
+                    setGameStatus('over');
+                    setGameActive(false);
+                    return 0;
+                  }
+                  return prev - 1;
+                });
+              }, 1000);
+            }
+            return () => clearInterval(timer);
+          }, [gameActive, gameStatus]);
+
+          const startGame = () => {
+            const all = curriculumData.flatMap(ch => ch.questions.map(q => ({ ...q, chapterTitle: ch.title })));
+            const shuffled = [...all].sort(() => Math.random() - 0.5);
+            setMixedQuestions(shuffled);
+            setGameQIdx(0);
+            setGameScore(0);
+            setGameCombo(0);
+            setGameMaxCombo(0);
+            setGameTime(60);
+            setGameStatus('playing');
+            setGameActive(true);
+            setGameFeedback(null);
+          };
+
+          const answerGame = (idx) => {
+            if (gameFeedback) return;
+            const q = mixedQuestions[gameQIdx % mixedQuestions.length];
+            const correct = idx === q.answer;
+            if (correct) {
+              const newCombo = gameCombo + 1;
+              setGameCombo(newCombo);
+              setGameMaxCombo(m => Math.max(m, newCombo));
+              setGameScore(s => s + 10 + Math.min(newCombo, 5) * 2);
+              setGameFeedback('correct');
+            } else {
+              setGameCombo(0);
+              setGameFeedback('wrong');
+            }
+            setTimeout(() => {
+              setGameFeedback(null);
+              setGameQIdx(i => i + 1);
+            }, 500);
+          };
+
+          const startQuiz = (chapter) => {
+            setSelectedChapter(chapter);
+            setQuizMode(true);
+            setCurrentQuestionIdx(0);
+            setSelectedOption(null);
+            setIsSubmitted(false);
+            setScore(0);
+            setShowResult(false);
+          };
+
+          const submitAnswer = () => {
+            if (selectedOption === null) return;
+            setIsSubmitted(true);
+            if (selectedOption === selectedChapter.questions[currentQuestionIdx].answer) {
+              setScore(s => s + 1);
+            }
+          };
+
+          const nextQuestion = () => {
+            if (currentQuestionIdx + 1 < selectedChapter.questions.length) {
+              setCurrentQuestionIdx(i => i + 1);
+              setSelectedOption(null);
+              setIsSubmitted(false);
+            } else {
+              const total = selectedChapter.questions.length;
+              setChapterRecords(prev => ({ ...prev, [selectedChapter.id]: Math.max(prev[selectedChapter.id] || 0, score) }));
+              addXP(score * 10);
+              if (score === total && !earnedBadges.includes('perfect_' + selectedChapter.id)) {
+                setEarnedBadges(prev => [...prev, 'perfect_' + selectedChapter.id]);
+                addXP(30);
+              }
+              setShowResult(true);
+            }
+          };
+
+          const backToSummary = () => {
+            setQuizMode(false);
+            setShowResult(false);
+          };
+
+          const currentQ = selectedChapter.questions[currentQuestionIdx];
+          const currentGameQ = mixedQuestions.length ? mixedQuestions[gameQIdx % mixedQuestions.length] : null;
+
+          return (
+            <div className="flex h-screen">
+              {/* Sidebar */}
+              <div className={`${sidebarOpen ? 'w-72' : 'w-0'} transition-all duration-200 bg-slate-900 text-slate-100 overflow-hidden flex-shrink-0 flex flex-col`}>
+                <div className="p-4 border-b border-slate-700">
+                  <h1 className="text-lg font-bold leading-snug">전산세무 2급<br/>세무실무 학습 프로그램</h1>
+                  <p className="text-xs text-slate-400 mt-1">원천징수 · 전표입력 · 결산 · 세무조정</p>
+                </div>
+                <div className="p-3 border-b border-slate-700 bg-slate-800/60">
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="font-semibold text-amber-300"><i className="fa-solid fa-star mr-1"></i>Lv.{userLevel}</span>
+                    <span className="text-slate-400">{userXP % 100} / 100 XP</span>
+                  </div>
+                  <div className="w-full bg-slate-700 rounded-full h-2">
+                    <div className="bg-amber-400 h-2 rounded-full transition-all" style={{ width: `${userXP % 100}%` }}></div>
+                  </div>
+                  {earnedBadges.length > 0 && (
+                    <div className="flex gap-1 mt-2 flex-wrap">
+                      {earnedBadges.map(b => (
+                        <span key={b} className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full"><i className="fa-solid fa-medal mr-0.5"></i>뱃지</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 overflow-y-auto p-2">
+                  <a href="../index.html" className="w-full text-left mb-2 px-3 py-2.5 rounded-lg bg-slate-800 border border-slate-600 font-bold text-sm flex items-center gap-2 no-underline text-slate-100">
+                    <i className="fa-solid fa-house"></i> 메인 로그인 화면으로
+                  </a>
+                  <button onClick={() => { setArchiveMode(false); setQuizMode(false); startGame(); }} className="w-full text-left mb-2 px-3 py-2.5 rounded-lg bg-gradient-to-r from-rose-600 to-orange-500 font-bold text-sm flex items-center gap-2">
+                    <i className="fa-solid fa-bolt"></i> 스피드 퀴즈 게임 모드
+                  </button>
+                  <button onClick={() => { setGameStatus('idle'); setGameActive(false); setArchiveMode(true); }} className="w-full text-left mb-3 px-3 py-2.5 rounded-lg bg-slate-700 font-bold text-sm flex items-center gap-2">
+                    <i className="fa-solid fa-folder-open"></i> 자료실 (업로드·다운로드)
+                  </button>
+                  <div className="px-2 py-1 text-[11px] font-bold text-slate-400 tracking-wide">세무실무</div>
+                  {curriculumData.map(ch => (
+                    <button
+                      key={ch.id}
+                      onClick={() => { setSelectedChapter(ch); setQuizMode(false); setGameStatus('idle'); setGameActive(false); setArchiveMode(false); }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1 flex items-center justify-between ${selectedChapter.id === ch.id && !quizMode && gameStatus === 'idle' ? 'bg-slate-700 font-bold' : 'hover:bg-slate-800'}`}
+                    >
+                      <span>{ch.title}</span>
+                      {chapterRecords[ch.id] !== undefined && (
+                        <span className="text-[10px] text-emerald-400">{chapterRecords[ch.id]}/{ch.questions.length}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Main */}
+              <div className="flex-1 overflow-y-auto relative">
+                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="fixed top-4 left-4 z-20 bg-white shadow-md rounded-full w-9 h-9 flex items-center justify-center border" style={{ left: sidebarOpen ? '292px' : '12px' }}>
+                  <i className={`fa-solid ${sidebarOpen ? 'fa-angle-left' : 'fa-angle-right'}`}></i>
+                </button>
+
+                {showLevelUp && (
+                  <div className="fixed top-6 right-6 z-30 bg-amber-400 text-slate-900 px-5 py-3 rounded-xl shadow-xl font-bold animate-bounce">
+                    <i className="fa-solid fa-crown mr-2"></i>레벨 업! Lv.{userLevel}
+                  </div>
+                )}
+
+                <div className="max-w-3xl mx-auto p-8 pt-16">
+
+                  {archiveMode ? (
+                    <div>
+                      <h2 className="text-2xl font-bold mb-1"><i className="fa-solid fa-folder-open mr-2 text-slate-400"></i>자료실</h2>
+                      <p className="text-sm text-slate-500 mb-5">선생님과 학생 누구나 학습자료를 올리고 내려받을 수 있어요.</p>
+
+                      {!firebaseReady ? (
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-sm text-amber-700 leading-relaxed">
+                          <i className="fa-solid fa-triangle-exclamation mr-1.5"></i>
+                          자료실을 사용하려면 Firebase 설정이 필요해요. 코드 상단의 <code className="bg-amber-100 px-1 rounded">firebaseConfig</code> 값을 채워 넣으면 바로 작동합니다. (다른 학습 기능은 지금도 정상적으로 사용할 수 있어요.)
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="bg-white border rounded-xl p-5 shadow-sm mb-5">
+                            <label className="block text-xs font-bold text-slate-500 mb-1.5">올리는 사람 이름 (선택)</label>
+                            <input
+                              type="text"
+                              value={uploaderName}
+                              onChange={(e) => setUploaderName(e.target.value)}
+                              placeholder="예: 2학년 3반 김상업"
+                              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3"
+                            />
+                            <label className="block w-full text-center border-2 border-dashed border-slate-300 rounded-lg py-6 text-sm text-slate-500 cursor-pointer hover:bg-slate-50">
+                              <i className="fa-solid fa-cloud-arrow-up text-xl mb-1 block"></i>
+                              클릭해서 파일 선택
+                              <input type="file" onChange={handleFileUpload} className="hidden" disabled={uploading} />
+                            </label>
+                            {uploading && (
+                              <div className="mt-3">
+                                <div className="w-full bg-slate-200 rounded-full h-2">
+                                  <div className="bg-slate-700 h-2 rounded-full transition-all" style={{ width: `${uploadProgress}%` }}></div>
+                                </div>
+                                <p className="text-xs text-slate-400 mt-1">업로드 중... {uploadProgress}%</p>
+                              </div>
+                            )}
+                            {uploadError && <p className="text-xs text-rose-500 mt-2">{uploadError}</p>}
+                          </div>
+
+                          <div className="bg-white border rounded-xl shadow-sm divide-y">
+                            {archiveLoading ? (
+                              <p className="text-sm text-slate-400 p-5 text-center">불러오는 중...</p>
+                            ) : archiveFiles.length === 0 ? (
+                              <p className="text-sm text-slate-400 p-5 text-center">아직 올라온 자료가 없어요.</p>
+                            ) : (
+                              archiveFiles.map(f => (
+                                <div key={f.id} className="flex items-center justify-between px-4 py-3 gap-3">
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-slate-800 truncate">{f.name}</p>
+                                    <p className="text-xs text-slate-400">{f.uploader} · {formatFileSize(f.size)}</p>
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    <a href={f.url} target="_blank" rel="noreferrer" className="text-xs font-bold bg-slate-800 text-white px-3 py-1.5 rounded-lg">
+                                      <i className="fa-solid fa-download mr-1"></i>받기
+                                    </a>
+                                    <button onClick={() => handleFileDelete(f)} className="text-xs text-slate-400 hover:text-rose-500 px-2 py-1.5">
+                                      <i className="fa-solid fa-trash"></i>
+                                    </button>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : gameActive || gameStatus === 'over' || gameStatus === 'playing' ? (
+                    <div>
+                      {gameStatus === 'playing' && currentGameQ && (
+                        <div>
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="text-sm font-bold text-rose-600"><i className="fa-solid fa-bolt mr-1"></i>스피드 퀴즈</div>
+                            <div className="flex gap-4 text-sm font-bold">
+                              <span>⏱ {gameTime}초</span>
+                              <span>점수 {gameScore}</span>
+                              <span className="text-orange-500">콤보 x{gameCombo}</span>
+                            </div>
+                          </div>
+                          <div className="bg-white border rounded-xl p-6 shadow-sm">
+                            <p className="text-xs text-slate-400 mb-1">{currentGameQ.chapterTitle}</p>
+                            <p className="font-bold text-lg mb-4">{currentGameQ.question}</p>
+                            <div className="grid grid-cols-1 gap-2">
+                              {currentGameQ.options.map((opt, idx) => (
+                                <button key={idx} onClick={() => answerGame(idx)}
+                                  className={`text-left px-4 py-3 rounded-lg border text-sm transition-colors ${gameFeedback && idx === currentGameQ.answer ? 'bg-emerald-100 border-emerald-400' : gameFeedback === 'wrong' ? 'border-slate-200' : 'border-slate-200 hover:bg-slate-50'}`}>
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {gameStatus === 'over' && (
+                        <div className="text-center bg-white border rounded-xl p-10 shadow-sm">
+                          <i className="fa-solid fa-flag-checkered text-4xl text-orange-500 mb-3"></i>
+                          <h2 className="text-2xl font-bold mb-2">게임 종료!</h2>
+                          <p className="text-slate-500 mb-1">최종 점수 <span className="font-bold text-slate-900">{gameScore}</span></p>
+                          <p className="text-slate-500 mb-6">최고 콤보 <span className="font-bold text-slate-900">x{gameMaxCombo}</span></p>
+                          <div className="flex gap-3 justify-center">
+                            <button onClick={startGame} className="px-5 py-2.5 rounded-lg bg-rose-600 text-white font-bold text-sm">다시 도전</button>
+                            <button onClick={() => setGameStatus('idle')} className="px-5 py-2.5 rounded-lg bg-slate-200 text-slate-700 font-bold text-sm">단원 학습으로</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : !quizMode ? (
+                    <div>
+                      <span className={`inline-block text-[11px] font-bold text-white px-2.5 py-1 rounded-full mb-3 ${THEME}`}>세무실무</span>
+                      <h2 className="text-2xl font-bold mb-5">{selectedChapter.title}</h2>
+                      <div className="bg-white border rounded-xl p-6 shadow-sm mb-6">
+                        <h3 className="font-bold text-slate-700 mb-3 text-sm"><i className="fa-solid fa-book-open mr-1.5 text-slate-400"></i>핵심 개념 요약</h3>
+                        <ul className="space-y-2.5">
+                          {selectedChapter.summary.map((s, i) => (
+                            <li key={i} className="text-sm text-slate-600 flex gap-2 leading-relaxed">
+                              <span className="text-slate-300 font-bold">{i + 1}.</span>{s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <button onClick={() => startQuiz(selectedChapter)} className={`w-full py-3.5 rounded-xl font-bold text-white shadow-sm ${THEME}`}>
+                        <i className="fa-solid fa-pen-to-square mr-2"></i>이 단원 퀴즈 풀기 ({selectedChapter.questions.length}문제)
+                      </button>
+                    </div>
+                  ) : showResult ? (
+                    <div className="text-center bg-white border rounded-xl p-10 shadow-sm">
+                      <i className="fa-solid fa-trophy text-4xl text-amber-400 mb-3"></i>
+                      <h2 className="text-2xl font-bold mb-2">퀴즈 완료!</h2>
+                      <p className="text-slate-500 mb-1">{selectedChapter.title}</p>
+                      <p className="text-3xl font-bold my-4">{score} <span className="text-slate-400 text-lg">/ {selectedChapter.questions.length}</span></p>
+                      <p className="text-sm text-amber-600 font-semibold mb-6">+{score * 10} XP 획득</p>
+                      <div className="flex gap-3 justify-center">
+                        <button onClick={() => startQuiz(selectedChapter)} className="px-5 py-2.5 rounded-lg bg-amber-600 text-white font-bold text-sm">다시 풀기</button>
+                        <button onClick={backToSummary} className="px-5 py-2.5 rounded-lg bg-slate-200 text-slate-700 font-bold text-sm">개념 요약으로</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-xs font-bold text-slate-400">{currentQuestionIdx + 1} / {selectedChapter.questions.length}</span>
+                        <div className="w-40 bg-slate-200 rounded-full h-1.5">
+                          <div className={`h-1.5 rounded-full ${THEME}`} style={{ width: `${((currentQuestionIdx + 1) / selectedChapter.questions.length) * 100}%` }}></div>
+                        </div>
+                      </div>
+                      <div className="bg-white border rounded-xl p-6 shadow-sm">
+                        <p className="font-bold text-lg mb-5">{currentQ.question}</p>
+                        <div className="space-y-2.5">
+                          {currentQ.options.map((opt, idx) => {
+                            let cls = 'border-slate-200 hover:bg-slate-50';
+                            if (isSubmitted) {
+                              if (idx === currentQ.answer) cls = 'bg-emerald-100 border-emerald-400';
+                              else if (idx === selectedOption) cls = 'bg-rose-100 border-rose-400';
+                            } else if (idx === selectedOption) {
+                              cls = `border-2 ${THEME_BORDER} bg-slate-50`;
+                            }
+                            return (
+                              <button key={idx} disabled={isSubmitted} onClick={() => setSelectedOption(idx)}
+                                className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-colors ${cls}`}>
+                                {opt}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {isSubmitted && (
+                          <div className="mt-4 p-4 bg-slate-50 rounded-lg text-sm text-slate-600 leading-relaxed">
+                            <i className="fa-solid fa-circle-info mr-1.5 text-slate-400"></i>{currentQ.explanation}
+                          </div>
+                        )}
+                        <div className="mt-5 flex justify-end">
+                          {!isSubmitted ? (
+                            <button onClick={submitAnswer} disabled={selectedOption === null} className={`px-6 py-2.5 rounded-lg font-bold text-white text-sm disabled:opacity-40 ${THEME}`}>제출하기</button>
+                          ) : (
+                            <button onClick={nextQuestion} className="px-6 py-2.5 rounded-lg font-bold text-white text-sm bg-slate-800">
+                              {currentQuestionIdx + 1 < selectedChapter.questions.length ? '다음 문제' : '결과 보기'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
