@@ -501,6 +501,7 @@ code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'
     <h1>학생 계정 · 과목 권한 관리</h1>
     <p>학생 계정을 등록하고, 학생별로 이용할 수 있는 과목(카드)을 지정하세요. 여기서 저장한 내용은 학습 자료실의 로그인·권한 잠금에 바로 반영됩니다. 비밀번호를 비워두면 기본값 <code>비밀번호</code>로 설정돼요.</p>
     <div class="topbar show" style="justify-content:flex-start;margin-top:14px;">
+      <button id="adminChangePwBtn">관리자 비밀번호 변경</button>
       <button id="adminLogoutBtn">관리자 로그아웃 / 허브로 돌아가기</button>
     </div>
   </div>
@@ -532,8 +533,9 @@ code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'
 <script>
 (function() {
   // --- 관리자 비밀번호 ---
-  // 반드시 아래 값을 선생님만 아는 비밀번호로 바꿔서 사용하세요.
-  const ADMIN_PASSWORD = "changeme123";
+  // 최초 기본값입니다. 관리자 화면에서 "관리자 비밀번호 변경"으로 바꾸면 그 이후부터는
+  // Firestore에 저장된 값을 사용하고, 이 기본값은 더 이상 쓰이지 않습니다.
+  const ADMIN_PASSWORD_DEFAULT = "changeme123";
 
   // --- 학생 기본(초기) 비밀번호 ---
   const DEFAULT_STUDENT_PASSWORD = "비밀번호";
@@ -542,14 +544,13 @@ code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'
   // Firebase 콘솔(프로젝트 설정 > 내 앱)에서 복사한 값을 아래에 붙여넣으세요.
   // 값을 채우기 전에는 로그인 없이 모든 카드가 그대로 열려 있는 기존 방식으로 동작합니다.
   const firebaseConfig = {
-  apiKey: "AIzaSyDLEHF5jWor457zWYXL57jOkcJcPJsQfNU",
-  authDomain: "accounting-960b5.firebaseapp.com",
-  projectId: "accounting-960b5",
-  storageBucket: "accounting-960b5.firebasestorage.app",
-  messagingSenderId: "753390768491",
-  appId: "1:753390768491:web:634a3562a526d7571c3c2e",
-  measurementId: "G-8ZKYP7R3V4"
-};
+    apiKey: "",
+    authDomain: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
+  };
 
   const SECTION_LIST = [
     { id: "fin-acc", label: "재무회계" },
@@ -679,14 +680,25 @@ code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'
     document.getElementById('studentLoginPane').style.display = 'block';
   });
 
-  // ---------- 비밀번호 변경 (학생) ----------
+  // ---------- 비밀번호 변경 (학생 / 관리자 공용 모달) ----------
   const pwModalOverlay = document.getElementById('pwModalOverlay');
-  document.getElementById('changePwBtn').addEventListener('click', function() {
+  let pwChangeTarget = 'student'; // 'student' | 'admin'
+
+  function openPwModal(target) {
+    pwChangeTarget = target;
     document.getElementById('pwNewInput').value = '';
     document.getElementById('pwConfirmInput').value = '';
     document.getElementById('pwChangeError').textContent = '';
     document.getElementById('pwChangeMsg').textContent = '';
+    pwModalOverlay.querySelector('h2').textContent = target === 'admin' ? '관리자 비밀번호 변경' : '비밀번호 변경';
     pwModalOverlay.style.display = 'flex';
+  }
+
+  document.getElementById('changePwBtn').addEventListener('click', function() {
+    openPwModal('student');
+  });
+  document.getElementById('adminChangePwBtn').addEventListener('click', function() {
+    openPwModal('admin');
   });
   document.getElementById('pwChangeCancelBtn').addEventListener('click', function() {
     pwModalOverlay.style.display = 'none';
@@ -701,6 +713,18 @@ code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'
     msgEl.textContent = '';
     if (!pw1 || pw1.length < 2) { errEl.textContent = '비밀번호를 2자 이상 입력해주세요.'; return; }
     if (pw1 !== pw2) { errEl.textContent = '비밀번호가 서로 달라요. 다시 확인해주세요.'; return; }
+
+    if (pwChangeTarget === 'admin') {
+      db.collection('config').doc('admin').set({ password: pw1 }, { merge: true }).then(function() {
+        msgEl.textContent = '관리자 비밀번호가 변경되었어요.';
+        setTimeout(function() { pwModalOverlay.style.display = 'none'; }, 900);
+      }).catch(function(err) {
+        console.error(err);
+        errEl.textContent = '변경 중 오류가 발생했어요. 다시 시도해주세요.';
+      });
+      return;
+    }
+
     if (!currentSession) return;
     db.collection('students').doc(currentSession.studentId).update({ password: pw1 }).then(function() {
       msgEl.textContent = '비밀번호가 변경되었어요.';
@@ -711,17 +735,28 @@ code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'
     });
   });
 
-  // ---------- 관리자 로그인 ----------
+  // ---------- 관리자 로그인 (비밀번호는 Firestore config/admin 문서 우선, 없으면 기본값) ----------
+  function getAdminPassword() {
+    return db.collection('config').doc('admin').get().then(function(doc) {
+      if (doc.exists && doc.data().password) return doc.data().password;
+      return ADMIN_PASSWORD_DEFAULT;
+    }).catch(function() {
+      return ADMIN_PASSWORD_DEFAULT;
+    });
+  }
+
   document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const pw = document.getElementById('adminPwInput').value;
     const errEl = document.getElementById('adminLoginError');
-    if (pw === ADMIN_PASSWORD) {
-      errEl.textContent = '';
-      showAdminApp();
-    } else {
-      errEl.textContent = '비밀번호가 올바르지 않아요.';
-    }
+    errEl.textContent = '';
+    getAdminPassword().then(function(correctPw) {
+      if (pw === correctPw) {
+        showAdminApp();
+      } else {
+        errEl.textContent = '비밀번호가 올바르지 않아요.';
+      }
+    });
   });
 
   document.getElementById('adminLogoutBtn').addEventListener('click', function() {
