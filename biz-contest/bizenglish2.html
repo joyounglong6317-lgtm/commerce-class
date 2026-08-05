@@ -209,6 +209,28 @@
   .admin-tabs button{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:600; padding:7px 14px; border-radius:20px;
     border:1.5px solid var(--line); background:var(--card); cursor:pointer; color:var(--ink-soft); }
   .admin-tabs button.active{ border-color:var(--ink); color:var(--ink); background:var(--paper-deep); }
+
+  /* ===== 관리자 대시보드 ===== */
+  .kpi-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:22px; }
+  .kpi-card{ background:var(--card); border:1px solid var(--line); border-radius:6px; padding:14px 16px; }
+  .kpi-label{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
+  .kpi-value{ font-family:'Newsreader',serif; font-size:26px; font-weight:600; color:var(--ink); }
+  .kpi-value.warn{ color:var(--stamp); }
+  .kpi-sub{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
+  .dash-subtitle{ font-size:12.5px; color:var(--ink-soft); margin:-8px 0 16px; line-height:1.6; }
+  .stu-list{ display:flex; flex-direction:column; gap:10px; }
+  .stu-row{ border:1px solid var(--line); border-radius:6px; padding:12px 14px; background:var(--card); }
+  .stu-row-top{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+  .stu-name{ font-weight:700; font-size:14.5px; color:var(--ink); }
+  .stu-name .uid{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink-soft); font-weight:400; margin-left:6px; }
+  .stu-meta{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); display:flex; gap:12px; flex-wrap:wrap; }
+  .stu-bar-track{ width:100%; height:8px; border-radius:5px; background:var(--paper-deep); overflow:hidden; }
+  .stu-bar-fill{ height:100%; border-radius:5px; }
+  .stu-badge{ font-size:10.5px; font-weight:700; padding:2px 9px; border-radius:20px; white-space:nowrap; }
+  .stu-badge.good{ background:var(--teal-soft); color:var(--teal); }
+  .stu-badge.mid{ background:#F3E7D2; color:var(--gold); }
+  .stu-badge.low{ background:#F6DFDB; color:var(--stamp); }
+  .stu-badge.none{ background:var(--paper-deep); color:var(--ink-soft); }
 </style>
 </head>
 <body>
@@ -269,7 +291,7 @@ async function ensureAdminExists() {
 
 /* ============ 상태 ============ */
 let state = { view:"loading", setIdx:null, qIdx:0, answers:[], scores:[], recognizing:false, readTimeLeft:300, readTimerId:null, qTimeLeft:60, qTimerId:null, streak:{},
-  authMode:"login", authMsg:null, adminTab:"users", adminUsers:[], adminScores:[], myScores:[] };
+  authMode:"login", authMsg:null, adminTab:"dashboard", adminUsers:[], adminScores:[], myScores:[] };
 
 const KOR_STOPWORDS = new Set(["the","a","an","is","are","was","were","it","they","he","she","we","you","i","to","of","in","on","at","for","with","and","or","this","that","will","has","have","had","be","by","as","their","its","company","our","us"]);
 
@@ -1060,14 +1082,119 @@ async function deleteUser(id){
   await loadAdminUsers(); render();
 }
 
+function buildStudentStats(){
+  const approved = state.adminUsers.filter(u=>u.approved);
+  const byId = {};
+  approved.forEach(u=>{ byId[u.id] = { userid:u.id, name:u.name, attempts:0, sumTotal:0, sumMax:0, best:0, lastDate:null }; });
+  state.adminScores.forEach(s=>{
+    const key = s.userid || s.name;
+    if(!byId[key]){
+      // 승인 목록에는 없지만 기록이 남아있는 경우(탈퇴 등)도 함께 집계
+      byId[key] = { userid:key, name:s.name||"(이름 없음)", attempts:0, sumTotal:0, sumMax:0, best:0, lastDate:null };
+    }
+    const row = byId[key];
+    const max = s.maxTotal || 20;
+    const pct = max>0 ? (s.total/max)*100 : 0;
+    row.attempts += 1;
+    row.sumTotal += (s.total||0);
+    row.sumMax += max;
+    row.best = Math.max(row.best, pct);
+    if(!row.lastDate || (s.date && s.date > row.lastDate)) row.lastDate = s.date;
+  });
+  return Object.values(byId).map(r=>({
+    ...r,
+    avgPct: r.sumMax>0 ? (r.sumTotal/r.sumMax)*100 : null
+  }));
+}
+
+function dashboardView(){
+  const wrap = el("div");
+  wrap.appendChild(el("h2","doc-title","학습 현황 대시보드"));
+  wrap.appendChild(el("p","dash-subtitle","학생별 응시 횟수와 정답률을 한눈에 확인해, 도움이 필요한 학생을 빠르게 파악할 수 있어요."));
+
+  const stats = buildStudentStats();
+  const withAttempts = stats.filter(s=>s.attempts>0);
+  const noAttempts = stats.filter(s=>s.attempts===0);
+  const totalAttempts = withAttempts.reduce((sum,s)=>sum+s.attempts,0);
+  const classAvg = withAttempts.length>0
+    ? withAttempts.reduce((sum,s)=>sum+s.avgPct,0)/withAttempts.length
+    : null;
+
+  const kpiGrid = el("div","kpi-grid");
+  const kpis = [
+    { label:"승인된 학생", value: String(stats.length), sub:"" },
+    { label:"총 응시 횟수", value: String(totalAttempts), sub:"" },
+    { label:"학급 평균 정답률", value: classAvg!==null ? Math.round(classAvg)+"%" : "-", sub:"" },
+    { label:"아직 응시 안 함", value: String(noAttempts.length), sub: noAttempts.length>0 ? "관심이 필요해요" : "", warn: noAttempts.length>0 },
+  ];
+  kpis.forEach(k=>{
+    const c = el("div","kpi-card");
+    c.appendChild(el("div","kpi-label",k.label));
+    c.appendChild(el("div","kpi-value"+(k.warn?" warn":""),k.value));
+    if(k.sub) c.appendChild(el("div","kpi-sub",k.sub));
+    kpiGrid.appendChild(c);
+  });
+  wrap.appendChild(kpiGrid);
+
+  if(stats.length===0){
+    wrap.appendChild(el("p",null,"<p style='color:var(--ink-soft);font-size:13px;'>승인된 학생이 없습니다.</p>"));
+    return wrap;
+  }
+
+  // 평균 정답률이 낮은 학생부터, 아직 응시하지 않은 학생은 맨 위로
+  const sorted = stats.slice().sort((a,b)=>{
+    if(a.attempts===0 && b.attempts===0) return a.name.localeCompare(b.name,"ko");
+    if(a.attempts===0) return -1;
+    if(b.attempts===0) return 1;
+    return a.avgPct - b.avgPct;
+  });
+
+  const list = el("div","stu-list");
+  sorted.forEach(s=>{
+    const row = el("div","stu-row");
+    const top = el("div","stu-row-top");
+    const nameBox = el("div");
+    nameBox.appendChild(el("span","stu-name", `${escapeHtml(s.name)}<span class="uid">${escapeHtml(s.userid)}</span>`));
+    top.appendChild(nameBox);
+
+    let badgeCls = "none", badgeText = "응시 기록 없음";
+    if(s.attempts>0){
+      if(s.avgPct>=80){ badgeCls="good"; badgeText="우수"; }
+      else if(s.avgPct>=50){ badgeCls="mid"; badgeText="보통"; }
+      else { badgeCls="low"; badgeText="주의 필요"; }
+    }
+    top.appendChild(el("span","stu-badge "+badgeCls, badgeText));
+    row.appendChild(top);
+
+    if(s.attempts>0){
+      const meta = el("div","stu-meta");
+      meta.innerHTML = `<span>응시 ${s.attempts}회</span><span>평균 ${Math.round(s.avgPct)}%</span><span>최고 ${Math.round(s.best)}%</span><span>최근 ${s.lastDate ? new Date(s.lastDate).toLocaleDateString("ko-KR") : "-"}</span>`;
+      row.appendChild(meta);
+      row.appendChild(el("div","divider"));
+      const track = el("div","stu-bar-track");
+      const fill = el("div","stu-bar-fill");
+      const barColor = s.avgPct>=80 ? "var(--teal)" : (s.avgPct>=50 ? "var(--gold)" : "var(--stamp)");
+      fill.style.cssText = `width:${Math.max(2,Math.round(s.avgPct))}%; background:${barColor};`;
+      track.appendChild(fill);
+      row.appendChild(track);
+    }else{
+      row.appendChild(el("div","stu-meta","<span>아직 연습 기록이 없습니다.</span>"));
+    }
+    list.appendChild(row);
+  });
+  wrap.appendChild(list);
+  return wrap;
+}
+
 function adminView(){
   const wrap = el("div");
   wrap.appendChild(downloadButtons());
   wrap.appendChild(el("p","footnote","※ 다운로드가 자동으로 시작되지 않으면, 링크가 새 탭에서 열립니다 — 그 탭에서 Ctrl/Cmd+S로 저장하거나 '다른 이름으로 저장'을 눌러주세요."));
 
+  const tabLabels = { dashboard:"📊 대시보드", users:"학생 승인 관리", scores:"성적 현황" };
   const tabs = el("div","admin-tabs");
-  ["users","scores"].forEach(t=>{
-    const b = el("button", t===state.adminTab?"active":"", t==="users"?"학생 승인 관리":"성적 현황");
+  ["dashboard","users","scores"].forEach(t=>{
+    const b = el("button", t===state.adminTab?"active":"", tabLabels[t]);
     b.onclick = ()=>{ state.adminTab=t; render(); };
     tabs.appendChild(b);
   });
@@ -1076,7 +1203,9 @@ function adminView(){
   const card = el("div","card");
   const inner = el("div","card-inner");
 
-  if(state.adminTab==="users"){
+  if(state.adminTab==="dashboard"){
+    inner.appendChild(dashboardView());
+  }else if(state.adminTab==="users"){
     inner.appendChild(el("h2","doc-title","학생 가입 승인"));
     if(state.adminUsers.length===0){
       inner.appendChild(el("p",null,"<p style='color:var(--ink-soft);font-size:13px;'>가입한 학생이 없습니다.</p>"));
