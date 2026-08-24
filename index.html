@@ -518,7 +518,7 @@ code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'
       <div><label>학번</label><input type="text" id="f_id" placeholder="예: 20301"></div>
       <div><label>이름</label><input type="text" id="f_name" placeholder="예: 김상업"></div>
       <div><label>반</label><input type="text" id="f_class" placeholder="예: 2학년 3반"></div>
-      <div><label>비밀번호</label><input type="text" id="f_pw" placeholder="비워두면 '비밀번호'"></div>
+      <div><label>비밀번호</label><input type="text" id="f_pw" placeholder="비워두면 '1234'"></div>
     </div>
     <div class="field-hint">비밀번호를 비워두고 저장하면 새 학생은 기본 비밀번호 <code>비밀번호</code>로 등록돼요. 학생은 로그인 후 직접 비밀번호를 바꿀 수 있어요.</div>
     <label style="display:block;font-size:11px;font-weight:700;color:#6b6247;margin-bottom:8px;">이용 가능 과목 (체크한 것만 열림)</label>
@@ -541,10 +541,10 @@ code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'
   // --- 관리자 비밀번호 ---
   // 최초 기본값입니다. 관리자 화면에서 "관리자 비밀번호 변경"으로 바꾸면 그 이후부터는
   // Firestore에 저장된 값을 사용하고, 이 기본값은 더 이상 쓰이지 않습니다.
-  const ADMIN_PASSWORD_DEFAULT = "changeme123";
+  const ADMIN_PASSWORD_DEFAULT = "8tkfckdl@@";
 
   // --- 학생 기본(초기) 비밀번호 ---
-  const DEFAULT_STUDENT_PASSWORD = "비밀번호";
+  const DEFAULT_STUDENT_PASSWORD = "1234";
 
   // --- Firebase 설정 ---
   // Firebase 콘솔(프로젝트 설정 > 내 앱)에서 복사한 값을 아래에 붙여넣으세요.
@@ -584,6 +584,45 @@ code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'
     }
   } catch (e) {
     console.error("Firebase 초기화 오류:", e);
+  }
+
+  // ---------- 비밀번호 해시 유틸 (평문 저장 방지) ----------
+  // 브라우저 내장 Web Crypto API(SHA-256)를 사용합니다. 별도 라이브러리가 필요 없습니다.
+  function randomSalt(len) {
+    len = len || 16;
+    const arr = new Uint8Array(len);
+    crypto.getRandomValues(arr);
+    return Array.from(arr).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+  }
+
+  async function hashPassword(password, salt) {
+    const enc = new TextEncoder();
+    const data = enc.encode(salt + ':' + password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+  }
+
+  // 새 비밀번호를 해시+salt 형태로 만들어줌 (저장용)
+  async function makePasswordRecord(plainPassword) {
+    const salt = randomSalt();
+    const hash = await hashPassword(plainPassword, salt);
+    return { passwordHash: hash, passwordSalt: salt };
+  }
+
+  // 입력한 비밀번호가 문서의 저장값과 일치하는지 확인.
+  // - 새 방식(passwordHash/passwordSalt)이 있으면 그것으로 비교
+  // - 없고 예전 평문(password) 필드만 있으면 그것으로 비교 (마이그레이션 대상)
+  // 반환값: { ok: boolean, needsMigration: boolean }
+  async function verifyPassword(data, inputPassword) {
+    if (data.passwordHash && data.passwordSalt) {
+      const computed = await hashPassword(inputPassword, data.passwordSalt);
+      return { ok: computed === data.passwordHash, needsMigration: false };
+    }
+    if (typeof data.password === 'string') {
+      return { ok: data.password === inputPassword, needsMigration: true };
+    }
+    return { ok: false, needsMigration: false };
   }
 
   const loginOverlay = document.getElementById('loginOverlay');
@@ -659,10 +698,24 @@ code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'
     const errEl = document.getElementById('studentLoginError');
     errEl.textContent = '';
     if (!id || !pw) return;
-    db.collection('students').doc(id).get().then(function(doc) {
+    db.collection('students').doc(id).get().then(async function(doc) {
       if (!doc.exists) { errEl.textContent = '학번을 다시 확인해주세요.'; return; }
       const data = doc.data();
-      if (data.password !== pw) { errEl.textContent = '비밀번호가 올바르지 않아요.'; return; }
+      const result = await verifyPassword(data, pw);
+      if (!result.ok) { errEl.textContent = '비밀번호가 올바르지 않아요.'; return; }
+      // 예전 평문 비밀번호로 로그인에 성공했다면, 이 시점에 해시로 자동 전환
+      if (result.needsMigration) {
+        try {
+          const rec = await makePasswordRecord(pw);
+          await db.collection('students').doc(id).update({
+            passwordHash: rec.passwordHash,
+            passwordSalt: rec.passwordSalt,
+            password: firebase.firestore.FieldValue.delete()
+          });
+        } catch (e) {
+          console.error('비밀번호 마이그레이션 실패:', e);
+        }
+      }
       const session = { studentId: id, name: data.name || id, allowed: data.allowedSections || [] };
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
       showStudentApp(session);
@@ -710,7 +763,7 @@ code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'
   document.getElementById('pwChangeCancelBtn').addEventListener('click', function() {
     pwModalOverlay.style.display = 'none';
   });
-  document.getElementById('pwChangeForm').addEventListener('submit', function(e) {
+  document.getElementById('pwChangeForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const pw1 = document.getElementById('pwNewInput').value;
     const pw2 = document.getElementById('pwConfirmInput').value;
@@ -721,49 +774,72 @@ code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'
     if (!pw1 || pw1.length < 2) { errEl.textContent = '비밀번호를 2자 이상 입력해주세요.'; return; }
     if (pw1 !== pw2) { errEl.textContent = '비밀번호가 서로 달라요. 다시 확인해주세요.'; return; }
 
+    const rec = await makePasswordRecord(pw1);
+
     if (pwChangeTarget === 'admin') {
-      db.collection('config').doc('admin').set({ password: pw1 }, { merge: true }).then(function() {
+      db.collection('config').doc('admin').set({
+        passwordHash: rec.passwordHash,
+        passwordSalt: rec.passwordSalt,
+        password: firebase.firestore.FieldValue.delete()
+      }, { merge: true }).then(function() {
         msgEl.textContent = '관리자 비밀번호가 변경되었어요.';
         setTimeout(function() { pwModalOverlay.style.display = 'none'; }, 900);
       }).catch(function(err) {
         console.error(err);
-        errEl.textContent = '변경 중 오류가 발생했어요. 다시 시도해주세요.';
+        errEl.textContent = '변경 중 오류가 발생했어요. 다시 시도해주세요. (권한 문제일 수 있어요 - 안내 참고)';
       });
       return;
     }
 
     if (!currentSession) return;
-    db.collection('students').doc(currentSession.studentId).update({ password: pw1 }).then(function() {
+    db.collection('students').doc(currentSession.studentId).update({
+      passwordHash: rec.passwordHash,
+      passwordSalt: rec.passwordSalt,
+      password: firebase.firestore.FieldValue.delete()
+    }).then(function() {
       msgEl.textContent = '비밀번호가 변경되었어요.';
       setTimeout(function() { pwModalOverlay.style.display = 'none'; }, 900);
     }).catch(function(err) {
       console.error(err);
-      errEl.textContent = '변경 중 오류가 발생했어요. 다시 시도해주세요.';
+      errEl.textContent = '변경 중 오류가 발생했어요. 다시 시도해주세요. (권한 문제일 수 있어요 - 안내 참고)';
     });
   });
 
   // ---------- 관리자 로그인 (비밀번호는 Firestore config/admin 문서 우선, 없으면 기본값) ----------
-  function getAdminPassword() {
+  function getAdminAuthData() {
     return db.collection('config').doc('admin').get().then(function(doc) {
-      if (doc.exists && doc.data().password) return doc.data().password;
-      return ADMIN_PASSWORD_DEFAULT;
+      if (doc.exists) return doc.data();
+      return null; // 아직 한 번도 설정 안 됨 -> 기본값(ADMIN_PASSWORD_DEFAULT) 사용
     }).catch(function() {
-      return ADMIN_PASSWORD_DEFAULT;
+      return null;
     });
   }
 
-  document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+  document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const pw = document.getElementById('adminPwInput').value;
     const errEl = document.getElementById('adminLoginError');
     errEl.textContent = '';
-    getAdminPassword().then(function(correctPw) {
-      if (pw === correctPw) {
-        showAdminApp();
-      } else {
-        errEl.textContent = '비밀번호가 올바르지 않아요.';
+    const data = await getAdminAuthData();
+    const result = await verifyPassword(data || { password: ADMIN_PASSWORD_DEFAULT }, pw);
+    if (!result.ok) {
+      errEl.textContent = '비밀번호가 올바르지 않아요.';
+      return;
+    }
+    // 예전 평문(또는 기본값)으로 통과했다면 해시로 자동 전환해 저장
+    if (result.needsMigration) {
+      try {
+        const rec = await makePasswordRecord(pw);
+        await db.collection('config').doc('admin').set({
+          passwordHash: rec.passwordHash,
+          passwordSalt: rec.passwordSalt,
+          password: firebase.firestore.FieldValue.delete()
+        }, { merge: true });
+      } catch (err) {
+        console.error('관리자 비밀번호 마이그레이션 실패:', err);
       }
-    });
+    }
+    showAdminApp();
   });
 
   document.getElementById('adminLogoutBtn').addEventListener('click', function() {
@@ -808,7 +884,7 @@ code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'
       cancelEditBtn.style.display = 'none';
     }
 
-    document.getElementById('saveBtn').onclick = function() {
+    document.getElementById('saveBtn').onclick = async function() {
       const id = idInput.value.trim();
       const name = nameInput.value.trim();
       const klass = classInput.value.trim();
@@ -820,22 +896,32 @@ code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'
         formMsg.classList.add('err');
         return;
       }
-      let finalPassword;
+
+      let passwordRecord;   // { passwordHash, passwordSalt }
+      let shownPassword;    // 저장 완료 메시지에 보여줄 안내용 문자열 (해시 자체는 보여주지 않음)
+
       if (pwRaw) {
-        finalPassword = pwRaw;
+        passwordRecord = await makePasswordRecord(pwRaw);
+        shownPassword = pwRaw;
       } else if (editingId && editingOriginalPassword) {
-        finalPassword = editingOriginalPassword; // 수정 시 비워두면 기존 비밀번호 유지
+        passwordRecord = editingOriginalPassword; // 수정 시 비워두면 기존 비밀번호(해시) 유지
+        shownPassword = null;
       } else {
-        finalPassword = DEFAULT_STUDENT_PASSWORD; // 신규 등록 시 비워두면 기본값
+        passwordRecord = await makePasswordRecord(DEFAULT_STUDENT_PASSWORD); // 신규 등록 시 비워두면 기본값
+        shownPassword = DEFAULT_STUDENT_PASSWORD;
       }
+
       const allowedSections = getCheckedSubjects();
+      // set()을 병합 없이(문서 전체 덮어쓰기) 사용하므로, password 필드를 아예 넣지 않는 것만으로
+      // 예전 평문 필드가 자동으로 사라집니다 (FieldValue.delete()는 merge:true/update()에서만 사용 가능).
       db.collection('students').doc(id).set({
         name: name,
         class: klass,
-        password: finalPassword,
+        passwordHash: passwordRecord.passwordHash,
+        passwordSalt: passwordRecord.passwordSalt,
         allowedSections: allowedSections
       }).then(function() {
-        formMsg.textContent = (editingId ? '수정' : '등록') + '되었어요. (비밀번호: ' + finalPassword + ')';
+        formMsg.textContent = (editingId ? '수정' : '등록') + '되었어요.' + (shownPassword ? ' (비밀번호: ' + shownPassword + ')' : ' (비밀번호는 기존 값 유지)');
         formMsg.classList.add('ok');
         resetForm();
         loadStudents();
@@ -848,9 +934,16 @@ code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'
 
     cancelEditBtn.onclick = resetForm;
 
-    function startEdit(id, data) {
+    async function startEdit(id, data) {
       editingId = id;
-      editingOriginalPassword = data.password || DEFAULT_STUDENT_PASSWORD;
+      // 기존 비밀번호(해시)를 그대로 기억해뒀다가, 폼에서 비밀번호칸을 비워두고 저장하면 그대로 재사용합니다.
+      // 아직 예전 평문(password)만 있는 계정이면, 그 값으로 해시 레코드를 새로 만들어 마이그레이션합니다.
+      if (data.passwordHash && data.passwordSalt) {
+        editingOriginalPassword = { passwordHash: data.passwordHash, passwordSalt: data.passwordSalt };
+      } else {
+        const legacyPw = data.password || DEFAULT_STUDENT_PASSWORD;
+        editingOriginalPassword = await makePasswordRecord(legacyPw);
+      }
       idInput.value = id;
       idInput.disabled = true;
       nameInput.value = data.name || '';
@@ -871,9 +964,14 @@ code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-family:'
       db.collection('students').doc(id).delete().then(loadStudents).catch(function(err) { console.error(err); });
     }
 
-    function resetStudentPassword(id) {
+    async function resetStudentPassword(id) {
       if (!window.confirm('학번 ' + id + ' 학생의 비밀번호를 기본값(\'' + DEFAULT_STUDENT_PASSWORD + '\')으로 초기화할까요?')) return;
-      db.collection('students').doc(id).update({ password: DEFAULT_STUDENT_PASSWORD }).then(loadStudents).catch(function(err) { console.error(err); });
+      const rec = await makePasswordRecord(DEFAULT_STUDENT_PASSWORD);
+      db.collection('students').doc(id).update({
+        passwordHash: rec.passwordHash,
+        passwordSalt: rec.passwordSalt,
+        password: firebase.firestore.FieldValue.delete()
+      }).then(loadStudents).catch(function(err) { console.error(err); });
     }
 
     function loadStudents() {
