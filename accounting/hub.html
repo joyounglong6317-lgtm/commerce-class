@@ -5,73 +5,145 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>재무회계 학습 허브 : 로그인 후 시작하기</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@700;900&family=Noto+Sans+KR:wght@400;500;700&family=Roboto+Mono:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Gowun+Dodum&family=Roboto+Mono:wght@500;700&display=swap');
 :root{
-  --cover:#1F3D2E; --paper:#F3EEDD; --paper-line:#DDD5B8; --ink:#223447;
-  --gold:#B8892B; --ok:#2F6B5E; --bad:#7A2E2E;
+  --bg-a:#FFE3EC; --bg-b:#E9DFFB; --bg-c:#FFF3E4;
+  --pink:#FF7CA3; --pink-deep:#E5477B; --pink-soft:#FFD9E6;
+  --lav:#9C7FE0; --lav-deep:#7C5CD1; --lav-soft:#E7DEFB;
+  --mint:#4FBE93; --peach:#FF9E80;
+  --ink:#5B4B66; --sub:#9A8CA8;
+  --card:#FFFCFA; --line:#F6DCE9;
+  --ok:#2FA47B; --bad:#E5477B;
 }
 *{box-sizing:border-box;}
-body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);color:var(--ink);min-height:100vh;padding:24px 12px 60px;}
-.wrap{max-width:880px;margin:0 auto;}
-.header{background:var(--cover);border:2px solid var(--gold);border-radius:10px;padding:22px 26px;color:var(--paper);margin-bottom:18px;}
-.eyebrow{font-size:12px;letter-spacing:3px;color:var(--gold);font-weight:700;margin-bottom:6px;}
-h1{font-family:'Noto Serif KR';font-weight:900;font-size:23px;margin:0 0 4px;}
-.header p{margin:0;font-size:13px;opacity:.85;line-height:1.6;}
-
-.card{background:var(--paper);border:1.5px solid var(--paper-line);border-radius:10px;padding:24px;margin-bottom:16px;}
-.card h2{font-family:'Noto Serif KR';font-size:17px;margin:0 0 14px;color:var(--cover);}
-
-.login-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
-.field{display:flex;flex-direction:column;gap:5px;}
-.field label{font-size:11.5px;font-weight:700;color:#7a7256;letter-spacing:.5px;}
-select, input[type=password], input[type=text]{
-  font-family:'Noto Sans KR';font-size:14px;padding:10px 12px;border:1.5px solid var(--paper-line);
-  border-radius:6px;background:#fff;min-width:160px;
+body{
+  margin:0;font-family:'Gowun Dodum',sans-serif;color:var(--ink);min-height:100vh;
+  padding:26px 14px 70px;
+  background:
+    radial-gradient(circle at 8% 8%, rgba(255,182,213,.55), transparent 40%),
+    radial-gradient(circle at 92% 18%, rgba(197,168,242,.5), transparent 42%),
+    radial-gradient(circle at 15% 92%, rgba(255,205,164,.45), transparent 40%),
+    linear-gradient(160deg, var(--bg-a), var(--bg-b) 55%, var(--bg-c));
+  background-attachment:fixed;
 }
-button{font-family:'Noto Sans KR';font-weight:700;font-size:14px;border-radius:6px;padding:11px 20px;
-  cursor:pointer;border:none;}
-.btn-primary{background:var(--gold);color:#fff;}
-.btn-primary:hover{opacity:.92;}
-.msg{font-size:13px;margin-top:10px;font-weight:700;}
+.wrap{max-width:900px;margin:0 auto;position:relative;}
+.deco{position:fixed;font-size:26px;opacity:.35;pointer-events:none;filter:drop-shadow(0 2px 2px rgba(0,0,0,.05));}
+
+.header{
+  background:linear-gradient(120deg, var(--pink), var(--lav) 100%);
+  border-radius:26px;padding:26px 28px;color:#fff;margin-bottom:18px;position:relative;overflow:hidden;
+  box-shadow:0 10px 26px rgba(200,120,170,.28);
+}
+.header::after{content:"🎀";position:absolute;right:18px;top:14px;font-size:46px;opacity:.5;transform:rotate(12deg);}
+.header::before{content:"";position:absolute;left:-30px;bottom:-40px;width:150px;height:150px;background:rgba(255,255,255,.15);border-radius:50%;}
+.eyebrow{font-family:'Baloo 2';font-size:12.5px;letter-spacing:2px;font-weight:700;margin-bottom:6px;opacity:.95;}
+h1{font-family:'Baloo 2';font-weight:800;font-size:25px;margin:0 0 6px;}
+.header p{margin:0;font-size:13.5px;opacity:.95;line-height:1.6;max-width:560px;}
+
+.quote-banner{
+  background:var(--card);border:1.5px dashed var(--pink);border-radius:16px;
+  padding:12px 16px;margin-bottom:16px;font-size:12.5px;color:var(--sub);
+  display:flex;align-items:center;gap:10px;
+}
+.quote-banner .qi{font-size:18px;flex-shrink:0;}
+
+.card{
+  background:var(--card);border:1.5px solid var(--line);border-radius:22px;padding:26px 26px;margin-bottom:16px;
+  box-shadow:0 8px 0 var(--pink-soft);
+}
+.card h2{font-family:'Baloo 2';font-size:17.5px;margin:0 0 16px;color:var(--pink-deep);display:flex;align-items:center;gap:8px;}
+
+/* ---- 아바타 선택 ---- */
+.avatar-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.avatar-opt{
+  width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:24px;background:var(--lav-soft);border:2.5px solid transparent;cursor:pointer;transition:transform .12s;
+}
+.avatar-opt:hover{transform:scale(1.08);}
+.avatar-opt.selected{border-color:var(--pink-deep);background:var(--pink-soft);}
+
+.login-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+.field{display:flex;flex-direction:column;gap:6px;}
+.field label{font-size:11.5px;font-weight:700;color:var(--sub);letter-spacing:.5px;font-family:'Baloo 2';}
+select, input[type=password], input[type=text]{
+  font-family:'Gowun Dodum';font-size:14px;padding:11px 14px;border:1.8px solid var(--line);
+  border-radius:14px;background:#fff;min-width:170px;color:var(--ink);
+}
+select:focus, input:focus{outline:none;border-color:var(--pink);}
+button{font-family:'Baloo 2';font-weight:700;font-size:14.5px;border-radius:16px;padding:12px 22px;
+  cursor:pointer;border:none;transition:transform .1s, filter .1s;}
+button:active{transform:scale(.96);}
+.btn-primary{background:linear-gradient(120deg,var(--pink),var(--pink-deep));color:#fff;box-shadow:0 5px 0 #C43567;}
+.btn-primary:hover{filter:brightness(1.05);}
+.btn-ghost{background:#fff;color:var(--pink-deep);border:1.8px solid var(--pink-soft);}
+.msg{font-size:13px;margin-top:10px;font-weight:700;font-family:'Baloo 2';}
 .msg.err{color:var(--bad);}
 .msg.ok{color:var(--ok);}
 
 .menu{display:none;}
 .menu.show{display:block;}
-.welcome{font-family:'Roboto Mono';font-size:14px;color:var(--cover);margin-bottom:14px;}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
-.game-card{background:#fff;border:1.5px solid var(--paper-line);border-radius:10px;padding:18px 20px;
-  text-decoration:none;color:var(--ink);display:block;box-shadow:0 3px 0 var(--paper-line);transition:transform .12s;}
-.game-card:hover{transform:translateY(-3px);}
-.game-tag{display:inline-block;font-family:'Roboto Mono';font-size:10.5px;font-weight:700;letter-spacing:.5px;
-  color:#fff;background:var(--cover);border-radius:20px;padding:2px 10px;margin-bottom:10px;}
-.game-card h3{font-family:'Noto Serif KR';font-size:15.5px;margin:0 0 6px;color:var(--cover);}
-.game-card p{font-size:12.5px;color:#6b6247;line-height:1.6;margin:0 0 10px;}
-.game-card .go{font-size:12.5px;font-weight:700;color:var(--gold);}
-.logout-row{text-align:center;margin-top:10px;}
-.logout-row button{background:transparent;color:var(--paper);border:1.5px solid var(--paper);padding:8px 18px;}
+.welcome{
+  font-family:'Baloo 2';font-size:15px;color:var(--pink-deep);margin-bottom:6px;
+  display:flex;align-items:center;gap:10px;
+}
+.welcome .av{width:40px;height:40px;border-radius:50%;background:var(--lav-soft);display:flex;align-items:center;justify-content:center;font-size:20px;}
+.streak-line{font-family:'Roboto Mono';font-size:12px;color:var(--sub);margin-bottom:16px;}
+.streak-line b{color:var(--peach);}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;}
+.game-card{
+  background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:20px 20px;
+  text-decoration:none;color:var(--ink);display:block;position:relative;overflow:hidden;
+  box-shadow:0 6px 0 var(--line);transition:transform .14s, box-shadow .14s;
+}
+.game-card:hover{transform:translateY(-4px);box-shadow:0 10px 0 var(--pink-soft);}
+.game-card .blob{position:absolute;right:-20px;top:-20px;width:80px;height:80px;border-radius:50%;opacity:.6;}
+.game-tag{
+  display:inline-flex;align-items:center;gap:5px;font-family:'Baloo 2';font-size:11px;font-weight:700;letter-spacing:.3px;
+  color:#fff;border-radius:20px;padding:3px 12px;margin-bottom:12px;position:relative;
+}
+.tag-sim{background:var(--pink-deep);}
+.tag-day{background:var(--lav-deep);}
+.tag-card{background:var(--mint);}
+.tag-sheet{background:var(--peach);}
+.game-card h3{font-family:'Baloo 2';font-size:16px;margin:0 0 6px;color:var(--ink);position:relative;}
+.game-card p{font-size:12.5px;color:var(--sub);line-height:1.65;margin:0 0 12px;position:relative;}
+.game-card .go{font-size:12.5px;font-weight:700;color:var(--pink-deep);font-family:'Baloo 2';position:relative;}
+
+.logout-row{text-align:center;margin-top:18px;}
+.logout-row button{background:transparent;color:var(--pink-deep);border:1.8px solid var(--pink-soft);padding:9px 20px;}
 
 .admin-toggle{text-align:center;margin-top:26px;}
-.admin-toggle a{color:var(--paper);opacity:.5;font-size:11.5px;text-decoration:underline;cursor:pointer;}
-.admin-panel{display:none;background:var(--paper);border:1.5px dashed var(--paper-line);border-radius:10px;
-  padding:20px;margin-top:14px;}
+.admin-toggle a{color:var(--ink);opacity:.45;font-size:11.5px;text-decoration:underline;cursor:pointer;font-family:'Gowun Dodum';}
+.admin-panel{display:none;background:var(--card);border:1.8px dashed var(--pink-soft);border-radius:20px;padding:22px;margin-top:14px;}
 .admin-panel.show{display:block;}
 textarea{width:100%;min-height:160px;font-family:'Roboto Mono';font-size:13px;padding:12px;
-  border:1.5px solid var(--paper-line);border-radius:6px;resize:vertical;}
-.admin-panel .hint{font-size:11.5px;color:#7a7256;margin:8px 0 12px;line-height:1.6;}
+  border:1.5px solid var(--line);border-radius:12px;resize:vertical;}
+.admin-panel .hint{font-size:11.5px;color:var(--sub);margin:8px 0 12px;line-height:1.6;}
 </style>
 </head>
-<body><div style="position:fixed;top:10px;left:10px;z-index:99999;display:flex;gap:6px;font-family:'Noto Sans KR',sans-serif;"><a href="../index.html" style="background:#1F3D2E;color:#F3EEDD;text-decoration:none;font-size:12px;font-weight:700;padding:6px 12px;border-radius:20px;border:1px solid rgba(243,238,221,0.4);white-space:nowrap;">🏠 메인화면</a></div>
+<body>
+<div style="position:fixed;top:10px;left:10px;z-index:99999;display:flex;gap:6px;font-family:'Baloo 2',sans-serif;">
+  <a href="../index.html" style="background:linear-gradient(120deg,#FF7CA3,#9C7FE0);color:#fff;text-decoration:none;font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;white-space:nowrap;box-shadow:0 3px 0 rgba(0,0,0,.1);">🏠 메인화면</a>
+</div>
+<span class="deco" style="top:80px;left:6%;">🌸</span>
+<span class="deco" style="top:220px;right:5%;">✨</span>
+<span class="deco" style="bottom:120px;left:4%;">💗</span>
+<span class="deco" style="bottom:60px;right:8%;">🎀</span>
 
 <div class="wrap">
   <div class="header">
     <div class="eyebrow">회계원리 · 학생 로그인 허브</div>
-    <h1>재무회계 학습 허브</h1>
-    <p>이름과 선생님께 받은 PIN 번호를 입력하고, 오늘 풀 활동을 선택하세요.</p>
+    <h1>재무회계 학습 허브 💗</h1>
+    <p>이름과 선생님께 받은 PIN 번호를 입력하고, 오늘 풀 활동을 선택하세요. 꾸준히 풀수록 등급과 스티커가 쌓여요!</p>
   </div>
 
+  <div class="quote-banner"><span class="qi">🌟</span><span id="quoteText">오늘의 한마디를 불러오는 중...</span></div>
+
   <div class="card" id="loginCard">
-    <h2>1. 로그인</h2>
+    <h2>💌 1. 로그인</h2>
+    <div style="margin-bottom:6px;font-size:11.5px;font-weight:700;color:var(--sub);font-family:'Baloo 2';">나만의 캐릭터 고르기</div>
+    <div class="avatar-row" id="avatarRow"></div>
     <div class="login-row">
       <div class="field">
         <label>이름</label>
@@ -81,46 +153,51 @@ textarea{width:100%;min-height:160px;font-family:'Roboto Mono';font-size:13px;pa
         <label>PIN 번호</label>
         <input type="password" id="loginPin" maxlength="8" placeholder="••••" inputmode="numeric">
       </div>
-      <button class="btn-primary" id="loginBtn">입장하기</button>
+      <button class="btn-primary" id="loginBtn">입장하기 🚪</button>
     </div>
     <div class="msg" id="loginMsg"></div>
   </div>
 
   <div class="card menu" id="menuCard">
-    <h2>2. 오늘의 활동 선택</h2>
-    <div class="welcome" id="welcomeText"></div>
+    <h2>🍩 2. 오늘의 활동 선택</h2>
+    <div class="welcome"><span class="av" id="welcomeAv">🐣</span><span id="welcomeText"></span></div>
+    <div class="streak-line" id="streakLine"></div>
     <div class="grid">
       <a class="game-card" href="bookkeeping-cafe-simulation.html">
-        <span class="game-tag">시뮬레이션</span>
+        <div class="blob" style="background:var(--pink-soft);"></div>
+        <span class="game-tag tag-sim">🧁 시뮬레이션</span>
         <h3>부기 마스터 : 카페 창업 다이어리</h3>
-        <p>가상 카페를 창업하며 10가지 거래를 분개하고, 실시간 재무제표를 완성하는 스토리형 시뮬레이션입니다.</p>
+        <p>가상 카페를 창업하며 거래를 분개하고, 실시간 재무제표를 완성하는 스토리형 시뮬레이션이에요.</p>
         <span class="go">시작하기 →</span>
       </a>
       <a class="game-card" href="bookkeeping-daily-practice.html">
-        <span class="game-tag">데일리 연습</span>
+        <div class="blob" style="background:var(--lav-soft);"></div>
+        <span class="game-tag tag-day">📔 데일리 연습</span>
         <h3>데일리 분개 트레이닝</h3>
-        <p>Day 1~7로 나뉜 60문항의 분개·개념 확인 문제은행입니다. 하루 한 세트씩 꾸준히 복습해요.</p>
+        <p>Day별로 나뉜 분개·개념 확인 문제은행! 하루 한 세트씩 꾸준히 복습하며 뱃지를 모아보세요.</p>
         <span class="go">시작하기 →</span>
       </a>
       <a class="game-card" href="bookkeeping-matching-game.html">
-        <span class="game-tag">카드 게임</span>
+        <div class="blob" style="background:#DFF6EC;"></div>
+        <span class="game-tag tag-card">🍬 카드 게임</span>
         <h3>거래 & 분개 짝맞추기</h3>
-        <p>거래 상황 카드와 정답 분개 카드의 짝을 맞추는 메모리 게임입니다. 워밍업으로 활용해보세요.</p>
+        <p>거래 상황 카드와 정답 분개 카드의 짝을 맞추는 메모리 게임! 난이도를 골라 도전해보세요.</p>
         <span class="go">시작하기 →</span>
       </a>
       <a class="game-card" href="unit1-worksheet.html">
-        <span class="game-tag">학습지</span>
+        <div class="blob" style="background:#FFE6D6;"></div>
+        <span class="game-tag tag-sheet">🌷 학습지</span>
         <h3>1단원 · 회계의 기초 학습지</h3>
-        <p>개념 요약 정리, 자동 채점 문제, OX 스피드 게임까지 한 번에! PDF로도 내려받을 수 있어요.</p>
+        <p>개념 정리 + 자동 채점 문제 + 플래시카드 + OX 스피드 게임까지! PDF로도 저장할 수 있어요.</p>
         <span class="go">시작하기 →</span>
       </a>
     </div>
-    <div class="logout-row"><button id="logoutBtn">다른 사람으로 로그인</button></div>
+    <div class="logout-row"><button id="logoutBtn">🔄 다른 사람으로 로그인</button></div>
   </div>
 
   <div class="admin-toggle"><a id="adminToggle">교사용 명단 설정</a></div>
   <div class="admin-panel" id="adminPanel">
-    <h2 style="margin-top:0;">교사용 : 학생 명단(PIN) 관리</h2>
+    <h2 style="margin-top:0;font-family:'Baloo 2';color:var(--pink-deep);">교사용 : 학생 명단(PIN) 관리</h2>
     <div class="hint">
       한 줄에 <b>이름,PIN</b> 형식으로 입력하세요. (예: 홍길동,1234)<br>
       저장하면 위 로그인 화면의 이름 목록이 즉시 업데이트됩니다.
@@ -129,7 +206,7 @@ textarea{width:100%;min-height:160px;font-family:'Roboto Mono';font-size:13px;pa
 김영희,5678"></textarea>
     <div style="margin-top:12px;display:flex;gap:8px;">
       <button class="btn-primary" id="saveRosterBtn">명단 저장하기</button>
-      <button id="reloadRosterBtn" style="background:#eee;">다시 불러오기</button>
+      <button id="reloadRosterBtn" style="background:#eee;color:var(--ink);">다시 불러오기</button>
     </div>
     <div class="msg" id="adminMsg"></div>
   </div>
@@ -139,6 +216,34 @@ textarea{width:100%;min-height:160px;font-family:'Roboto Mono';font-size:13px;pa
   import { getRoster, saveRoster, setStudentName, clearStudentName, getStudentName } from '../shared/class-common.js';
 
   let roster = [];
+  const AVATARS = ['🐣','🐰','🐻','🦊','🐱','🐼','🦄','🐹','🐷','🐨','🐸','🦋'];
+  const QUOTES = [
+    '차변과 대변의 균형처럼, 오늘도 마음의 균형을 잡아봐요 ⚖️',
+    '작은 분개 하나하나가 모여 훌륭한 회계인을 만들어요 ✨',
+    '틀려도 괜찮아요, 다시 도전하는 게 진짜 공부예요 💪',
+    '오늘의 10분이 시험 날의 자신감이 됩니다 📈',
+    '꾸준함이 최고의 재테크! 매일 조금씩 연습해요 🌱',
+  ];
+
+  function pickAvatar(){
+    const saved = localStorage.getItem('hub_avatar');
+    return saved || AVATARS[Math.floor(Math.random()*AVATARS.length)];
+  }
+  let selectedAvatar = pickAvatar();
+
+  function renderAvatars(){
+    const row = document.getElementById('avatarRow');
+    row.innerHTML = AVATARS.map(a=>`<div class="avatar-opt ${a===selectedAvatar?'selected':''}" data-a="${a}">${a}</div>`).join('');
+    row.querySelectorAll('.avatar-opt').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        selectedAvatar = el.dataset.a;
+        localStorage.setItem('hub_avatar', selectedAvatar);
+        renderAvatars();
+      });
+    });
+  }
+  renderAvatars();
+  document.getElementById('quoteText').textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)];
 
   async function loadRoster(){
     roster = await getRoster();
@@ -150,6 +255,20 @@ textarea{width:100%;min-height:160px;font-family:'Roboto Mono';font-size:13px;pa
         roster.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
     }
     document.getElementById('rosterText').value = roster.map(s => `${s.name},${s.pin}`).join('\n');
+  }
+
+  function bumpStreak(){
+    const today = new Date().toISOString().slice(0,10);
+    const last = localStorage.getItem('hub_lastday');
+    let streak = parseInt(localStorage.getItem('hub_streak')||'0');
+    if(last === today){ /* already counted today */ }
+    else if(last){
+      const diff = (new Date(today) - new Date(last)) / 86400000;
+      streak = diff === 1 ? streak + 1 : 1;
+    } else { streak = 1; }
+    localStorage.setItem('hub_lastday', today);
+    localStorage.setItem('hub_streak', String(streak));
+    return streak;
   }
 
   document.getElementById('loginBtn').addEventListener('click', () => {
@@ -171,7 +290,10 @@ textarea{width:100%;min-height:160px;font-family:'Roboto Mono';font-size:13px;pa
   function showMenu(name){
     document.getElementById('loginCard').style.display = 'none';
     document.getElementById('menuCard').classList.add('show');
-    document.getElementById('welcomeText').textContent = `🙋 ${name} 님, 환영합니다!`;
+    document.getElementById('welcomeText').textContent = `${name} 님, 환영합니다!`;
+    document.getElementById('welcomeAv').textContent = selectedAvatar;
+    const streak = bumpStreak();
+    document.getElementById('streakLine').innerHTML = `🔥 연속 접속 <b>${streak}</b>일째예요!`;
   }
 
   document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -181,12 +303,10 @@ textarea{width:100%;min-height:160px;font-family:'Roboto Mono';font-size:13px;pa
     document.getElementById('loginPin').value = '';
   });
 
-  // 이미 로그인된 상태로 돌아온 경우 바로 메뉴 표시
   const already = getStudentName();
   if(already) showMenu(already);
 
-  // ===== 교사용 관리자 패널 =====
-  const ADMIN_PASSWORD = 'hanil2026'; // 필요시 이 값을 변경해서 사용하세요.
+  const ADMIN_PASSWORD = 'hanil2026';
   document.getElementById('adminToggle').addEventListener('click', () => {
     const panel = document.getElementById('adminPanel');
     if(panel.classList.contains('show')){ panel.classList.remove('show'); return; }

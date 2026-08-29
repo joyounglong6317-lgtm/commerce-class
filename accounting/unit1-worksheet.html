@@ -5,68 +5,96 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>1단원 학습지 : 회계의 개념과 종류</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@700;900&family=Noto+Sans+KR:wght@400;500;700&family=Roboto+Mono:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Gowun+Dodum&family=Roboto+Mono:wght@500;700&display=swap');
 :root{
-  --cover:#1F3D2E; --paper:#F3EEDD; --paper-line:#DDD5B8; --ink:#223447;
-  --gold:#B8892B; --ok:#2F6B5E; --bad:#7A2E2E;
+  --bg-a:#FFE3EC; --bg-b:#E9DFFB; --bg-c:#FFF3E4;
+  --pink:#FF7CA3; --pink-deep:#E5477B; --pink-soft:#FFD9E6;
+  --lav:#9C7FE0; --lav-deep:#7C5CD1; --lav-soft:#E7DEFB;
+  --mint:#4FBE93; --peach:#FF9E80;
+  --ink:#5B4B66; --sub:#9A8CA8;
+  --card:#FFFCFA; --line:#F6DCE9;
+  --ok:#2FA47B; --bad:#E5477B;
 }
 *{box-sizing:border-box;}
-body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);color:var(--ink);min-height:100vh;padding:24px 12px 80px;}
+body{
+  margin:0;font-family:'Gowun Dodum',sans-serif;color:var(--ink);min-height:100vh;padding:24px 12px 80px;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255,182,213,.5), transparent 40%),
+    radial-gradient(circle at 90% 20%, rgba(197,168,242,.5), transparent 42%),
+    linear-gradient(160deg, var(--bg-a), var(--bg-b) 55%, var(--bg-c));
+  background-attachment:fixed;
+}
 .wrap{max-width:880px;margin:0 auto;}
-.header{background:var(--cover);border:2px solid var(--gold);border-radius:10px;padding:22px 26px;color:var(--paper);margin-bottom:18px;}
-.eyebrow{font-size:12px;letter-spacing:3px;color:var(--gold);font-weight:700;margin-bottom:6px;}
-h1{font-family:'Noto Serif KR';font-weight:900;font-size:22px;margin:0 0 4px;}
-.header p{margin:0;font-size:13px;opacity:.85;line-height:1.6;}
-.goal-box{background:rgba(243,238,221,0.08);border:1px solid rgba(243,238,221,.3);border-radius:8px;padding:12px 16px;margin-top:12px;font-size:12.5px;line-height:1.7;}
+.header{
+  background:linear-gradient(120deg, var(--pink), var(--lav) 100%);
+  border-radius:26px;padding:22px 26px;color:#fff;margin-bottom:18px;position:relative;overflow:hidden;
+  box-shadow:0 10px 26px rgba(200,120,170,.28);
+}
+.header::after{content:"🌷";position:absolute;right:18px;top:14px;font-size:42px;opacity:.5;}
+.eyebrow{font-family:'Baloo 2';font-size:12px;letter-spacing:2px;font-weight:700;margin-bottom:6px;}
+h1{font-family:'Baloo 2';font-weight:800;font-size:21px;margin:0 0 4px;}
+.header p{margin:0;font-size:13px;opacity:.95;line-height:1.6;}
+.goal-box{background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,.35);border-radius:14px;padding:12px 16px;margin-top:12px;font-size:12.5px;line-height:1.7;}
 
-.section{background:var(--paper);border:1.5px solid var(--paper-line);border-radius:10px;padding:22px 24px;margin-bottom:16px;}
-.section h2{font-family:'Noto Serif KR';font-size:17px;margin:0 0 14px;color:var(--cover);display:flex;align-items:center;gap:8px;}
-.section h2 .num{background:var(--gold);color:#fff;font-family:'Roboto Mono';font-size:13px;border-radius:50%;
+.section{background:var(--card);border:1.5px solid var(--line);border-radius:22px;padding:22px 24px;margin-bottom:16px;box-shadow:0 6px 0 var(--line);}
+.section h2{font-family:'Baloo 2';font-size:16.5px;margin:0 0 14px;color:var(--pink-deep);display:flex;align-items:center;gap:8px;}
+.section h2 .num{background:linear-gradient(120deg,var(--pink),var(--lav));color:#fff;font-family:'Roboto Mono';font-size:13px;border-radius:50%;
   width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;}
 
-details{background:#fff;border:1.5px solid var(--paper-line);border-radius:8px;margin-bottom:10px;padding:12px 16px;}
-details summary{font-weight:700;cursor:pointer;color:var(--cover);}
-details .body{margin-top:10px;font-size:13px;line-height:1.8;color:#3d4a52;}
-details .body b{color:var(--cover);}
-details .term{display:inline-block;background:rgba(184,137,43,.12);color:var(--gold);border-radius:4px;padding:1px 6px;font-weight:700;}
+details{background:#fff;border:1.5px solid var(--line);border-radius:14px;margin-bottom:10px;padding:12px 16px;}
+details summary{font-weight:700;cursor:pointer;color:var(--pink-deep);font-family:'Baloo 2';font-size:14px;}
+details .body{margin-top:10px;font-size:13px;line-height:1.8;color:var(--ink);}
+details .body b{color:var(--pink-deep);}
+details .term{display:inline-block;background:var(--lav-soft);color:var(--lav-deep);border-radius:6px;padding:1px 6px;font-weight:700;}
 
-.qcard{background:#fff;border:1.5px solid var(--paper-line);border-radius:8px;padding:16px 18px;margin-bottom:12px;}
-.qcard .qhead{display:flex;justify-content:space-between;font-size:12px;color:#7a7256;font-weight:700;margin-bottom:8px;}
+.qcard{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:12px;}
+.qcard .qhead{display:flex;justify-content:space-between;font-size:11.5px;color:var(--sub);font-weight:700;margin-bottom:8px;font-family:'Baloo 2';}
 .qcard .qtext{font-size:14.5px;font-weight:700;margin-bottom:12px;line-height:1.6;}
 .opt-row{display:flex;flex-direction:column;gap:8px;}
-.opt{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1.5px solid var(--paper-line);border-radius:6px;cursor:pointer;font-size:13.5px;}
-.opt:hover{border-color:var(--gold);}
-.opt.selected{border-color:var(--gold);background:rgba(184,137,43,.08);font-weight:700;}
-.opt.correct{border-color:var(--ok);background:rgba(47,107,94,.12);color:var(--ok);font-weight:700;}
-.opt.wrong{border-color:var(--bad);background:rgba(122,46,46,.1);color:var(--bad);font-weight:700;}
-input.short-answer{width:100%;padding:10px 12px;border:1.5px solid var(--paper-line);border-radius:6px;font-size:14px;}
-input.short-answer.correct{border-color:var(--ok);background:rgba(47,107,94,.08);}
-input.short-answer.wrong{border-color:var(--bad);background:rgba(122,46,46,.06);}
-.explain{display:none;margin-top:10px;font-size:12.5px;background:#f7f4ea;border-left:3px solid var(--gold);padding:8px 12px;border-radius:4px;color:#5a5340;}
+.opt{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1.5px solid var(--line);border-radius:12px;cursor:pointer;font-size:13.5px;}
+.opt:hover{border-color:var(--pink);}
+.opt.selected{border-color:var(--pink);background:var(--pink-soft);font-weight:700;}
+.opt.correct{border-color:var(--ok);background:rgba(47,164,123,.14);color:var(--ok);font-weight:700;}
+.opt.wrong{border-color:var(--bad);background:rgba(229,71,123,.1);color:var(--bad);font-weight:700;}
+input.short-answer{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;font-size:14px;font-family:inherit;}
+input.short-answer.correct{border-color:var(--ok);background:rgba(47,164,123,.08);}
+input.short-answer.wrong{border-color:var(--bad);background:rgba(229,71,123,.06);}
+.explain{display:none;margin-top:10px;font-size:12.5px;background:var(--lav-soft);border-left:3px solid var(--lav);padding:8px 12px;border-radius:8px;color:var(--ink);}
 .explain.show{display:block;}
 
 .controls{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:6px;}
-button{font-family:'Noto Sans KR';font-weight:700;font-size:14px;border-radius:6px;padding:11px 22px;cursor:pointer;border:none;}
-.btn-primary{background:var(--gold);color:#fff;}
-.btn-ghost{background:transparent;color:var(--cover);border:1.5px solid var(--paper-line);}
-.btn-ok{background:var(--ok);color:#fff;}
+button{font-family:'Baloo 2';font-weight:700;font-size:14px;border-radius:16px;padding:11px 22px;cursor:pointer;border:none;transition:transform .1s;}
+button:active{transform:scale(.96);}
+.btn-primary{background:linear-gradient(120deg,var(--pink),var(--pink-deep));color:#fff;box-shadow:0 5px 0 #C43567;}
+.btn-ghost{background:#fff;color:var(--pink-deep);border:1.8px solid var(--pink-soft);}
+.btn-ok{background:linear-gradient(120deg,var(--mint),#2FA47B);color:#fff;box-shadow:0 5px 0 #1F7A5C;}
 
-.result-box{display:none;text-align:center;background:#fff;border:2px solid var(--gold);border-radius:10px;padding:24px;margin-top:16px;}
+.result-box{display:none;text-align:center;background:#fff;border:2px solid var(--pink-soft);border-radius:18px;padding:24px;margin-top:16px;}
 .result-box.show{display:block;}
-.result-box .big{font-family:'Noto Serif KR';font-weight:900;font-size:28px;color:var(--cover);}
+.result-box .big{font-family:'Baloo 2';font-weight:800;font-size:26px;color:var(--pink-deep);}
 
-.ox-card{background:#fff;border:1.5px solid var(--paper-line);border-radius:10px;padding:24px;text-align:center;}
-.ox-stat-row{display:flex;justify-content:center;gap:20px;margin-bottom:16px;font-family:'Roboto Mono';font-size:14px;}
+.ox-card{background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:24px;text-align:center;}
+.ox-stat-row{display:flex;justify-content:center;gap:20px;margin-bottom:16px;font-family:'Roboto Mono';font-size:14px;color:var(--sub);}
 .ox-q{font-size:17px;font-weight:700;min-height:60px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;padding:0 10px;}
 .ox-btn-row{display:flex;justify-content:center;gap:16px;}
-.ox-btn{width:88px;height:88px;border-radius:50%;font-size:28px;font-weight:900;border:none;cursor:pointer;color:#fff;}
-.ox-btn.o{background:var(--ok);}
-.ox-btn.x{background:var(--bad);}
+.ox-btn{width:88px;height:88px;border-radius:50%;font-size:28px;font-weight:900;border:none;cursor:pointer;color:#fff;font-family:'Baloo 2';}
+.ox-btn.o{background:linear-gradient(150deg,#5FD6A6,var(--ok));}
+.ox-btn.x{background:linear-gradient(150deg,#FF8FA8,var(--bad));}
 .ox-btn:disabled{opacity:.4;cursor:default;}
-.ox-feedback{margin-top:14px;font-weight:700;min-height:22px;}
-.ox-done{display:none;}
-.ox-done.show{display:block;}
+.ox-feedback{margin-top:14px;font-weight:700;min-height:22px;font-family:'Baloo 2';}
 
+/* ---- 플래시카드 ---- */
+.fc-wrap{text-align:center;}
+.fc-stage{perspective:1000px;max-width:420px;margin:0 auto 16px;}
+.fc-card{position:relative;height:180px;cursor:pointer;}
+.fc-inner{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d;}
+.fc-card.flipped .fc-inner{transform:rotateY(180deg);}
+.fc-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:18px;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;}
+.fc-front{background:linear-gradient(150deg,var(--lav),var(--lav-deep));color:#fff;font-family:'Baloo 2';font-size:22px;font-weight:700;box-shadow:0 6px 0 #5D3FA6;}
+.fc-back{background:#fff;border:2px solid var(--pink-soft);transform:rotateY(180deg);font-size:13.5px;line-height:1.7;color:var(--ink);}
+.fc-nav{display:flex;justify-content:center;gap:10px;align-items:center;font-family:'Roboto Mono';font-size:12.5px;color:var(--sub);}
+
+.controls.no-print{}
 @media print{
   body{background:#fff;padding:0;}
   .no-print{display:none !important;}
@@ -78,13 +106,13 @@ button{font-family:'Noto Sans KR';font-weight:700;font-size:14px;border-radius:6
 #printOnlyBlock{display:none;}
 </style>
 </head>
-<body><div style="position:fixed;top:10px;left:10px;z-index:99999;display:flex;gap:6px;font-family:'Noto Sans KR',sans-serif;"><a href="hub.html" style="background:#1F3D2E;color:#F3EEDD;text-decoration:none;font-size:12px;font-weight:700;padding:6px 12px;border-radius:20px;border:1px solid rgba(243,238,221,0.4);white-space:nowrap;">← 뒤로가기</a><a href="../index.html" style="background:#1F3D2E;color:#F3EEDD;text-decoration:none;font-size:12px;font-weight:700;padding:6px 12px;border-radius:20px;border:1px solid rgba(243,238,221,0.4);white-space:nowrap;">🏠 메인화면</a></div>
+<body><div style="position:fixed;top:10px;left:10px;z-index:99999;display:flex;gap:6px;font-family:'Baloo 2',sans-serif;" class="no-print"><a href="hub.html" style="background:linear-gradient(120deg,#FF7CA3,#9C7FE0);color:#fff;text-decoration:none;font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;white-space:nowrap;">← 뒤로가기</a><a href="../index.html" style="background:linear-gradient(120deg,#FF7CA3,#9C7FE0);color:#fff;text-decoration:none;font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;white-space:nowrap;">🏠 메인화면</a></div>
 
 <div class="wrap">
   <div class="header">
     <div class="eyebrow">Ⅰ. 회계의 기초 · 1단원</div>
-    <h1>1단원 학습지 : 회계의 개념과 종류</h1>
-    <p>교과서 1단원(회계의 기본 개념 / 회계 정보 이용자 / 회계의 종류) 내용을 정리하고, 스스로 풀어보며 채점까지 해보는 학습지입니다.</p>
+    <h1>1단원 학습지 : 회계의 개념과 종류 🌸</h1>
+    <p>교과서 1단원(회계의 기본 개념 / 회계 정보 이용자 / 회계의 종류) 내용을 정리하고, 플래시카드로 복습한 뒤, 스스로 풀어보며 채점까지 해보는 학습지입니다.</p>
     <div class="goal-box">
       <b>✅ 오늘의 학습 목표</b><br>
       · 회계의 개념과 목적을 설명할 수 있다.<br>
@@ -135,9 +163,30 @@ button{font-family:'Noto Sans KR';font-weight:700;font-size:14px;border-radius:6
     </details>
   </div>
 
-  <!-- 2. 문제풀기 -->
+  <!-- 2. 플래시카드 -->
+  <div class="section" id="fcSection">
+    <h2><span class="num">2</span> 용어 플래시카드로 복습하기</h2>
+    <div class="fc-wrap">
+      <div class="fc-stage">
+        <div class="fc-card" id="fcCard">
+          <div class="fc-inner">
+            <div class="fc-face fc-front" id="fcFront"></div>
+            <div class="fc-face fc-back" id="fcBack"></div>
+          </div>
+        </div>
+      </div>
+      <div class="fc-nav">
+        <button class="btn-ghost" id="fcPrev">◀ 이전</button>
+        <span id="fcIdx">1 / 11</span>
+        <button class="btn-ghost" id="fcNext">다음 ▶</button>
+      </div>
+      <div style="font-size:11.5px;color:var(--sub);margin-top:8px;">카드를 탭하면 뒤집혀요. 용어를 보고 뜻을 먼저 떠올려보세요!</div>
+    </div>
+  </div>
+
+  <!-- 3. 문제풀기 -->
   <div class="section" id="quizSection">
-    <h2><span class="num">2</span> 확인 문제 (12문항 · 자동 채점)</h2>
+    <h2><span class="num">3</span> 확인 문제 (20문항 · 자동 채점)</h2>
     <div id="quizList"></div>
     <div class="controls no-print">
       <button class="btn-primary" id="gradeBtn">채점하기</button>
@@ -149,9 +198,9 @@ button{font-family:'Noto Sans KR';font-weight:700;font-size:14px;border-radius:6
     </div>
   </div>
 
-  <!-- 3. OX 스피드 게임 -->
+  <!-- 4. OX 스피드 게임 -->
   <div class="section" id="oxSection">
-    <h2><span class="num">3</span> OX 스피드 게임 (워밍업용, 채점에는 포함되지 않아요)</h2>
+    <h2><span class="num">4</span> OX 스피드 게임 (워밍업용, 채점에는 포함되지 않아요)</h2>
     <div class="ox-card">
       <div class="ox-stat-row">
         <div>문제 <span id="oxIdx">0</span> / <span id="oxTotal">0</span></div>
@@ -170,10 +219,10 @@ button{font-family:'Noto Sans KR';font-weight:700;font-size:14px;border-radius:6
     </div>
   </div>
 
-  <!-- 4. PDF 다운로드 -->
+  <!-- 5. PDF 다운로드 -->
   <div class="section no-print" id="pdfSection">
-    <h2><span class="num">4</span> PDF로 저장하기</h2>
-    <p style="font-size:13px;color:#6b6247;line-height:1.7;">
+    <h2><span class="num">5</span> PDF로 저장하기</h2>
+    <p style="font-size:13px;color:var(--sub);line-height:1.7;">
       아래 버튼을 누르면 인쇄 화면이 열립니다. 인쇄 대화상자에서 <b>"프린터"를 'PDF로 저장(Save as PDF)'</b>으로 바꾸고 저장하면 PDF 파일이 됩니다.
     </p>
     <div class="controls">
@@ -216,6 +265,27 @@ const QUESTIONS = [
   { type:'mc', q:'영리를 목적으로 하지 않는 가정, 학교, 관공서 등에서 이용하는 회계는?',
     opts:['영리 회계','비영리 회계','세무 회계','관리 회계'], answer:1,
     explain:'가정, 학교, 관공서 등 영리를 목적으로 하지 않는 조직은 "비영리 회계"를 이용합니다.' },
+  { type:'mc', q:'재산의 증감을 기록·계산·정리하는 장부 기입 방법을 가리키는 용어는?',
+    opts:['회계','부기','결산','전기'], answer:1,
+    explain:'재산의 증감을 장부에 기록·계산·정리하는 것을 "부기"라고 합니다.' },
+  { type:'mc', q:'다음 중 부기와 회계의 관계를 바르게 설명한 것은?',
+    opts:['부기가 회계보다 더 넓은 개념이다','부기는 회계에 포함되는 개념이다','부기와 회계는 서로 관련이 없다','회계는 부기를 사용하지 않는다'], answer:1,
+    explain:'부기는 회계보다 좁은 개념으로, 회계에 포함됩니다.' },
+  { type:'sa', q:'가정에서 사용하는 것처럼 자기 검증 기능이 없는 불완전한 부기를 무엇이라 하는가?', answers:['단식부기','단식 부기'],
+    explain:'자기 검증 기능이 없는 불완전한 부기는 "단식 부기"입니다.' },
+  { type:'mc', q:'다음 중 영리 회계를 사용하는 조직으로 옳은 것은?',
+    opts:['학교','관공서','제조업','가정'], answer:2,
+    explain:'제조업과 같이 영리를 목적으로 하는 조직은 영리 회계를 사용합니다.' },
+  { type:'mc', q:'다음 중 소비자가 회계 정보를 활용하는 목적으로 가장 적절한 것은?',
+    opts:['주식의 취득·보유·처분 판단','상품 가격과 품질 판단','과세 및 규제','임금·복지 관련 의사결정'], answer:1,
+    explain:'소비자는 상품의 가격과 품질을 판단하기 위해 회계 정보를 활용합니다.' },
+  { type:'sa', q:'기업의 경영 활동을 평가·통제하기 위해 회계 정보를 이용하는 내부 이용자는 경영자와 무엇인가?', answers:['종업원'],
+    explain:'내부 회계 정보 이용자는 경영자와 종업원입니다.' },
+  { type:'mc', q:'재무제표를 화폐액으로 표시해야 하는 이유로 가장 적절한 것은?',
+    opts:['보기에 예뻐서','서로 다른 항목을 같은 단위로 비교하기 위해','법으로 정해서 무조건','계산이 빠르기 때문'], answer:1,
+    explain:'화폐액으로 표시하면 서로 다른 자산·부채 항목을 같은 기준으로 비교·합산할 수 있습니다.' },
+  { type:'sa', q:'세법이 정하는 바에 따라 과세 소득 계산을 목적으로 하는 회계를 무엇이라 하는가?', answers:['세무회계','세무 회계'],
+    explain:'과세 소득 계산이 목적인 회계는 "세무회계"입니다.' },
 ];
 
 function norm(s){ return (s||'').replace(/\s+/g,'').trim(); }
@@ -302,6 +372,41 @@ document.getElementById('retryQuizBtn').addEventListener('click', () => {
 
 renderQuiz();
 
+// ===== 플래시카드 =====
+const FLASHCARDS = [
+  {term:'회계', def:'기업 경영 활동에서 발생하는 현금·물품·채권·채무 등을 화폐 단위로 기록·계산·정리하여 유용한 정보를 제공하는 과정'},
+  {term:'회계 단위', def:'회계 처리를 위해 구분한 장소적 범위'},
+  {term:'회계 연도', def:'재무 상태·경영 성과 계산을 위해 구분한 시간적 범위 (반드시 1.1~12.31일 필요는 없음)'},
+  {term:'재무제표', def:'재무 상태표, 손익 계산서, 현금 흐름표, 자본 변동표, 주석으로 구성되며 화폐액으로 표시함'},
+  {term:'부기', def:'재산의 증감을 기록·계산·정리하는 것. 회계에 포함되는 개념'},
+  {term:'단식 부기', def:'가정 등에서 사용하는, 자기 검증 기능이 없는 불완전한 부기'},
+  {term:'복식 부기', def:'대부분의 기업이 사용하는 완전한 부기로, 자기 검증 기능이 있음'},
+  {term:'재무회계', def:'투자자·채권자 등 외부 이용자를 위한 회계'},
+  {term:'관리회계', def:'경영자 등 내부 이용자를 위한 회계'},
+  {term:'세무회계', def:'정부(세무 당국)를 위한, 과세 소득 계산이 목적인 회계'},
+  {term:'영리 회계 / 비영리 회계', def:'상품매매업·제조업 등은 영리 회계, 가정·학교·관공서 등은 비영리 회계를 이용함'},
+];
+let fcIdx = 0;
+function renderFc(){
+  const f = FLASHCARDS[fcIdx];
+  document.getElementById('fcFront').textContent = f.term;
+  document.getElementById('fcBack').textContent = f.def;
+  document.getElementById('fcIdx').textContent = `${fcIdx+1} / ${FLASHCARDS.length}`;
+  document.getElementById('fcCard').classList.remove('flipped');
+}
+document.getElementById('fcCard').addEventListener('click', () => {
+  document.getElementById('fcCard').classList.toggle('flipped');
+});
+document.getElementById('fcPrev').addEventListener('click', () => {
+  fcIdx = (fcIdx - 1 + FLASHCARDS.length) % FLASHCARDS.length;
+  renderFc();
+});
+document.getElementById('fcNext').addEventListener('click', () => {
+  fcIdx = (fcIdx + 1) % FLASHCARDS.length;
+  renderFc();
+});
+renderFc();
+
 // ===== OX 스피드 게임 =====
 const OX_ITEMS = [
   { s:'회계는 화폐 단위로 기록한다.', a:true },
@@ -314,6 +419,12 @@ const OX_ITEMS = [
   { s:'회계 연도는 반드시 1월 1일부터 12월 31일까지여야 한다.', a:false },
   { s:'채권자는 외부 회계 정보 이용자이다.', a:true },
   { s:'회계 정보의 목적은 이해관계자의 합리적 의사 결정을 돕는 것이다.', a:true },
+  { s:'부기는 회계보다 더 넓은 개념이다.', a:false },
+  { s:'소비자는 내부 회계 정보 이용자이다.', a:false },
+  { s:'재무회계는 외부 이용자를 위한 회계이다.', a:true },
+  { s:'가정에서 사용하는 회계는 영리 회계이다.', a:false },
+  { s:'제조업은 영리 회계를 사용한다.', a:true },
+  { s:'주석은 재무제표에 포함된다.', a:true },
 ];
 
 let oxIdx = 0, oxCorrect = 0, oxStreak = 0, oxOrder = [];
@@ -377,12 +488,13 @@ document.getElementById('oxXBtn').disabled = true;
 
 // ===== PDF(인쇄) =====
 document.getElementById('printQuizBtn').addEventListener('click', () => {
-  document.body.classList.add('print-quiz-mode');
   document.getElementById('summarySection').style.display='none';
+  document.getElementById('fcSection').style.display='none';
   document.getElementById('oxSection').style.display='none';
   document.getElementById('resultBox').classList.remove('show');
   window.print();
   document.getElementById('summarySection').style.display='';
+  document.getElementById('fcSection').style.display='';
   document.getElementById('oxSection').style.display='';
 });
 
@@ -392,9 +504,11 @@ document.getElementById('printResultBtn').addEventListener('click', () => {
     return;
   }
   document.getElementById('summarySection').style.display='none';
+  document.getElementById('fcSection').style.display='none';
   document.getElementById('oxSection').style.display='none';
   window.print();
   document.getElementById('summarySection').style.display='';
+  document.getElementById('fcSection').style.display='';
   document.getElementById('oxSection').style.display='';
 });
 </script>

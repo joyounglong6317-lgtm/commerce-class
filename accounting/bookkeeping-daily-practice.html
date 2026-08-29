@@ -5,100 +5,118 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>데일리 분개 트레이닝 : 회계원리 문제은행</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700;900&family=Noto+Sans+KR:wght@400;500;700&family=Roboto+Mono:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Gowun+Dodum&family=Roboto+Mono:wght@500;700&display=swap');
 :root{
-  --cover:#1F3D2E; --cover-dark:#152A20; --paper:#F3EEDD; --paper-line:#DDD5B8;
-  --ink:#223447; --gold:#B8892B; --debit:#A13D3D; --credit:#2B5F8A;
-  --ok:#2F6B5E; --bad:#7A2E2E;
+  --bg-a:#FFE3EC; --bg-b:#E9DFFB; --bg-c:#FFF3E4;
+  --pink:#FF7CA3; --pink-deep:#E5477B; --pink-soft:#FFD9E6;
+  --lav:#9C7FE0; --lav-deep:#7C5CD1; --lav-soft:#E7DEFB;
+  --mint:#4FBE93; --peach:#FF9E80;
+  --ink:#5B4B66; --sub:#9A8CA8;
+  --card:#FFFCFA; --line:#F6DCE9;
+  --debit:#E5477B; --credit:#5B7FE8;
+  --ok:#2FA47B; --bad:#E5477B;
 }
 *{box-sizing:border-box;}
-body{margin:0;font-family:'Noto Sans KR',sans-serif;background:var(--cover);color:var(--ink);min-height:100vh;padding:24px 12px 60px;}
+body{
+  margin:0;font-family:'Gowun Dodum',sans-serif;color:var(--ink);min-height:100vh;padding:24px 12px 60px;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255,182,213,.5), transparent 40%),
+    radial-gradient(circle at 90% 20%, rgba(197,168,242,.5), transparent 42%),
+    linear-gradient(160deg, var(--bg-a), var(--bg-b) 55%, var(--bg-c));
+  background-attachment:fixed;
+}
 .wrap{max-width:960px;margin:0 auto;}
-.cover-header{background:var(--cover);border:2px solid var(--gold);border-radius:10px;padding:22px 26px;color:var(--paper);margin-bottom:18px;position:relative;}
-.cover-header::before{content:"帳";position:absolute;right:20px;top:14px;font-family:'Noto Serif KR';font-size:52px;color:rgba(184,137,43,0.25);}
-.eyebrow{font-size:12px;letter-spacing:3px;color:var(--gold);font-weight:700;margin-bottom:6px;}
-.cover-header h1{font-family:'Noto Serif KR',serif;font-weight:900;font-size:24px;margin:0 0 4px;}
-.cover-header p{margin:0;font-size:13px;opacity:.85;line-height:1.6;}
-.card{background:var(--paper);border:1.5px solid var(--paper-line);border-radius:10px;padding:22px 24px;margin-bottom:18px;box-shadow:0 3px 0 var(--paper-line);}
-.tip{font-size:12.5px;color:#6b6247;background:rgba(184,137,43,0.12);border:1px dashed var(--gold);border-radius:8px;padding:8px 12px;margin-bottom:16px;}
+.cover-header{
+  background:linear-gradient(120deg, var(--pink), var(--lav) 100%);
+  border-radius:26px;padding:22px 26px;color:#fff;margin-bottom:18px;position:relative;overflow:hidden;
+  box-shadow:0 10px 26px rgba(200,120,170,.28);
+}
+.cover-header::after{content:"📔";position:absolute;right:20px;top:14px;font-size:42px;opacity:.5;}
+.eyebrow{font-size:12px;letter-spacing:2px;color:#fff;font-weight:700;margin-bottom:6px;font-family:'Baloo 2';}
+.cover-header h1{font-family:'Baloo 2';font-weight:800;font-size:22px;margin:0 0 4px;}
+.cover-header p{margin:0;font-size:13px;opacity:.95;line-height:1.6;}
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:22px;padding:22px 24px;margin-bottom:18px;box-shadow:0 6px 0 var(--line);}
+.tip{font-size:12.5px;color:var(--sub);background:var(--lav-soft);border:1px dashed var(--lav);border-radius:14px;padding:9px 14px;margin-bottom:16px;}
 
 /* Day 그리드 */
-.day-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;}
-.day-card{background:#fff;border:1.5px solid var(--paper-line);border-radius:10px;padding:16px;cursor:pointer;transition:transform .1s, box-shadow .1s;}
-.day-card:hover{transform:translateY(-3px);box-shadow:0 6px 0 var(--paper-line);}
-.day-card .dnum{font-family:'Roboto Mono';font-weight:700;color:var(--gold);font-size:12px;letter-spacing:1px;}
-.day-card h3{font-family:'Noto Serif KR';font-size:16px;margin:6px 0 4px;color:var(--cover);}
-.day-card .dmeta{font-size:12px;color:#8a8264;}
-.day-card .dbest{margin-top:8px;font-size:11.5px;color:var(--ok);font-weight:700;}
+.day-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
+.day-card{background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:16px;cursor:pointer;transition:transform .12s, box-shadow .12s;position:relative;}
+.day-card:hover{transform:translateY(-4px);box-shadow:0 8px 0 var(--pink-soft);}
+.day-card .dnum{font-family:'Roboto Mono';font-weight:700;color:var(--pink-deep);font-size:12px;letter-spacing:1px;}
+.day-card h3{font-family:'Baloo 2';font-size:15.5px;margin:6px 0 4px;color:var(--ink);}
+.day-card .dmeta{font-size:12px;color:var(--sub);}
+.day-card .dbadge{position:absolute;top:12px;right:12px;font-size:22px;}
 
 /* 상태바 */
 .status-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
-.status-chip{flex:1;min-width:110px;background:var(--paper);border:1.5px solid var(--paper-line);border-left:5px solid var(--gold);border-radius:6px;padding:9px 12px;}
-.status-chip .lbl{font-size:10.5px;color:#7a7256;font-weight:700;letter-spacing:1px;}
-.status-chip .val{font-family:'Roboto Mono',monospace;font-size:16px;font-weight:700;}
+.status-chip{flex:1;min-width:110px;background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:9px 12px;box-shadow:0 4px 0 var(--line);}
+.status-chip .lbl{font-size:10.5px;color:var(--sub);font-weight:700;letter-spacing:1px;font-family:'Baloo 2';}
+.status-chip .val{font-family:'Roboto Mono',monospace;font-size:16px;font-weight:700;color:var(--pink-deep);}
 
-.progress-track{height:8px;background:rgba(255,255,255,0.2);border-radius:4px;overflow:hidden;margin-bottom:6px;}
-.progress-fill{height:100%;background:var(--gold);width:0%;transition:width .3s;}
-.progress-txt{font-size:12px;color:var(--paper);opacity:.8;text-align:right;margin-bottom:14px;}
+.progress-track{height:9px;background:rgba(255,255,255,0.4);border-radius:6px;overflow:hidden;margin-bottom:6px;}
+.progress-fill{height:100%;background:linear-gradient(90deg,#FFD3E0,#FF7CA3);width:0%;transition:width .3s;}
+.progress-txt{font-size:12px;color:var(--ink);opacity:.75;text-align:right;margin-bottom:14px;}
 
-.episode-tag{display:inline-block;font-family:'Roboto Mono',monospace;font-size:12px;font-weight:700;color:var(--cover);background:rgba(31,61,46,0.08);border:1px solid var(--cover);border-radius:20px;padding:3px 12px;margin-bottom:10px;}
+.episode-tag{display:inline-block;font-family:'Baloo 2';font-size:12px;font-weight:700;color:var(--pink-deep);background:var(--pink-soft);border-radius:20px;padding:3px 12px;margin-bottom:10px;}
 .narrative{font-size:16px;line-height:1.7;margin:0 0 18px;}
-.narrative b{color:var(--cover);}
+.narrative b{color:var(--pink-deep);}
 
 .line-block{margin-bottom:10px;}
-.line-title{font-size:12px;font-weight:700;margin-bottom:6px;}
+.line-title{font-size:12px;font-weight:700;margin-bottom:6px;font-family:'Baloo 2';}
 .line-title.debit{color:var(--debit);}
 .line-title.credit{color:var(--credit);}
 .slot-row{display:flex;gap:8px;align-items:center;margin-bottom:6px;}
-select{flex:1;padding:9px 10px;font-size:14px;border:1.5px solid var(--paper-line);border-radius:6px;background:#fff;color:var(--ink);font-family:inherit;}
-.slot-amt{font-family:'Roboto Mono',monospace;font-weight:700;font-size:13.5px;background:#fff;border:1.5px dashed var(--paper-line);border-radius:6px;padding:8px 10px;min-width:110px;text-align:right;}
-.t-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;border:2px solid var(--ink);border-radius:6px;padding:14px;margin-bottom:14px;}
-.t-wrap.debit-bg{}
+select{flex:1;padding:9px 10px;font-size:14px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-family:inherit;}
+.slot-amt{font-family:'Roboto Mono',monospace;font-weight:700;font-size:13.5px;background:#fff;border:1.5px dashed var(--line);border-radius:10px;padding:8px 10px;min-width:110px;text-align:right;}
+.t-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;border:2px solid var(--pink-soft);border-radius:16px;padding:14px;margin-bottom:14px;background:#fff;}
 @media (max-width:620px){.t-wrap{grid-template-columns:1fr;}}
 
 .mcq-choices{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
-.mcq-btn{text-align:left;padding:12px 14px;border:1.5px solid var(--paper-line);border-radius:8px;background:#fff;font-size:14.5px;cursor:pointer;font-family:inherit;}
-.mcq-btn:hover{border-color:var(--gold);}
-.mcq-btn.selected{border-color:var(--cover);background:rgba(31,61,46,0.06);}
+.mcq-btn{text-align:left;padding:12px 14px;border:1.5px solid var(--line);border-radius:14px;background:#fff;font-size:14.5px;cursor:pointer;font-family:inherit;}
+.mcq-btn:hover{border-color:var(--pink);}
+.mcq-btn.selected{border-color:var(--pink-deep);background:var(--pink-soft);}
 
 .btn-row{display:flex;gap:10px;flex-wrap:wrap;}
-button{font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:14px;border-radius:6px;padding:11px 20px;cursor:pointer;border:none;transition:transform .08s;}
-button:active{transform:scale(.97);}
-.btn-primary{background:var(--gold);color:#fff;}
-.btn-ghost{background:transparent;color:var(--cover);border:1.5px solid var(--cover);}
+button{font-family:'Baloo 2';font-weight:700;font-size:14px;border-radius:16px;padding:11px 20px;cursor:pointer;border:none;transition:transform .1s;}
+button:active{transform:scale(.96);}
+.btn-primary{background:linear-gradient(120deg,var(--pink),var(--pink-deep));color:#fff;box-shadow:0 5px 0 #C43567;}
+.btn-ghost{background:#fff;color:var(--pink-deep);border:1.8px solid var(--pink-soft);}
 
-.hint-box{display:none;margin-top:14px;padding:14px 16px;background:#fff;border:1px solid var(--paper-line);border-radius:8px;font-size:12.5px;line-height:1.7;}
+.hint-box{display:none;margin-top:14px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-radius:12px;font-size:12.5px;line-height:1.7;}
 .hint-box.show{display:block;}
 .hint-box table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px;}
-.hint-box th,.hint-box td{border:1px solid var(--paper-line);padding:6px 8px;text-align:center;}
-.hint-box th{background:rgba(184,137,43,0.15);}
+.hint-box th,.hint-box td{border:1px solid var(--line);padding:6px 8px;text-align:center;}
+.hint-box th{background:var(--pink-soft);}
 
-.feedback{border-radius:8px;padding:16px 18px;margin-top:14px;font-size:14px;line-height:1.6;display:none;}
-.feedback.correct{display:block;background:rgba(47,107,94,0.1);border:1.5px solid var(--ok);color:var(--ok);}
-.feedback.wrong{display:block;background:rgba(122,46,46,0.08);border:1.5px solid var(--bad);color:var(--bad);}
+.feedback{border-radius:14px;padding:16px 18px;margin-top:14px;font-size:14px;line-height:1.6;display:none;}
+.feedback.correct{display:block;background:rgba(47,164,123,.12);border:1.5px solid var(--ok);color:var(--ok);}
+.feedback.wrong{display:block;background:rgba(229,71,123,.1);border:1.5px solid var(--bad);color:var(--bad);}
 .feedback .exp{color:var(--ink);margin-top:6px;font-weight:400;}
-.stamp{display:inline-block;font-family:'Noto Serif KR';font-weight:900;border:3px solid var(--ok);color:var(--ok);border-radius:8px;padding:2px 10px;transform:rotate(-6deg);font-size:13px;margin-right:8px;}
+.stamp{display:inline-block;font-family:'Baloo 2';font-weight:800;border:3px solid var(--ok);color:var(--ok);border-radius:10px;padding:2px 10px;transform:rotate(-6deg);font-size:13px;margin-right:8px;}
 
 .summary-badge{text-align:center;padding:16px 0;}
-.summary-badge .pct{font-family:'Noto Serif KR';font-weight:900;font-size:46px;color:var(--cover);}
-.summary-badge .desc{font-size:14px;color:var(--gold);font-weight:700;margin-top:2px;}
+.summary-badge .pct{font-family:'Baloo 2';font-weight:800;font-size:44px;color:var(--pink-deep);}
+.summary-badge .desc{font-size:14px;color:var(--peach);font-weight:700;margin-top:2px;font-family:'Baloo 2';}
+.summary-badge .emoji-badge{font-size:52px;margin-top:8px;}
 .hidden{display:none !important;}
-.back-link{color:var(--paper);opacity:.8;font-size:12.5px;cursor:pointer;text-decoration:underline;margin-bottom:10px;display:inline-block;}
+.back-link{color:var(--ink);opacity:.85;font-size:12.5px;cursor:pointer;text-decoration:underline;margin-bottom:10px;display:inline-block;font-family:'Gowun Dodum';}
+.streak-banner{background:var(--card);border:1.5px dashed var(--pink);border-radius:14px;padding:9px 14px;font-size:12.5px;color:var(--sub);margin-bottom:16px;}
 </style>
 </head>
-<body><div style="position:fixed;top:10px;left:10px;z-index:99999;display:flex;gap:6px;font-family:'Noto Sans KR',sans-serif;"><a href="hub.html" style="background:#1F3D2E;color:#F3EEDD;text-decoration:none;font-size:12px;font-weight:700;padding:6px 12px;border-radius:20px;border:1px solid rgba(243,238,221,0.4);white-space:nowrap;">← 뒤로가기</a><a href="../index.html" style="background:#1F3D2E;color:#F3EEDD;text-decoration:none;font-size:12px;font-weight:700;padding:6px 12px;border-radius:20px;border:1px solid rgba(243,238,221,0.4);white-space:nowrap;">🏠 메인화면</a></div>
+<body><div style="position:fixed;top:10px;left:10px;z-index:99999;display:flex;gap:6px;font-family:'Baloo 2',sans-serif;"><a href="hub.html" style="background:linear-gradient(120deg,#FF7CA3,#9C7FE0);color:#fff;text-decoration:none;font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;white-space:nowrap;">← 뒤로가기</a><a href="../index.html" style="background:linear-gradient(120deg,#FF7CA3,#9C7FE0);color:#fff;text-decoration:none;font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;white-space:nowrap;">🏠 메인화면</a></div>
 
 <div class="wrap">
 
   <div class="cover-header">
     <div class="eyebrow">회계원리 · 데일리 문제은행</div>
-    <h1>데일리 분개 트레이닝</h1>
-    <p>Day 1부터 Day 7까지, 하루에 한 세트씩 풀어보는 분개·개념 연습장입니다. 자산·부채·자본부터 수익·비용, 응용 거래, 개념 확인 퀴즈까지 총 60문항이 준비되어 있어요.</p>
+    <h1>데일리 분개 트레이닝 🌷</h1>
+    <p>Day 1부터 Day 8까지, 하루에 한 세트씩 풀어보는 분개·개념 연습장입니다. 자산·부채·자본부터 수익·비용, 응용 거래, 종합 리뷰, 개념 확인 퀴즈까지 총 64문항이 준비되어 있어요. 완료한 Day마다 뱃지를 모아보세요!</p>
   </div>
 
   <!-- 홈 화면 -->
   <div id="homeScreen">
     <div class="tip">💡 <b>추천 사용법</b>: 하루에 Day 1세트(8~10문항)씩 과제로 내주면 꾸준한 복습 습관을 기르기 좋아요. 순서대로 풀지 않아도 됩니다.</div>
+    <div class="streak-banner" id="streakBanner"></div>
     <div class="card">
       <div class="day-grid" id="dayGrid"></div>
     </div>
@@ -155,6 +173,7 @@ button:active{transform:scale(.97);}
       <div class="summary-badge">
         <div class="pct" id="summaryPct">-</div>
         <div class="desc" id="summaryDesc">-</div>
+        <div class="emoji-badge" id="summaryBadge"></div>
         <div style="font-family:'Roboto Mono',monospace;margin-top:6px;font-size:13px;" id="summaryDetail"></div>
       </div>
       <div class="btn-row" style="justify-content:center;">
@@ -251,6 +270,16 @@ const DAYS = [
   {q:"재산법에 의한 당기순이익 계산식으로 옳은 것은?", choices:["총수익 - 총비용","기말자본 - 기초자본","기초자본 - 기말자본","총비용 - 총수익"], answer:1, exp:"재산법은 기말자본에서 기초자본을 뺀 값으로 당기순손익을 계산합니다."},
   {q:"다음 중 회계상 거래이지만 '일반적인 거래'는 아닌 것은?", choices:["상품을 외상으로 매입하다","화재로 상품이 소실되다","상품을 현금으로 매출하다","급여를 현금으로 지급하다"], answer:1, exp:"화재·도난 등에 의한 손실은 회계상 거래이지만 일상적인 거래는 아닙니다."},
   {q:"다음 중 회계상 거래에 해당하지 않는 것은?", choices:["현금 50,000원을 분실하다","상품을 외상으로 매입하다","상품 100,000원을 매입하기로 계약(주문)하다","비품을 현금으로 구입하다"], answer:2, exp:"단순한 계약·주문은 자산·부채·자본의 증감이 없으므로 회계상 거래가 아닙니다."}
+]},
+{ id:8, title:"종합 리뷰 도전", type:"entry", problems:[
+  {tag:"8-1", text:"카페 확장을 위해 추가로 현금 <b>700,000원</b>을 자본금으로 출자했다.", debit:[{a:"현금",m:700000}], credit:[{a:"자본금",m:700000}], exp:"현금(자산) 증가, 자본금(자본) 증가입니다."},
+  {tag:"8-2", text:"제빵 재료(상품) <b>400,000원</b>을 매입하고, 대금은 어음을 발행하여 지급했다.", debit:[{a:"상품",m:400000}], credit:[{a:"지급어음",m:400000}], exp:"상품(자산) 증가, 지급어음(부채) 증가입니다."},
+  {tag:"8-3", text:"원가 <b>350,000원</b>인 상품을 <b>420,000원</b>에 매출하고, 대금은 전액 보통예금으로 입금받았다.", debit:[{a:"보통예금",m:420000}], credit:[{a:"상품",m:350000},{a:"상품매출이익",m:70000}], exp:"보통예금(자산) 증가, 상품(자산) 감소, 차익은 상품매출이익(수익)입니다."},
+  {tag:"8-4", text:"이번 달 수도광열비 <b>45,000원</b>을 보통예금에서 이체하여 지급했다.", debit:[{a:"수도광열비",m:45000}], credit:[{a:"보통예금",m:45000}], exp:"수도광열비(비용) 발생, 보통예금(자산) 감소입니다."},
+  {tag:"8-5", text:"거래처의 받을어음 <b>200,000원</b>이 만기가 되어 현금으로 회수했다.", debit:[{a:"현금",m:200000}], credit:[{a:"받을어음",m:200000}], exp:"현금(자산) 증가, 받을어음(자산) 감소입니다."},
+  {tag:"8-6", text:"단기차입금 <b>500,000원</b>과 이자 <b>25,000원</b>을 보통예금에서 이체하여 상환했다.", debit:[{a:"단기차입금",m:500000},{a:"이자비용",m:25000}], credit:[{a:"보통예금",m:525000}], exp:"단기차입금(부채) 감소, 이자비용(비용) 발생, 보통예금(자산) 감소입니다."},
+  {tag:"8-7", text:"매장 인테리어 소품(비품) <b>300,000원</b>을 구입하고, 대금 중 <b>150,000원</b>은 현금, 나머지는 월말에 지급하기로 했다.", debit:[{a:"비품",m:300000}], credit:[{a:"현금",m:150000},{a:"미지급금",m:150000}], exp:"비품(자산) 증가, 대금 일부는 현금 지급, 나머지는 미지급금(부채) 증가입니다."},
+  {tag:"8-8", text:"원가 <b>280,000원</b>인 상품을 <b>330,000원</b>에 거래처에 외상으로 매출했다.", debit:[{a:"외상매출금",m:330000}], credit:[{a:"상품",m:280000},{a:"상품매출이익",m:50000}], exp:"외상매출금(자산) 증가, 상품(자산) 감소, 상품매출이익(수익) 발생입니다."}
 ]}
 ];
 
@@ -261,6 +290,20 @@ function buildOptGroups(){
   return ACCOUNTS.map(g=>`<optgroup label="${g.g}">${g.list.map(a=>`<option value="${a}">${a}</option>`).join("")}</optgroup>`).join("");
 }
 
+function badgeKey(id){ return 'daily_badge_'+id; }
+function badgeEmoji(pct){
+  if(pct===100) return '🥇';
+  if(pct>=80) return '🥈';
+  if(pct>=60) return '🥉';
+  return '';
+}
+function getBadge(id){ return localStorage.getItem(badgeKey(id)) || ''; }
+
+function computeStreak(){
+  const done = DAYS.filter(d=>getBadge(d.id)).length;
+  return done;
+}
+
 function renderHome(){
   document.getElementById('homeScreen').classList.remove('hidden');
   document.getElementById('playScreen').classList.add('hidden');
@@ -268,10 +311,13 @@ function renderHome(){
   const grid = document.getElementById('dayGrid');
   grid.innerHTML = DAYS.map(d=>`
     <div class="day-card" onclick="startDay(${d.id})">
+      <div class="dbadge">${getBadge(d.id)}</div>
       <div class="dnum">DAY ${d.id}</div>
       <h3>${d.title}</h3>
       <div class="dmeta">${d.problems.length}문항 · ${d.type==='mcq'?'객관식':'분개'}</div>
     </div>`).join("");
+  const doneCount = computeStreak();
+  document.getElementById('streakBanner').innerHTML = `🏅 지금까지 <b>${doneCount} / ${DAYS.length}</b>개 Day를 완료했어요! 뱃지를 모두 모아보세요.`;
 }
 
 function startDay(id){
@@ -416,6 +462,15 @@ function finishDay(){
   document.getElementById('summaryPct').textContent = pct+"%";
   document.getElementById('summaryDesc').textContent = desc;
   document.getElementById('summaryDetail').textContent = `Day ${curDay.id} · ${correctCount} / ${total}문항 정답 · 획득 점수 ${score}점`;
+
+  const emoji = badgeEmoji(pct);
+  const prevBadge = getBadge(curDay.id);
+  const rank = ['','🥉','🥈','🥇'];
+  if(emoji && rank.indexOf(emoji) >= rank.indexOf(prevBadge)){
+    localStorage.setItem(badgeKey(curDay.id), emoji);
+  }
+  document.getElementById('summaryBadge').textContent = getBadge(curDay.id) || '💧';
+
   if(window.ClassHub){
     window.ClassHub.logScore('데일리 분개 트레이닝', `Day ${curDay.id}`, correctCount, total, score);
   }
