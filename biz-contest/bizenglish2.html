@@ -269,15 +269,65 @@ const COL_SCORES = 'speaking2_scores';
 const SESSION_KEY = 'speaking2_userid';
 const ADMIN_DEFAULT_PW = '1234';
 // 관리자 비밀번호를 잊었을 때 재설정에 사용하는 복구 코드입니다. 원하는 값으로 바꿔서 사용하세요.
-const ADMIN_RECOVERY_CODE = 'JOYOUNGLONG2026';
+/* 복구 코드는 원문 대신 해시로만 저장해요 (소스 보기로 코드를 알아낼 수 없게). 현재 코드는 그대로입니다.
+   코드를 바꾸려면: 이 페이지에서 F12 > Console 에 makeRecoveryHash('새코드') 입력 → 나온 값을 아래에 붙여넣기 */
+const ADMIN_RECOVERY_HASH = 'ffccef78e67e593f5e21fdb25cbc51e3b43afe2bd4036d0486d5297de9526bf1';
 
 let db = null;
 let currentUser = null; // {userid, name, role, approved}
 
+/* SHA-256 (http 주소처럼 crypto.subtle을 쓸 수 없는 환경용 - 결과는 crypto.subtle과 똑같음) */
+function sha256HexFallback(bytes) {
+    const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+    const H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+    const len = bytes.length, total = ((len + 9 + 63) >> 6) << 6, m = new Uint8Array(total);
+    m.set(bytes); m[len] = 0x80;
+    const bits = len * 8, dv = new DataView(m.buffer);
+    dv.setUint32(total - 8, Math.floor(bits / 4294967296)); dv.setUint32(total - 4, bits >>> 0);
+    const w = new Uint32Array(64), rot = (x, n) => (x >>> n) | (x << (32 - n));
+    for (let o = 0; o < total; o += 64) {
+        for (let i = 0; i < 16; i++) w[i] = dv.getUint32(o + i * 4);
+        for (let i = 16; i < 64; i++) {
+            const s0 = rot(w[i-15], 7) ^ rot(w[i-15], 18) ^ (w[i-15] >>> 3), s1 = rot(w[i-2], 17) ^ rot(w[i-2], 19) ^ (w[i-2] >>> 10);
+            w[i] = (w[i-16] + s0 + w[i-7] + s1) >>> 0;
+        }
+        let [a, b, c, d, e, f, g, h] = H;
+        for (let i = 0; i < 64; i++) {
+            const t1 = (h + (rot(e, 6) ^ rot(e, 11) ^ rot(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + w[i]) >>> 0;
+            const t2 = ((rot(a, 2) ^ rot(a, 13) ^ rot(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) >>> 0;
+            h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+        }
+        H[0] = (H[0] + a) >>> 0; H[1] = (H[1] + b) >>> 0; H[2] = (H[2] + c) >>> 0; H[3] = (H[3] + d) >>> 0;
+        H[4] = (H[4] + e) >>> 0; H[5] = (H[5] + f) >>> 0; H[6] = (H[6] + g) >>> 0; H[7] = (H[7] + h) >>> 0;
+    }
+    return H.map(x => x.toString(16).padStart(8, '0')).join('');
+}
+async function sha256Hex(text) {
+    const enc = new TextEncoder().encode(text);
+    if (window.crypto && window.crypto.subtle) {
+        try { const buf = await crypto.subtle.digest('SHA-256', enc); return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join(''); } catch (e) {}
+    }
+    return sha256HexFallback(enc);
+}
+/* 아이디로 쓸 수 없는 글자(파이어베이스 문서 이름 규칙) 확인 */
+function badUserId(id) { return !id || id.length > 40 || /[\/.#$\[\]\s]/.test(id); }
+function makeRecoveryHash(code) { sha256Hex('recovery:' + code).then(h => console.log('새 복구 코드 해시:', h)); }
+
+function showBootError(err) {
+    console.error(err);
+    const msg = String((err && (err.code || err.message)) || err);
+    const why = /permission/i.test(msg) ? '파이어베이스 보안 규칙(Firestore Rules)이 읽기·쓰기를 막고 있어요. 파이어베이스 콘솔 > Firestore > 규칙을 확인해 주세요.'
+        : /offline|network|unavailable|Failed to get document/i.test(msg) ? '인터넷(또는 학교망)에서 파이어베이스 서버에 연결하지 못했어요. 다른 네트워크(휴대폰 데이터)로 열어 보세요.'
+        : '아래 오류 내용을 선생님께 알려 주세요.';
+    const box = document.createElement('div');
+    box.style.cssText = 'max-width:520px;margin:80px auto;padding:24px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;font-family:sans-serif;text-align:center;line-height:1.7';
+    box.innerHTML = '<h2 style="font-size:20px;font-weight:800;margin:0 0 8px">⚠️ 앱을 시작하지 못했어요</h2><p style="color:#475569;font-size:14px;margin:0 0 10px"></p><pre style="background:#f1f5f9;padding:10px;border-radius:8px;font-size:12px;white-space:pre-wrap;text-align:left"></pre><button style="margin-top:12px;padding:10px 18px;border-radius:10px;background:#4f46e5;color:#fff;font-weight:700;border:0;cursor:pointer" onclick="location.reload()">다시 시도</button>';
+    box.querySelector('p').textContent = why; box.querySelector('pre').textContent = msg;
+    const ld = document.getElementById('loadingScreen'); if (ld) ld.classList.add('hidden');
+    const app = document.getElementById('app'); if (app) { app.innerHTML = ''; app.appendChild(box); } else document.body.appendChild(box);
+}
 async function hashPassword(pw) {
-  const enc = new TextEncoder().encode('speaking2_salt_' + pw);
-  const buf = await crypto.subtle.digest('SHA-256', enc);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return sha256Hex('speaking2_salt_' + pw);
 }
 
 async function ensureAdminExists() {
@@ -300,16 +350,12 @@ function keywordsOf(text){
 }
 
 function highlightMatches(userAns, modelAns){
-  const kws = keywordsOf(modelAns);
-  const userLower = userAns.toLowerCase();
-  let html = modelAns;
-  kws.forEach(k=>{
-    if(userLower.includes(k)){
-      const re = new RegExp("("+k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","ig");
-      html = html.replace(re, "<span class='kw'>$1</span>");
-    }
-  });
-  return html;
+  const userLower = (userAns||"").toLowerCase();
+  const kws = keywordsOf(modelAns).filter(k=>userLower.includes(k)).sort((a,b)=>b.length-a.length);
+  const safe = escapeHtml(modelAns);
+  if(!kws.length) return safe;
+  const re = new RegExp("("+kws.map(k=>escapeHtml(k).replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")+")","ig");
+  return safe.replace(/(<[^>]*>)|([^<]+)/g, (m, tag, txt)=> tag ? tag : txt.replace(re, "<span class='kw'>$1</span>"));
 }
 
 /* ============ 저장 (Firestore) ============ */
@@ -320,7 +366,7 @@ async function loadMyScores(){
     const streak = {};
     snap.forEach(doc=>{
       const d = doc.data();
-      const key = (d.date||'').slice(0,10);
+      const key = d.date ? localYmd(new Date(d.date)) : '';
       if(!key) return;
       if(!streak[key] || d.total > streak[key].total) streak[key] = { setNo: d.setNo, total: d.total, maxTotal: d.maxTotal };
     });
@@ -342,9 +388,10 @@ async function saveScoreToFirestore(setNo, setTitle, total, maxTotal){
 }
 
 /* ============ 유틸 ============ */
+function localYmd(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function todayIndex(){
   const d = new Date();
-  const day = Math.floor(d.getTime()/86400000);
+  const day = Math.floor((d.getTime() - d.getTimezoneOffset()*60000)/86400000);
   return day % SETS.length;
 }
 function fmtTime(sec){
@@ -452,7 +499,7 @@ function masthead(withUser){
 
   if(withUser && currentUser){
     const bar = el("div","userbar");
-    const who = el("div","who", `${currentUser.name} 님<span class="role">${currentUser.role==='admin'?'교사/관리자':'학생'}</span>`);
+    const who = el("div","who", `${escapeHtml(currentUser.name)} 님<span class="role">${currentUser.role==='admin'?'교사/관리자':'학생'}</span>`);
     bar.appendChild(who);
     const btnRow = el("div","row");
     if(currentUser.role==='admin'){
@@ -465,7 +512,7 @@ function masthead(withUser){
     btnRow.appendChild(logoutBtn);
     bar.appendChild(btnRow);
     wrap.appendChild(bar);
-    if(state.view!=="admin"){
+    if(state.view!=="admin" && state.view!=="pending"){
       wrap.appendChild(downloadButtons());
       wrap.appendChild(el("p","footnote","※ 다운로드가 자동으로 시작되지 않으면, 링크가 새 탭에서 열립니다 — 그 탭에서 Ctrl/Cmd+S로 저장하거나 '다른 이름으로 저장'을 눌러주세요."));
     }
@@ -477,11 +524,11 @@ function masthead(withUser){
     const base = new Date();
     for(let i=13;i>=0;i--){
       const d = new Date(base); d.setDate(base.getDate()-i);
-      last14.push(d.toISOString().slice(0,10));
+      last14.push(localYmd(d));
     }
     last14.forEach(key=>{
       const done = !!state.streak[key];
-      const dot = el("div", "stamp-dot"+(done?" done":""), done ? "印" : (new Date(key)).getDate());
+      const dot = el("div", "stamp-dot"+(done?" done":""), done ? "印" : +key.slice(8));
       dot.title = key + (done ? ` · ${state.streak[key].total}/20점` : "");
       streakRow.appendChild(dot);
     });
@@ -828,7 +875,7 @@ function resultView(){
     const rub = set.rubric || { c:3, p:0.5, g:0.5 };
     const row = el("div","result-row");
     row.appendChild(el("div","result-q", `Q${i+1}. ${q[0]}`));
-    row.appendChild(el("div","result-you", "내 답변: " + (state.answers[i] ? state.answers[i] : "(답변 없음)")));
+    row.appendChild(el("div","result-you", "내 답변: " + (state.answers[i] ? escapeHtml(state.answers[i]) : "(답변 없음)")));
     row.appendChild(el("div","result-model", "모범답안: " + highlightMatches(state.answers[i]||"", q[1])));
 
     const scoreWrap = el("div");
@@ -839,7 +886,7 @@ function resultView(){
         const picker = el("div","score-picker");
         rub.levels.forEach(lv=>{
           const b = el("button",null,`${lv.label} ${lv.point}`);
-          b.onclick = ()=>{ state.scores[i][key]=lv.point; renderScoreState(); };
+          b.onclick = ()=>{ state.scores[i][key]=lv.point; picker.querySelectorAll("button").forEach(x=>x.classList.remove("active")); b.classList.add("active"); renderScoreState(); };
           if(state.scores[i][key]===lv.point) b.classList.add("active");
           picker.appendChild(b);
         });
@@ -850,7 +897,7 @@ function resultView(){
       const cPicker = el("div","score-picker");
       [0,rub.c].forEach(v=>{
         const b = el("button",null,v+"점");
-        b.onclick = ()=>{ state.scores[i].c=v; renderScoreState(); };
+        b.onclick = ()=>{ state.scores[i].c=v; cPicker.querySelectorAll("button").forEach(x=>x.classList.remove("active")); b.classList.add("active"); renderScoreState(); };
         if(state.scores[i].c===v) b.classList.add("active");
         cPicker.appendChild(b);
       });
@@ -861,7 +908,8 @@ function resultView(){
       [["P",0],["P",rub.p],["G",0],["G",rub.g]].forEach(([k,v])=>{
         const b = el("button",null,`${k} ${v}`);
         const key = k.toLowerCase();
-        b.onclick = ()=>{ state.scores[i][key]=v; renderScoreState(); };
+        b.dataset.k = key;
+        b.onclick = ()=>{ state.scores[i][key]=v; pgPicker.querySelectorAll(`button[data-k="${key}"]`).forEach(x=>x.classList.remove("active")); b.classList.add("active"); renderScoreState(); };
         if(state.scores[i][key]===v) b.classList.add("active");
         pgPicker.appendChild(b);
       });
@@ -985,6 +1033,7 @@ function authView(){
 
 async function doLogin(userid, password){
   if(!userid || !password){ showAuthMsg("아이디와 비밀번호를 입력해주세요.", false); render(); return; }
+  if(badUserId(userid)){ showAuthMsg("아이디 또는 비밀번호가 일치하지 않습니다.", false); render(); return; }
   try{
     const doc = await db.collection(COL_USERS).doc(userid).get();
     if(!doc.exists){ showAuthMsg("아이디 또는 비밀번호가 일치하지 않습니다.", false); render(); return; }
@@ -999,6 +1048,7 @@ async function doLogin(userid, password){
 
 async function doSignup(userid, password, name){
   if(!userid || !password || !name){ showAuthMsg("모든 항목을 입력해주세요.", false); render(); return; }
+  if(badUserId(userid)){ showAuthMsg("아이디에는 / . # $ [ ] 기호와 띄어쓰기를 쓸 수 없어요. (영문·숫자 40자 이내)", false); render(); return; }
   if(password.length < 4){ showAuthMsg("비밀번호는 4자 이상으로 입력해주세요.", false); render(); return; }
   try{
     const ref = db.collection(COL_USERS).doc(userid);
@@ -1013,7 +1063,7 @@ async function doSignup(userid, password, name){
 }
 
 async function doAdminReset(code, pw1, pw2){
-  if(code !== ADMIN_RECOVERY_CODE){ showAuthMsg("복구 코드가 일치하지 않습니다.", false); render(); return; }
+  if ((await sha256Hex('recovery:' + code)) !== ADMIN_RECOVERY_HASH){ showAuthMsg("복구 코드가 일치하지 않습니다.", false); render(); return; }
   if(!pw1 || pw1.length < 4){ showAuthMsg("비밀번호는 4자 이상으로 입력해주세요.", false); render(); return; }
   if(pw1 !== pw2){ showAuthMsg("새 비밀번호가 서로 일치하지 않습니다.", false); render(); return; }
   try{
@@ -1069,7 +1119,7 @@ async function loadAdminUsers(){
 }
 async function loadAdminScores(){
   if(!db) return;
-  const snap = await db.collection(COL_SCORES).orderBy('date','desc').limit(200).get();
+  const snap = await db.collection(COL_SCORES).orderBy('date','desc').limit(5000).get();
   state.adminScores = snap.docs.map(d=>d.data());
 }
 async function approveUser(id){
@@ -1287,8 +1337,7 @@ async function boot(){
     state.view = "auth"; state.authMode = "login";
     render();
   }catch(e){
-    console.error(e);
-    state.view = "config"; render();
+    showBootError(e);
   }
 }
 
